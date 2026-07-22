@@ -7,6 +7,7 @@
   "scripts": {
     "compile": "node scripts/compile.cjs",
     "deploy": "node scripts/deploy.cjs",
+    "deploy:burner": "node scripts/deploy-burner.cjs",
     "dev": "vite web",
     "build": "vite build web",
     "preview": "vite preview web"

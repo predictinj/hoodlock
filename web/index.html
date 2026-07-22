@@ -62,6 +62,7 @@
   label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.03em}
   input,select{width:100%;font-family:var(--fd);font-size:15px;font-weight:600;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#0f1712;color:var(--ink)}
   input:focus,select:focus{outline:none;border-color:var(--green2)}
+  input:disabled{opacity:.4;cursor:not-allowed}
   .row{display:flex;gap:12px;flex-wrap:wrap} .row>*{flex:1;min-width:160px}
   .hint{font-size:12px;color:var(--muted);margin-top:6px}
   .msg{margin-top:14px;font-size:14px;font-weight:600;min-height:20px}
@@ -98,6 +99,10 @@
   .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
   .chip-dur{font-size:12px;font-weight:800;padding:7px 12px;border-radius:9px;background:#16211a;border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:.14s;user-select:none}
   .chip-dur:hover{transform:translateY(-1px)} .chip-dur.on{border-color:var(--green2);color:var(--ink);background:var(--panel2)}
+  .chip-dur.burn{border-color:rgba(224,88,77,.45);color:#e89a90}
+  .chip-dur.burn.on{border-color:var(--bad);color:#ffb9b1;background:rgba(224,88,77,.14)}
+  .btn.primary.burning{background:linear-gradient(180deg,#e0584d,#a83a31);color:#fff;box-shadow:0 8px 20px rgba(224,88,77,.3)}
+  .pill.burned{background:rgba(224,88,77,.15);color:#ffb9b1}
   /* shareable proof page */
   .proof-rows{display:flex;flex-direction:column;gap:1px;margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
   .proof-rows>div{display:flex;justify-content:space-between;gap:14px;padding:12px 14px;background:var(--panel2);font-size:14px;flex-wrap:wrap;align-items:center}
@@ -137,8 +142,8 @@
 
   <!-- LOCK -->
   <section id="tab-lock" class="card">
-    <h2>Create a lock</h2>
-    <div class="sub">Lock any Robinhood tokens or LP until a date you choose.</div>
+    <h2 id="lockTitle">Create a lock</h2>
+    <div class="sub" id="lockSub">Lock any Robinhood tokens or LP until a date you choose.</div>
     <label>Token / LP contract address</label>
     <input id="tokenAddr" placeholder="0x…" spellcheck="false" />
     <div id="tokenInfo" class="hint"></div>
@@ -153,12 +158,12 @@
         <input id="unlockDate" type="datetime-local" />
         <div class="chips" id="lockPresets">
           <span class="chip-dur" data-days="7">7 days</span>
-          <span class="chip-dur" data-days="30">1 month</span>
           <span class="chip-dur" data-days="90">3 months</span>
           <span class="chip-dur" data-days="180">6 months</span>
           <span class="chip-dur" data-days="365">1 year</span>
+          <span class="chip-dur burn" id="burnChip">🔥 FOREVER · BURN</span>
         </div>
-        <div class="hint">Can only be extended later, never shortened.</div>
+        <div class="hint" id="durHint">Can only be extended later, never shortened.</div>
       </div>
     </div>
     <div style="margin-top:-30px;display:flex;gap:10px;flex-wrap:wrap">
@@ -189,7 +194,7 @@
 
   <footer>
     HoodLock · contract <a id="ctLink" target="_blank">on Blockscout</a> · Robinhood Chain (4663)<br/>
-    Locked tokens can only be withdrawn by the lock owner after the unlock time.
+    Locked tokens can only be withdrawn by the lock owner after the unlock time. Burned tokens go to the dead address and can never be recovered.
   </footer>
 </div>
 <div id="walletModal" class="modal" style="display:none">

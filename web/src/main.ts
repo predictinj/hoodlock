@@ -4,6 +4,7 @@ import {
 } from "viem";
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
+import BURNER_ABI from "./burner-abi.json";
 
 /* ---------- chain + clients ---------- */
 const CHAIN = defineChain({
@@ -13,6 +14,8 @@ const CHAIN = defineChain({
 });
 const pub = createPublicClient({ chain: CHAIN, transport: http(cfg.rpc) });
 const LOCKER = getAddress(cfg.locker) as `0x${string}`;
+// The burner is optional — until it's deployed (config.burner empty) the burn UI stays hidden.
+const BURNER = (cfg as any).burner && isAddress((cfg as any).burner) ? (getAddress((cfg as any).burner) as `0x${string}`) : null;
 const EXP = cfg.explorer;
 
 const ERC20 = [
@@ -103,7 +106,7 @@ function onConnected() {
   closeWalletModal();
   ($("connectBtn") as HTMLButtonElement).innerHTML = `<span class="wallet">${short(account)}</span>`;
   ($("lockBtn") as HTMLButtonElement).disabled = false;
-  ($("lockBtn") as HTMLButtonElement).textContent = "Lock tokens";
+  updateLockBtn();
   refreshToken(); renderMine();
 }
 function disconnect() {
@@ -111,7 +114,7 @@ function disconnect() {
   provider = null; wcProvider = null; account = "";
   ($("connectBtn") as HTMLButtonElement).textContent = "Connect Wallet";
   ($("lockBtn") as HTMLButtonElement).disabled = false;   // stays clickable → click opens the wallet popup
-  ($("lockBtn") as HTMLButtonElement).textContent = "Connect wallet to lock";
+  updateLockBtn();
   $("balHint").textContent = ""; renderMine(); closeWalletModal();
 }
 function openWalletModal() {
@@ -187,14 +190,51 @@ async function refreshToken() {
 }
 $("tokenAddr").addEventListener("input", debounce(refreshToken, 400));
 
-// Platform lock fee (native ETH) — read live from the contract so the UI always matches on-chain.
-let lockFee = 0n;
+// Platform fees (native ETH) — read live from the contracts so the UI always matches on-chain.
+let lockFee = 0n, burnFee = 0n;
+function showFeeHint() {
+  const el = document.getElementById("feeHint");
+  if (!el) return;
+  const fee = burnMode ? burnFee : lockFee;
+  el.textContent = fee > 0n ? `Platform fee: ${formatUnits(fee, 18)} ETH per ${burnMode ? "burn" : "lock"}.` : "";
+}
 async function loadFee() {
   try { lockFee = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "fee" }) as bigint; } catch { /* leave 0 */ }
-  const el = document.getElementById("feeHint");
-  if (el) el.textContent = lockFee > 0n ? `Platform fee: ${formatUnits(lockFee, 18)} ETH per lock.` : "";
+  if (BURNER) { try { burnFee = await pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "fee" }) as bigint; } catch { /* leave 0 */ } }
+  showFeeHint();
 }
 loadFee();
+
+/* ---------- burn mode (the FOREVER · BURN chip flips the lock form into a burn form) ---------- */
+let burnMode = false;
+function updateLockBtn() {
+  const btn = $("lockBtn") as HTMLButtonElement;
+  btn.classList.toggle("burning", burnMode && !!account);
+  btn.textContent = !account
+    ? (burnMode ? "Connect wallet to burn" : "Connect wallet to lock")
+    : burnMode ? "🔥 Burn tokens forever" : "Lock tokens";
+}
+function setBurnMode(on: boolean) {
+  burnMode = on;
+  $("burnChip").classList.toggle("on", on);
+  ($("unlockDate") as HTMLInputElement).disabled = on;
+  if (on) {
+    ($("unlockDate") as HTMLInputElement).value = "";
+    $("durHint").innerHTML = `<span style="color:var(--bad);font-weight:700">Burned tokens are destroyed forever — this cannot be undone.</span>`;
+    $("lockTitle").textContent = "Burn tokens forever";
+    $("lockSub").textContent = "Send tokens to the dead address and get shareable on-chain proof of the burn.";
+  } else {
+    $("durHint").textContent = "Can only be extended later, never shortened.";
+    $("lockTitle").textContent = "Create a lock";
+    $("lockSub").textContent = "Lock any Robinhood tokens or LP until a date you choose.";
+  }
+  showFeeHint(); updateLockBtn();
+}
+if (!BURNER) $("burnChip").style.display = "none";
+$("burnChip").addEventListener("click", () => {
+  document.querySelectorAll("#lockPresets .chip-dur").forEach((x) => x.classList.remove("on"));
+  setBurnMode(true);
+});
 
 $("lockBtn").addEventListener("click", async () => {
   const msg = $("lockMsg"); msg.className = "msg";
@@ -205,6 +245,7 @@ $("lockBtn").addEventListener("click", async () => {
     const amount = parseUnits(amtStr || "0", tokenMeta.decimals);
     if (amount <= 0n) throw new Error("Enter an amount.");
     if (amount > tokenMeta.bal) throw new Error("Amount exceeds your balance.");
+    if (burnMode) { await doBurn(amount, amtStr, msg); return; }
     const dt = ($("unlockDate") as HTMLInputElement).value;
     if (!dt) throw new Error("Pick an unlock date.");
     const unlockTime = BigInt(Math.floor(new Date(dt).getTime() / 1000));
@@ -232,6 +273,38 @@ $("lockBtn").addEventListener("click", async () => {
   } catch (e: any) { msg.className = "msg bad"; msg.textContent = e?.shortMessage || e?.message || "Failed."; ($("lockBtn") as HTMLButtonElement).disabled = false; }
 });
 
+/* ---------- BURN (same form, same fee — tokens go straight to 0x…dEaD) ---------- */
+async function doBurn(amount: bigint, amtStr: string, msg: HTMLElement) {
+  if (!BURNER) throw new Error("Burning isn't enabled yet.");
+  const t = tokenMeta!;
+  const ok = window.confirm(`⚠️ You are about to burn ${amtStr} ${t.symbol} FOREVER.\n\nThe tokens go straight to the dead address and can NEVER be recovered. Continue?`);
+  if (!ok) return;
+  const btn = $("lockBtn") as HTMLButtonElement; btn.disabled = true;
+  try {
+    const allow = await pub.readContract({ address: t.addr, abi: ERC20, functionName: "allowance", args: [account as `0x${string}`, BURNER] }) as bigint;
+    if (allow < amount) {
+      msg.textContent = "Approving… confirm in wallet";
+      const ah = await send(t.addr, encodeFunctionData({ abi: ERC20, functionName: "approve", args: [BURNER, amount] }));
+      msg.innerHTML = `Approving… <span class="spin"></span>`; await waitTx(ah);
+    }
+    msg.textContent = "Burning… confirm in wallet";
+    const bh = await send(BURNER, encodeFunctionData({ abi: BURNER_ABI as any, functionName: "burn", args: [t.addr, amount] }), burnFee);
+    msg.innerHTML = `Burning… <span class="spin"></span>`;
+    await waitTx(bh);
+    // our newest burn is the last id in burnsByBurner — that's the shareable proof
+    let proof = "";
+    try {
+      const ids = await pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [account as `0x${string}`] }) as bigint[];
+      if (ids.length) proof = ` · <a href="?burn=${Number(ids[ids.length - 1])}">Open the burn proof</a>`;
+    } catch { /* proof link is a nice-to-have */ }
+    msg.className = "msg ok";
+    msg.innerHTML = `🔥 Burned forever! <a href="${EXP}/tx/${bh}" target="_blank">view tx</a>${proof}`;
+    ($("amount") as HTMLInputElement).value = "";
+    burnTxMapPromise = null;   // refresh so the new burn's tx link resolves
+    refreshToken(); renderMine();
+  } finally { btn.disabled = false; }
+}
+
 // Duration presets (lock form + extend modal) via event delegation — robust regardless of
 // render timing. Clicking a chip fills the matching datetime picker and highlights the chip.
 document.addEventListener("click", (e) => {
@@ -242,6 +315,7 @@ document.addEventListener("click", (e) => {
   group?.querySelectorAll(".chip-dur").forEach((x) => x.classList.remove("on"));
   chip.classList.add("on");
   if (group?.id === "lockPresets") {
+    setBurnMode(false);   // picking a duration always leaves burn mode
     ($("unlockDate") as HTMLInputElement).value = toLocalInput(new Date(Date.now() + days * 86400000));
   } else if (group?.id === "extendPresets") {
     ($("extendDate") as HTMLInputElement).value = toLocalInput(new Date((extendBase + days * 86400) * 1000));
@@ -279,6 +353,28 @@ function loadLockTxMap(): Promise<Map<number, string>> {
 async function txForLock(id: number): Promise<string | null> {
   return (await loadLockTxMap()).get(id) || null;
 }
+// Same trick for burns: the Burned event links each burn id to its transaction.
+const BURNED_EVENT = { type: "event", name: "Burned", inputs: [
+  { name: "id", type: "uint256", indexed: true }, { name: "burner", type: "address", indexed: true },
+  { name: "token", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false } ] } as const;
+let burnTxMapPromise: Promise<Map<number, string>> | null = null;
+function loadBurnTxMap(): Promise<Map<number, string>> {
+  if (!burnTxMapPromise) {
+    burnTxMapPromise = (async () => {
+      const map = new Map<number, string>();
+      if (!BURNER) return map;
+      try {
+        const logs = await pub.getLogs({ address: BURNER, event: BURNED_EVENT as any, fromBlock: 0n, toBlock: "latest" });
+        for (const lg of logs) { const bid = Number((lg as any).args.id); if (lg.transactionHash) map.set(bid, lg.transactionHash); }
+      } catch { burnTxMapPromise = null; /* let a later render retry */ }
+      return map;
+    })();
+  }
+  return burnTxMapPromise;
+}
+async function txForBurn(id: number): Promise<string | null> {
+  return (await loadBurnTxMap()).get(id) || null;
+}
 const metaCache = new Map<string, { symbol: string; decimals: number }>();
 async function tokMeta(addr: string) {
   if (metaCache.has(addr)) return metaCache.get(addr)!;
@@ -307,14 +403,34 @@ async function lockCard(l: LockRow, mine: boolean): Promise<string> {
     <div class="meta">Lock #${l.id} · token ${l.token}<br/>owner ${l.owner} · unlock ${when}</div>
     <div class="acts">${acts.join("")}</div></div>`;
 }
+/* ---------- burn rendering ---------- */
+type BurnRow = { id: number; burner: string; token: string; amount: bigint; timestamp: number };
+async function readBurn(id: number): Promise<BurnRow> {
+  const b: any = await pub.readContract({ address: BURNER!, abi: BURNER_ABI as any, functionName: "getBurn", args: [BigInt(id)] });
+  return { id, burner: getAddress(b.burner), token: getAddress(b.token), amount: b.amount as bigint, timestamp: Number(b.timestamp) };
+}
+async function burnCard(b: BurnRow): Promise<string> {
+  const m = await tokMeta(b.token);
+  const when = new Date(b.timestamp * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC";
+  const tx = await txForBurn(b.id);
+  const acts: string[] = [];
+  if (tx) acts.push(`<a class="btn ghost" style="padding:7px 12px" href="${EXP}/tx/${tx}" target="_blank">View burn tx</a>`);
+  acts.push(`<a class="btn ghost" style="padding:7px 12px" href="${EXP}/address/${BURNER}?tab=contract" target="_blank">Contract</a>`);
+  acts.push(`<button class="btn primary" style="padding:7px 12px" data-shareburn="${b.id}">Share proof</button>`);
+  return `<div class="lock"><div class="top"><span class="amt">Burned: ${fmt(b.amount, m.decimals)} $${escape(m.symbol)}</span><span class="pill burned">🔥 burned forever</span></div>
+    <div class="meta">Burn #${b.id} · token ${b.token}<br/>burner ${b.burner} · burned ${when}</div>
+    <div class="acts">${acts.join("")}</div></div>`;
+}
+
 function wireActions(container: HTMLElement) {
   container.querySelectorAll<HTMLButtonElement>("[data-withdraw]").forEach((b) => b.addEventListener("click", () => withdraw(Number(b.dataset.withdraw))));
   container.querySelectorAll<HTMLButtonElement>("[data-extend]").forEach((b) => b.addEventListener("click", () => extend(Number(b.dataset.extend))));
-  container.querySelectorAll<HTMLButtonElement>("[data-share]").forEach((b) => b.addEventListener("click", async () => {
-    const url = `${location.origin}${location.pathname}?lock=${b.dataset.share}`;
+  const copyProof = async (b: HTMLButtonElement, url: string) => {
     try { await navigator.clipboard.writeText(url); const t = b.innerHTML; b.textContent = "Copied ✓"; setTimeout(() => (b.innerHTML = t), 1600); }
     catch { prompt("Copy this proof link:", url); }
-  }));
+  };
+  container.querySelectorAll<HTMLButtonElement>("[data-share]").forEach((b) => b.addEventListener("click", () => copyProof(b, `${location.origin}${location.pathname}?lock=${b.dataset.share}`)));
+  container.querySelectorAll<HTMLButtonElement>("[data-shareburn]").forEach((b) => b.addEventListener("click", () => copyProof(b, `${location.origin}${location.pathname}?burn=${b.dataset.shareburn}`)));
 }
 
 /* ---------- shareable public proof page (?lock=<id>) — works without a wallet ---------- */
@@ -346,6 +462,45 @@ async function showLockProof(id: number) {
     <div class="proof-links">
       ${tx ? `<a class="btn primary" href="${EXP}/tx/${tx}" target="_blank">✔ Confirm the lock transaction on Blockscout →</a>` : ""}
       <a class="btn ghost" href="${EXP}/address/${LOCKER}?tab=contract" target="_blank">Read the verified locker contract</a>
+    </div>
+    <div style="text-align:center;margin-top:18px"><a href="${location.pathname}">← Open HoodLock</a></div>`;
+}
+
+/* ---------- shareable public burn proof page (?burn=<id>) — works without a wallet ---------- */
+async function showBurnProof(id: number) {
+  (document.querySelector(".tabs") as HTMLElement).style.display = "none";
+  (document.querySelector(".hero") as HTMLElement).style.display = "none";
+  tabs.forEach((n) => ($(`tab-${n}`).style.display = "none"));
+  const box = $("lockProof"); box.style.display = "";
+  box.innerHTML = `<div class="empty">Loading burn #${id}…</div>`;
+  let b: BurnRow;
+  try {
+    b = await readBurn(id);
+    if (!b.timestamp) throw new Error("empty");   // getBurn returns zeros for unknown ids
+  } catch { box.innerHTML = `<div class="empty">Burn #${id} not found on this chain.</div>`; return; }
+  const m = await tokMeta(b.token);
+  const tx = await txForBurn(id);
+  const when = new Date(b.timestamp * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC";
+  let pct = "";
+  try {
+    const supply = await pub.readContract({ address: b.token as `0x${string}`, abi: ERC20, functionName: "totalSupply" }) as bigint;
+    if (supply > 0n) pct = (Number((b.amount * 10n ** 10n) / supply) / 1e8).toLocaleString("en-US", { maximumFractionDigits: 4 }) + "% of total supply";
+  } catch { /* supply row is optional */ }
+  box.innerHTML = `
+    <div style="text-align:center;margin-bottom:8px"><span class="pill burned">🔥 burned forever</span></div>
+    <h2 style="text-align:center;font-size:24px">${fmt(b.amount, m.decimals)} ${escape(m.symbol)} burned</h2>
+    <div class="sub" style="text-align:center">HoodLock · Burn #${id} · Robinhood Chain — destroyed forever, verify every field on-chain below.</div>
+    <div class="proof-rows">
+      <div><span>Amount burned</span><b>${fmt(b.amount, m.decimals)} ${escape(m.symbol)}</b></div>
+      ${pct ? `<div><span>Share of supply</span><b>${pct}</b></div>` : ""}
+      <div><span>Token</span><code>${b.token}</code></div>
+      <div><span>Burned by</span><code>${b.burner}</code></div>
+      <div><span>Burned at</span><b>${when}</b></div>
+      <div><span>Sent to</span><b>the dead address — irrecoverable</b></div>
+    </div>
+    <div class="proof-links">
+      ${tx ? `<a class="btn primary" href="${EXP}/tx/${tx}" target="_blank">✔ Confirm the burn transaction on Blockscout →</a>` : ""}
+      <a class="btn ghost" href="${EXP}/address/${BURNER}?tab=contract" target="_blank">Read the verified burner contract</a>
     </div>
     <div style="text-align:center;margin-top:18px"><a href="${location.pathname}">← Open HoodLock</a></div>`;
 }
@@ -394,10 +549,23 @@ async function renderMine() {
   const box = $("mineList");
   if (!account) { box.innerHTML = `<div class="empty">Connect your wallet to see your locks.</div>`; return; }
   box.innerHTML = `<div class="empty">Loading…</div>`;
-  const ids: bigint[] = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByOwner", args: [account as `0x${string}`] }) as bigint[];
-  if (!ids.length) { box.innerHTML = `<div class="empty">You have no locks yet.</div>`; return; }
-  const rows = await Promise.all(ids.map((i) => readLock(Number(i))));
-  box.innerHTML = (await Promise.all(rows.reverse().map((r) => lockCard(r, true)))).join("");
+  const [ids, burnIds] = await Promise.all([
+    pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByOwner", args: [account as `0x${string}`] }) as Promise<bigint[]>,
+    BURNER
+      ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [account as `0x${string}`] }) as Promise<bigint[]>).catch(() => [] as bigint[])
+      : Promise.resolve([] as bigint[]),
+  ]);
+  if (!ids.length && !burnIds.length) { box.innerHTML = `<div class="empty">You have no locks yet.</div>`; return; }
+  let html = "";
+  if (ids.length) {
+    const rows = await Promise.all(ids.map((i) => readLock(Number(i))));
+    html += (await Promise.all(rows.reverse().map((r) => lockCard(r, true)))).join("");
+  }
+  if (burnIds.length) {
+    const burns = await Promise.all(burnIds.map((i) => readBurn(Number(i))));
+    html += `<div class="sub" style="margin:6px 0 -4px">My burns</div>` + (await Promise.all(burns.reverse().map(burnCard))).join("");
+  }
+  box.innerHTML = html;
   wireActions(box);
 }
 
@@ -416,10 +584,23 @@ $("searchBtn").addEventListener("click", async () => {
   if (!raw) return loadExplore();
   if (!isAddress(raw)) { box.innerHTML = `<div class="empty">Enter a valid address.</div>`; return; }
   box.innerHTML = `<div class="empty">Searching…</div>`;
-  const ids: bigint[] = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByToken", args: [getAddress(raw)] }) as bigint[];
-  if (!ids.length) { box.innerHTML = `<div class="empty">No locks found for this token.</div>`; return; }
-  const rows = await Promise.all(ids.map((i) => readLock(Number(i))));
-  box.innerHTML = (await Promise.all(rows.reverse().map((r) => lockCard(r, r.owner === account)))).join("");
+  const [ids, burnIds] = await Promise.all([
+    pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByToken", args: [getAddress(raw)] }) as Promise<bigint[]>,
+    BURNER
+      ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByToken", args: [getAddress(raw)] }) as Promise<bigint[]>).catch(() => [] as bigint[])
+      : Promise.resolve([] as bigint[]),
+  ]);
+  if (!ids.length && !burnIds.length) { box.innerHTML = `<div class="empty">No locks or burns found for this token.</div>`; return; }
+  let html = "";
+  if (ids.length) {
+    const rows = await Promise.all(ids.map((i) => readLock(Number(i))));
+    html += (await Promise.all(rows.reverse().map((r) => lockCard(r, r.owner === account)))).join("");
+  }
+  if (burnIds.length) {
+    const burns = await Promise.all(burnIds.map((i) => readBurn(Number(i))));
+    html += `<div class="sub" style="margin:6px 0 -4px">Burns</div>` + (await Promise.all(burns.reverse().map(burnCard))).join("");
+  }
+  box.innerHTML = html;
   wireActions(box);
 });
 
@@ -427,6 +608,8 @@ $("searchBtn").addEventListener("click", async () => {
 function debounce<T extends (...a: any[]) => void>(fn: T, ms: number) { let t: any; return (...a: any[]) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 function escape(s: string) { return s.replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]!)); }
 
-// A ?lock=<id> deep link opens the public proof page for anyone — no wallet required.
+// A ?lock=<id> / ?burn=<id> deep link opens the public proof page for anyone — no wallet required.
 const _lockParam = new URLSearchParams(location.search).get("lock");
+const _burnParam = new URLSearchParams(location.search).get("burn");
 if (_lockParam && /^\d+$/.test(_lockParam)) showLockProof(Number(_lockParam));
+else if (_burnParam && /^\d+$/.test(_burnParam) && BURNER) showBurnProof(Number(_burnParam));
