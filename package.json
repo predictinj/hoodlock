@@ -1,0 +1,25 @@
+{
+  "name": "hoodlock",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Trustless liquidity & token locker for Robinhood Chain",
+  "scripts": {
+    "compile": "node scripts/compile.cjs",
+    "deploy": "node scripts/deploy.cjs",
+    "dev": "vite web",
+    "build": "vite build web",
+    "preview": "vite preview web"
+  },
+  "dependencies": {
+    "viem": "^2.21.0",
+    "@walletconnect/ethereum-provider": "^2.17.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0"
+  },
+  "optionalDependencies": {
+    "solc": "^0.8.35"
+  }
+}

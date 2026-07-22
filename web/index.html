@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HoodLock — liquidity & token locker for Robinhood Chain</title>
+<meta name="description" content="Lock LP or tokens on Robinhood Chain and prove it on-chain. Trustless, verifiable, first on Robinhood Chain." />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta property="og:site_name" content="HoodLock" />
+<meta property="og:title" content="HoodLock — lock tokens, build trust" />
+<meta property="og:description" content="The safest liquidity & token locker on Robinhood Chain. Lock LP or tokens until a date you choose and share a verifiable on-chain proof." />
+<meta property="og:image" content="https://hoodlock.tech/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://hoodlock.tech/" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@HoodLockRH" />
+<meta name="twitter:creator" content="@HoodLockRH" />
+<meta name="twitter:title" content="HoodLock — lock tokens, build trust" />
+<meta name="twitter:description" content="The safest liquidity & token locker on Robinhood Chain. Lock and prove it on-chain." />
+<meta name="twitter:image" content="https://hoodlock.tech/og-image.png" />
+<link rel="canonical" href="https://hoodlock.tech/" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"HoodLock","url":"https://hoodlock.tech/","description":"The safest liquidity & token locker on Robinhood Chain — lock LP or tokens until a chosen date and share a verifiable on-chain proof."}
+</script>
+<style>
+  :root{
+    --bg:#0e1512; --panel:#152019; --panel2:#1b2a20; --line:#264031;
+    --green:#00C805; --green2:#2fae3a; --lime:#6ee27a; --ink:#eaf5ec; --muted:#8fae97; --gold:#e0b24a; --bad:#e0584d;
+    --fd:'Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1200px 600px at 50% -10%,#16261b,var(--bg));color:var(--ink);font-family:var(--fd);line-height:1.5;min-height:100vh}
+  a{color:var(--lime);text-decoration:none} a:hover{text-decoration:underline}
+  .wrap{max-width:920px;margin:0 auto;padding:0 18px}
+  header{display:flex;align-items:center;justify-content:space-between;padding:18px 0;gap:12px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:20px;text-decoration:none;color:var(--ink);cursor:pointer}
+  .brand:hover{text-decoration:none;opacity:.9}
+  .brand .mark{width:38px;height:38px;object-fit:contain;filter:drop-shadow(0 0 9px rgba(0,200,5,.45))}
+  .brand b{color:var(--green)}
+  .brand .wm{display:inline-block;letter-spacing:.01em}
+  .btn{font-family:var(--fd);font-weight:700;font-size:14px;border:none;border-radius:11px;padding:11px 18px;cursor:pointer;transition:.15s;background:#22331f;color:var(--ink)}
+  .btn:hover{transform:translateY(-1px)}
+  .btn.primary{background:linear-gradient(180deg,#00C805,#0f9e1e);color:#062a0a;box-shadow:0 8px 20px rgba(0,200,5,.3)}
+  .btn.ghost{background:#1a251d;border:1px solid var(--line)}
+  .btn:disabled{opacity:.5;cursor:default;transform:none}
+  .hero{text-align:center;padding:30px 0 14px}
+  .hero h1{font-size:clamp(28px,5vw,42px);font-weight:800;line-height:1.05}
+  .hero h1 .g{color:var(--green)}
+  .hero p{color:var(--muted);margin-top:10px;font-size:16px}
+  .badge{display:inline-block;margin-top:12px;font-size:12px;font-weight:800;color:var(--gold);background:rgba(224,178,74,.12);border:1px solid rgba(224,178,74,.35);border-radius:20px;padding:5px 12px}
+  .tabs{display:flex;gap:6px;justify-content:center;margin:24px 0 16px;flex-wrap:wrap}
+  .tab{font-weight:700;font-size:14px;padding:9px 16px;border-radius:11px;background:#16211a;border:1px solid var(--line);color:var(--muted);cursor:pointer}
+  .tab.on{background:var(--panel2);color:var(--ink);border-color:var(--green2)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+  .card h2{font-size:19px;margin-bottom:4px}
+  .card .sub{color:var(--muted);font-size:13.5px;margin-bottom:16px}
+  label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.03em}
+  input,select{width:100%;font-family:var(--fd);font-size:15px;font-weight:600;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#0f1712;color:var(--ink)}
+  input:focus,select:focus{outline:none;border-color:var(--green2)}
+  .row{display:flex;gap:12px;flex-wrap:wrap} .row>*{flex:1;min-width:160px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .msg{margin-top:14px;font-size:14px;font-weight:600;min-height:20px}
+  .msg.ok{color:var(--lime)} .msg.bad{color:var(--bad)}
+  .locklist{display:flex;flex-direction:column;gap:12px}
+  .lock{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
+  .lock .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .lock .amt{font-weight:800;font-size:16px}
+  .lock .pill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px}
+  .pill.locked{background:rgba(224,178,74,.15);color:var(--gold)}
+  .pill.open{background:rgba(0,200,5,.15);color:var(--lime)}
+  .lock .meta{font-size:12.5px;color:var(--muted);margin-top:7px;word-break:break-all;font-family:ui-monospace,monospace}
+  .lock .acts{margin-top:11px;display:flex;gap:8px;flex-wrap:wrap}
+  .empty{color:var(--muted);text-align:center;padding:26px 0;font-size:14px}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 0}
+  .wallet{font-family:ui-monospace,monospace;font-size:13px}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .btn.danger{background:#3a1f1c;color:#f0a8a0}
+  /* wallet modal */
+  .modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(3px)}
+  .modal-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;width:370px;max-width:100%;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:17px;margin-bottom:15px}
+  .xbtn{background:none;border:none;color:var(--muted);font-size:19px;cursor:pointer;line-height:1}
+  .wchoices{display:flex;flex-direction:column;gap:9px}
+  .wchoice{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;background:#16211a;border:1px solid var(--line);cursor:pointer;transition:.14s;font-weight:700}
+  .wchoice:hover{border-color:var(--green2);transform:translateY(-1px)}
+  .wchoice img{width:26px;height:26px;border-radius:7px}
+  .wchoice .ic{width:26px;height:26px;border-radius:7px;background:#22331f;display:grid;place-items:center;font-weight:800;color:var(--lime)}
+  .wchoice .badge2{margin-left:auto;font-size:11px;font-weight:800;color:var(--muted)}
+  .wconn-addr{font-family:ui-monospace,monospace;font-size:13px;word-break:break-all;background:#0f1712;border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:14px}
+  .wconn-acts{display:flex;gap:9px;flex-wrap:wrap}.wconn-acts .btn{flex:1;min-width:130px;text-align:center}
+  /* duration preset chips */
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .chip-dur{font-size:12px;font-weight:800;padding:7px 12px;border-radius:9px;background:#16211a;border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:.14s;user-select:none}
+  .chip-dur:hover{transform:translateY(-1px)} .chip-dur.on{border-color:var(--green2);color:var(--ink);background:var(--panel2)}
+  /* shareable proof page */
+  .proof-rows{display:flex;flex-direction:column;gap:1px;margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .proof-rows>div{display:flex;justify-content:space-between;gap:14px;padding:12px 14px;background:var(--panel2);font-size:14px;flex-wrap:wrap;align-items:center}
+  .proof-rows>div>span{color:var(--muted);font-weight:700}
+  .proof-rows code{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}
+  .proof-links{display:flex;flex-direction:column;gap:9px}.proof-links .btn{text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="/" title="HoodLock — home">
+      <img class="mark" src="/hoodlock-logo.png" alt="HoodLock" />
+      <span class="wm">Hood<b>Lock</b></span>
+    </a>
+    <div style="display:flex;align-items:center;gap:10px">
+      <a href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener" title="HoodLock on X" aria-label="HoodLock on X" style="display:grid;place-items:center;width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:#16211a;color:var(--ink);flex:none">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      </a>
+      <button id="connectBtn" class="btn primary">Connect Wallet</button>
+    </div>
+  </header>
+
+  <div class="hero">
+    <h1>Lock liquidity. <span class="g">Prove it.</span></h1>
+    <p>The safest liquidity & token locker on Robinhood Chain. Lock LP or any token, get shareable on-chain proof.</p>
+    <span class="badge">🔒 Verified contract · trustless · no admin access to your funds</span>
+  </div>
+
+  <section id="lockProof" class="card" style="display:none;margin-bottom:16px"></section>
+
+  <div class="tabs">
+    <div class="tab on" data-tab="lock">Lock tokens</div>
+    <div class="tab" data-tab="mine">My locks</div>
+    <div class="tab" data-tab="explore">Explore / Verify</div>
+  </div>
+
+  <!-- LOCK -->
+  <section id="tab-lock" class="card">
+    <h2>Create a lock</h2>
+    <div class="sub">Lock any Robinhood tokens or LP until a date you choose.</div>
+    <label>Token / LP contract address</label>
+    <input id="tokenAddr" placeholder="0x…" spellcheck="false" />
+    <div id="tokenInfo" class="hint"></div>
+    <div class="row">
+      <div>
+        <label>Amount</label>
+        <input id="amount" placeholder="0.0" inputmode="decimal" />
+        <div class="hint" id="balHint"></div>
+      </div>
+      <div>
+        <label>Unlock date</label>
+        <input id="unlockDate" type="datetime-local" />
+        <div class="chips" id="lockPresets">
+          <span class="chip-dur" data-days="7">7 days</span>
+          <span class="chip-dur" data-days="30">1 month</span>
+          <span class="chip-dur" data-days="90">3 months</span>
+          <span class="chip-dur" data-days="180">6 months</span>
+          <span class="chip-dur" data-days="365">1 year</span>
+        </div>
+        <div class="hint">Can only be extended later, never shortened.</div>
+      </div>
+    </div>
+    <div style="margin-top:-30px;display:flex;gap:10px;flex-wrap:wrap">
+      <button id="lockBtn" class="btn primary">Connect wallet to lock</button>
+    </div>
+    <div class="hint" id="feeHint" style="margin:8px 0 0"></div>
+    <div id="lockMsg" class="msg"></div>
+  </section>
+
+  <!-- MY LOCKS -->
+  <section id="tab-mine" class="card" style="display:none">
+    <h2>My locks</h2>
+    <div class="sub">Locks owned by your connected wallet.</div>
+    <div id="mineList" class="locklist"><div class="empty">Connect your wallet to see your locks.</div></div>
+  </section>
+
+  <!-- EXPLORE -->
+  <section id="tab-explore" class="card" style="display:none">
+    <h2>Explore &amp; verify</h2>
+    <div class="sub">Every lock is public. Search by token/LP address, or browse the latest — then share the proof link.</div>
+    <label>Search by token / LP address</label>
+    <div class="row" style="align-items:flex-end">
+      <input id="searchAddr" placeholder="0x…  (leave blank for latest)" spellcheck="false" />
+      <button id="searchBtn" class="btn ghost" style="flex:0 0 auto;min-width:120px">Search</button>
+    </div>
+    <div id="exploreList" class="locklist" style="margin-top:16px"><div class="empty">Loading latest locks…</div></div>
+  </section>
+
+  <footer>
+    HoodLock · contract <a id="ctLink" target="_blank">on Blockscout</a> · Robinhood Chain (4663)<br/>
+    Locked tokens can only be withdrawn by the lock owner after the unlock time.
+  </footer>
+</div>
+<div id="walletModal" class="modal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-head"><span id="walletModalTitle">Connect a wallet</span><button id="walletModalClose" class="xbtn">✕</button></div>
+    <div id="walletChoices" class="wchoices"></div>
+    <div id="walletConnected" style="display:none"></div>
+  </div>
+</div>
+
+<div id="extendModal" class="modal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-head"><span>Extend lock</span><button id="extendClose" class="xbtn">✕</button></div>
+    <div class="sub" id="extendCurrent" style="color:var(--muted);font-size:13.5px;margin-bottom:14px"></div>
+    <label>New unlock date</label>
+    <input id="extendDate" type="datetime-local" />
+    <div class="chips" id="extendPresets">
+      <span class="chip-dur" data-days="30">+1 month</span>
+      <span class="chip-dur" data-days="90">+3 months</span>
+      <span class="chip-dur" data-days="180">+6 months</span>
+      <span class="chip-dur" data-days="365">+1 year</span>
+    </div>
+    <div class="wconn-acts" style="margin-top:18px">
+      <button id="extendCancel" class="btn ghost">Cancel</button>
+      <button id="extendConfirm" class="btn primary">Extend lock</button>
+    </div>
+    <div id="extendMsg" class="msg"></div>
+  </div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "chainId": 4663,
+  "rpc": "https://rpc.mainnet.chain.robinhood.com",
+  "explorer": "https://robinhoodchain.blockscout.com",
+  "locker": "0xd0f7d8c6e9f6d80c297bebe4f7fd1b9c8125c32f"
+}
