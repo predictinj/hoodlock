@@ -37,6 +37,12 @@ const wc = createWalletClient({ account, chain, transport: http(cfg.rpc) });
   console.log("deploy tx:", hash);
   const rc = await pc.waitForTransactionReceipt({ hash, timeout: 120000 });
   console.log("status:", rc.status, "| RobinhoodBurner:", rc.contractAddress);
+  // Hand admin to the fee collector so the (throwaway) deployer key is never needed again.
+  if (collector.toLowerCase() !== account.address.toLowerCase()) {
+    const ah = await wc.writeContract({ account, chain, address: rc.contractAddress, abi, functionName: "setAdmin", args: [collector] });
+    const arc = await pc.waitForTransactionReceipt({ hash: ah, timeout: 120000 });
+    console.log("setAdmin →", collector, "| status:", arc.status);
+  }
   cfg.burner = rc.contractAddress;
   fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
   console.log("wrote web/src/config.json");
