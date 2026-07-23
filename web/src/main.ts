@@ -218,9 +218,8 @@ function setBurnMode(on: boolean) {
   $("locksLede").textContent = on
     ? "Send tokens to the dead address and get shareable on-chain proof of the burn."
     : "Lock any Robinhood token or LP until a date you choose. Extend-only — never shortenable.";
-  $("lockNoteText").innerHTML = on
-    ? `<b style="color:#ff8a8a">Irreversible.</b> Burned tokens go straight to the dead address and can never be recovered — by anyone. The burn gets a public proof page you can share.`
-    : `<b>Extend-only.</b> Unlock dates can be pushed later, but never shortened. Locked tokens can only be withdrawn by the lock owner after the unlock time.`;
+  $("lockNote").style.display = on ? "" : "none";
+  $("lockNoteText").innerHTML = `<b style="color:#ff8a8a">Irreversible.</b> Burned tokens go straight to the dead address and can never be recovered — by anyone. The burn gets a public proof page you can share.`;
   $("kDate").textContent = on ? "Destination" : "Unlocks";
   $("kDuration").textContent = "Duration";
   if (on) document.querySelectorAll("#lockPresets .chip-dur:not(#burnChip)").forEach((x) => x.classList.remove("on"));
