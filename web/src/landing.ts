@@ -4,7 +4,7 @@
 import { createPublicClient, http, defineChain, formatUnits, getAddress } from "viem";
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
-import { computeTvl, fmtUsd } from "./tvl";
+import { amountValueUsd, computeTvl, fmtUsd } from "./tvl";
 
 const CHAIN = defineChain({
   id: cfg.chainId, name: "Robinhood Chain",
@@ -31,6 +31,23 @@ document.querySelectorAll<HTMLElement>(".cell,.stepc").forEach((c) => c.addEvent
   c.style.setProperty("--mx", `${e.clientX - r.left}px`);
   c.style.setProperty("--my", `${e.clientY - r.top}px`);
 }));
+
+
+/* token-loggor från DEXScreener — samma cache-nycklar som appen */
+async function tokenLogo(addr: string): Promise<string | null> {
+  const k = addr.toLowerCase();
+  try {
+    const hit = localStorage.getItem(`hl_logo_${k}`);
+    if (hit !== null) return hit === "none" ? null : hit;
+  } catch { /* */ }
+  try {
+    const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${k}`);
+    const j: any = await r.json();
+    const url = (j.pairs || []).map((p: any) => p?.info?.imageUrl).find(Boolean) || null;
+    try { localStorage.setItem(`hl_logo_${k}`, url ?? "none"); } catch { /* */ }
+    return url;
+  } catch { return null; }
+}
 
 /* ---------- contract links ---------- */
 const contractUrl = `${cfg.explorer}/address/${LOCKER}?tab=contract`;
@@ -141,9 +158,18 @@ async function loadLive() {
       const tapeHTML = items.map((t) =>
         `<a class="tape-item" href="/app?lock=${t.id}"><span class="lk">🔒</span><span class="sym">$${esc(t.sym)}</span><span>${t.amt} locked</span><span class="dt">until ${dt(t.unlockTime)}</span></a>`).join("");
       $("tape")!.innerHTML = tapeHTML + tapeHTML; // duplicated for the seamless -50% loop
-      $("mockRows")!.innerHTML = items.slice(0, 2).map((t) => `
-        <div class="wm-row"><span class="ico" style="background:#00e05a">${esc(t.sym.slice(0, 2).toUpperCase())}</span>
-        <b>$${esc(t.sym)}</b><span class="mono">${t.amt}</span><span class="pill">🔒 ${dt(t.unlockTime)}</span></div>`).join("");
+      $("mockRows")!.innerHTML = (await Promise.all(items.slice(0, 3).map(async (t) => {
+        const meta = await tokMeta(t.token);
+        const [logo, usd] = await Promise.all([
+          tokenLogo(t.token),
+          amountValueUsd(pub as any, t.token as `0x${string}`, t.amount, meta.decimals).catch(() => null),
+        ]);
+        const img = logo ? `<img src="${esc(logo)}" alt="" loading="lazy" onerror="this.remove()" />` : "";
+        const val = usd !== null && usd > 0 ? fmtUsd(usd) : "";
+        return `
+        <div class="wm-row"><span class="ico" style="background:#00e05a">${esc(t.sym.slice(0, 2).toUpperCase())}${img}</span>
+        <b>$${esc(t.sym)}</b><span class="mono">${t.amt}</span><span class="val">${val}</span><span class="pill">🔒 ${dt(t.unlockTime)}</span></div>`;
+      }))).join("");
 
       // bento proof card ← latest still-locked lock (falls back to latest active)
       const nowPick = Math.floor(Date.now() / 1000);
