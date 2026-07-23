@@ -9,7 +9,7 @@ import {
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
 import BURNER_ABI from "./burner-abi.json";
-import { computeTvl, fmtUsd } from "./tvl";
+import { computeTvl, fmtUsd, tokenPriceUsd, tokenDepthCapUsd } from "./tvl";
 
 /* ---------- chain + clients ---------- */
 const CHAIN = defineChain({
@@ -73,12 +73,12 @@ function notify(msg: string) {
 
 /* ---------- view routing ---------- */
 const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS" };
-function go(view: string) {
+function go(view: string, writeHistory = true) {
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
   $(`view-${view}`).classList.add("active");
   document.querySelectorAll<HTMLElement>(".nav-item").forEach((n) => n.classList.toggle("active", n.dataset.view === view));
   $("viewTitle").textContent = TITLES[view] || view.toUpperCase();
-  if (view !== "proof") { history.replaceState(null, "", location.pathname + "#" + view); }
+  if (view !== "proof" && writeHistory) { history.replaceState(null, "", "/app/" + view); }
   if (view === "explore" && !exploreLoaded) loadExplore();
   if (view === "locks") renderMine();
 }
@@ -149,7 +149,7 @@ function onConnected() {
   ($("connectBtn") as HTMLButtonElement).innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:#03130a;box-shadow:0 0 5px rgba(3,19,10,.6)"></span><span class="wallet">${short(account)}</span>`;
   ($("lockBtn") as HTMLButtonElement).disabled = false;
   walletToks = null; walletToksFor = "";
-  refreshToken(); renderMine(); updateSummary(); loadMyNextUnlock(); loadWalletTokens();
+  refreshToken(); renderMine(); updateSummary(); loadWalletTokens();
   notify(`Wallet connected — ${short(account)}`);
 }
 function disconnect() {
@@ -158,7 +158,6 @@ function disconnect() {
   ($("connectBtn") as HTMLButtonElement).textContent = "Connect Wallet";
   ($("lockBtn") as HTMLButtonElement).disabled = false;
   $("balHint").textContent = "";
-  $("statNext").textContent = "—"; $("statNextSub").textContent = "connect wallet";
   $("yourLocksSub").textContent = "CONNECT WALLET TO MANAGE";
   renderMine(); updateSummary(); closeWalletModal();
 }
@@ -533,8 +532,16 @@ async function tokMeta(addr: string) {
   const m = { symbol: String(symbol), decimals: Number(decimals) }; metaCache.set(addr, m); return m;
 }
 
+/* ---------- per-token USD-pris (cache för tabellrader) ---------- */
+const priceCache = new Map<string, Promise<number | null>>();
+function priceUsdFor(token: string, decimals: number): Promise<number | null> {
+  const k = token.toLowerCase();
+  if (!priceCache.has(k)) priceCache.set(k, tokenPriceUsd(pub as any, token as `0x${string}`, decimals).catch(() => null));
+  return priceCache.get(k)!;
+}
+
 /* ---------- table rendering ---------- */
-async function lockRowHTML(l: LockRow, mine: boolean): Promise<string> {
+async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore" = "mine"): Promise<string> {
   const m = await tokMeta(l.token);
   const now = Math.floor(Date.now() / 1000);
   const unlocked = now >= l.unlockTime;
@@ -555,6 +562,18 @@ async function lockRowHTML(l: LockRow, mine: boolean): Promise<string> {
   if (mine && !l.withdrawn) acts.push(`<button class="btn btn-line btn-sm" data-extend="${l.id}">Extend</button>`);
   acts.push(`<button class="btn btn-line btn-sm" data-share="${l.id}">Share</button>`);
   const sym = escape(m.symbol);
+  if (variant === "explore") {
+    const price = await priceUsdFor(l.token, m.decimals);
+    const tvl = price !== null && price > 0 ? fmtUsd((Number(l.amount) / 10 ** m.decimals) * price) : "—";
+    return `<tr data-proof="${l.id}">
+    <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(l.token)}">${sym.slice(0, 2).toUpperCase()}</span>
+      <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
+    <td>${fmtNum(l.amount, m.decimals)}</td>
+    <td>${dateLabel(l.unlockTime)}</td>
+    <td>${tvl}</td>
+    <td>${status}</td>
+    <td><div class="row-actions">${acts.join("")}</div></td></tr>`;
+  }
   return `<tr data-proof="${l.id}">
     <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(l.token)}">${sym.slice(0, 2).toUpperCase()}</span>
       <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
@@ -567,10 +586,11 @@ async function lockRowHTML(l: LockRow, mine: boolean): Promise<string> {
     <td><div class="row-actions">${acts.join("")}</div></td></tr>`;
 }
 const TABLE_HEAD = `<thead><tr><th>Token</th><th>Amount</th><th>Owner</th><th>Unlocks</th><th>Progress</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>`;
-async function renderTable(box: HTMLElement, rows: LockRow[], mine: boolean, emptyBig: string, emptySmall: string) {
+const TABLE_HEAD_EXPLORE = `<thead><tr><th>Token</th><th>Amount</th><th>Unlocks</th><th>TVL</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>`;
+async function renderTable(box: HTMLElement, rows: LockRow[], mine: boolean, emptyBig: string, emptySmall: string, variant: "mine" | "explore" = "mine") {
   if (!rows.length) { box.innerHTML = `<div class="empty"><div class="big">${emptyBig}</div><div class="small">${emptySmall}</div></div>`; return; }
-  const html = (await Promise.all(rows.map((r) => lockRowHTML(r, mine)))).join("");
-  box.innerHTML = `<table>${TABLE_HEAD}<tbody>${html}</tbody></table>`;
+  const html = (await Promise.all(rows.map((r) => lockRowHTML(r, mine, variant)))).join("");
+  box.innerHTML = `<table>${variant === "explore" ? TABLE_HEAD_EXPLORE : TABLE_HEAD}<tbody>${html}</tbody></table>`;
   wireActions(box);
 }
 function wireActions(container: HTMLElement) {
@@ -579,23 +599,35 @@ function wireActions(container: HTMLElement) {
   container.querySelectorAll<HTMLButtonElement>("[data-extend]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); extend(Number(b.dataset.extend)); }));
   container.querySelectorAll<HTMLButtonElement>("[data-share]").forEach((b) => b.addEventListener("click", async (e) => {
     e.stopPropagation();
-    const url = `${location.origin}${location.pathname}?lock=${b.dataset.share}`;
+    const url = `${location.origin}/app?lock=${b.dataset.share}`;
     try { await navigator.clipboard.writeText(url); notify("Proof link copied — share it anywhere"); }
     catch { prompt("Copy this proof link:", url); }
   }));
   container.querySelectorAll<HTMLElement>("[data-proofburn]").forEach((tr) => tr.addEventListener("click", () => showBurnProof(Number(tr.dataset.proofburn))));
   container.querySelectorAll<HTMLButtonElement>("[data-shareburn]").forEach((b) => b.addEventListener("click", async (e) => {
     e.stopPropagation();
-    const url = `${location.origin}${location.pathname}?burn=${b.dataset.shareburn}`;
+    const url = `${location.origin}/app?burn=${b.dataset.shareburn}`;
     try { await navigator.clipboard.writeText(url); notify("Burn proof link copied — share it anywhere"); }
     catch { prompt("Copy this proof link:", url); }
   }));
 }
 
 /* ---------- burn rows ---------- */
-async function burnRowHTML(b: BurnRow): Promise<string> {
+async function burnRowHTML(b: BurnRow, variant: "mine" | "explore" = "mine"): Promise<string> {
   const m2 = await tokMeta(b.token);
   const sym = escape(m2.symbol);
+  if (variant === "explore") {
+    const price = await priceUsdFor(b.token, m2.decimals);
+    const tvl = price !== null && price > 0 ? fmtUsd((Number(b.amount) / 10 ** m2.decimals) * price) : "—";
+    return `<tr data-proofburn="${b.id}">
+    <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(b.token)}">${sym.slice(0, 2).toUpperCase()}</span>
+      <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
+    <td>${fmtNum(b.amount, m2.decimals)}</td>
+    <td>${dateLabel(b.timestamp)}</td>
+    <td>${tvl}</td>
+    <td><span class="status burned"><i></i>BURNED FOREVER</span></td>
+    <td><div class="row-actions"><button class="btn btn-line btn-sm" data-shareburn="${b.id}">Share</button></div></td></tr>`;
+  }
   return `<tr data-proofburn="${b.id}">
     <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(b.token)}">${sym.slice(0, 2).toUpperCase()}</span>
       <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
@@ -607,11 +639,11 @@ async function burnRowHTML(b: BurnRow): Promise<string> {
     <td><span class="status burned"><i></i>BURNED FOREVER</span></td>
     <td><div class="row-actions"><button class="btn btn-line btn-sm" data-shareburn="${b.id}">Share</button></div></td></tr>`;
 }
-async function burnsTableHTML(burns: BurnRow[], heading: string): Promise<string> {
+async function burnsTableHTML(burns: BurnRow[], heading: string, variant: "mine" | "explore" = "mine"): Promise<string> {
   if (!burns.length) return "";
-  const rows = (await Promise.all(burns.map(burnRowHTML))).join("");
+  const rows = (await Promise.all(burns.map((b) => burnRowHTML(b, variant)))).join("");
   return `<div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#ff8a8a;margin:20px 0 4px">${heading}</div>
-    <table>${TABLE_HEAD}<tbody>${rows}</tbody></table>`;
+    <table>${variant === "explore" ? TABLE_HEAD_EXPLORE : TABLE_HEAD}<tbody>${rows}</tbody></table>`;
 }
 
 /* ---------- my locks ---------- */
@@ -645,27 +677,6 @@ async function renderMine() {
   } catch {
     boxes.forEach((b) => b.innerHTML = `<div class="empty"><div class="big">Couldn't reach Robinhood Chain</div><div class="small">Check your connection and try again.</div></div>`);
   }
-}
-async function loadMyNextUnlock() {
-  if (!account) return;
-  try {
-    const ids: bigint[] = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByOwner", args: [account as `0x${string}`] }) as bigint[];
-    const rows = await Promise.all(ids.map((i) => readLock(Number(i))));
-    const now = Math.floor(Date.now() / 1000);
-    const active = rows.filter((r) => !r.withdrawn);
-    if (!active.length) { $("statNext").textContent = "—"; $("statNextSub").textContent = "no active locks"; return; }
-    const unlockable = active.filter((r) => r.unlockTime <= now);
-    if (unlockable.length) {
-      const m = await tokMeta(unlockable[0].token);
-      $("statNext").textContent = "Now";
-      $("statNextSub").innerHTML = `<span class="up">${fmtNum(unlockable[0].amount, m.decimals)} $${escape(m.symbol)} unlockable</span>`;
-      return;
-    }
-    const next = active.reduce((a, b) => (a.unlockTime < b.unlockTime ? a : b));
-    const m = await tokMeta(next.token);
-    $("statNext").textContent = new Date(next.unlockTime * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    $("statNextSub").textContent = `$${escape(m.symbol)} · in ${remainingLabel(next.unlockTime - now)}`;
-  } catch { /* leave */ }
 }
 
 /* ---------- withdraw / extend ---------- */
@@ -722,7 +733,7 @@ async function loadExplore() {
     if (!total) { box.innerHTML = `<div class="empty"><div class="big">No locks yet</div><div class="small">Be the first to lock on Robinhood Chain.</div></div>`; exploreLoaded = true; return; }
     const ids: number[] = []; for (let i = total - 1; i >= 0 && ids.length < 25; i--) ids.push(i);
     const rows = await Promise.all(ids.map(readLock));
-    await renderTable(box, rows, false, "No locks yet", "Be the first to lock on Robinhood Chain.");
+    await renderTable(box, rows, false, "No locks yet", "Be the first to lock on Robinhood Chain.", "explore");
     exploreLoaded = true;
   } catch {
     box.innerHTML = `<div class="empty"><div class="big">Couldn't reach Robinhood Chain</div><div class="small">Check your connection and try again.</div></div>`;
@@ -748,8 +759,8 @@ async function runSearch() {
     if (!ids.length && !burnIds.length) { box.innerHTML = `<div class="empty"><div class="big">No locks found</div><div class="small">Nothing locked or burned for this token or wallet yet.</div></div>`; return; }
     const rows = (await Promise.all(ids.map(readLock))).sort((a, b) => b.id - a.id);
     const burns = (await Promise.all(burnIds.map(readBurn))).sort((a, b) => b.id - a.id);
-    const lockHTML = rows.length ? `<table>${TABLE_HEAD}<tbody>${(await Promise.all(rows.map((r) => lockRowHTML(r, false)))).join("")}</tbody></table>` : "";
-    box.innerHTML = lockHTML + (await burnsTableHTML(burns, "Burns — destroyed forever"));
+    const lockHTML = rows.length ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${(await Promise.all(rows.map((r) => lockRowHTML(r, false, "explore")))).join("")}</tbody></table>` : "";
+    box.innerHTML = lockHTML + (await burnsTableHTML(burns, "Burns — destroyed forever", "explore"));
     if (!lockHTML && !burns.length) box.innerHTML = `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
     wireActions(box);
   } catch {
@@ -760,9 +771,10 @@ $("searchBtn").addEventListener("click", runSearch);
 $("searchAddr").addEventListener("keydown", (e) => { if ((e as KeyboardEvent).key === "Enter") runSearch(); });
 
 /* ---------- shareable proof (?lock=<id>) — works without a wallet ---------- */
-async function showLockProof(id: number) {
+async function showLockProof(id: number, push = true) {
   go("proof");
-  history.replaceState(null, "", `${location.pathname}?lock=${id}`);
+  if (push) history.pushState(null, "", `/app?lock=${id}`);
+  else history.replaceState(null, "", `/app?lock=${id}`);
   const box = $("proofBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading lock #${id}… <span class="spin"></span></div></div>`;
   let l: LockRow;
@@ -791,18 +803,19 @@ async function showLockProof(id: number) {
         <button class="btn btn-line" id="proofCopy">Copy proof link</button>
       </div>
     </div>
-    <a class="p-back" href="${location.pathname}">← Open HoodLock</a>`;
+    <a class="p-back" href="/app">← Open HoodLock</a>`;
   $("proofCopy").addEventListener("click", async () => {
-    const url = `${location.origin}${location.pathname}?lock=${id}`;
+    const url = `${location.origin}/app?lock=${id}`;
     try { await navigator.clipboard.writeText(url); notify("Proof link copied"); } catch { prompt("Copy this proof link:", url); }
   });
 }
 
 /* ---------- shareable burn proof (?burn=<id>) — works without a wallet ---------- */
-async function showBurnProof(id: number) {
+async function showBurnProof(id: number, push = true) {
   go("proof");
   $("viewTitle").textContent = "BURN PROOF";
-  history.replaceState(null, "", `${location.pathname}?burn=${id}`);
+  if (push) history.pushState(null, "", `/app?burn=${id}`);
+  else history.replaceState(null, "", `/app?burn=${id}`);
   const box = $("proofBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading burn #${id}… <span class="spin"></span></div></div>`;
   let b: BurnRow;
@@ -834,9 +847,9 @@ async function showBurnProof(id: number) {
         <button class="btn btn-line" id="proofCopy">Copy proof link</button>
       </div>
     </div>
-    <a class="p-back" href="${location.pathname}">← Open HoodLock</a>`;
+    <a class="p-back" href="/app">← Open HoodLock</a>`;
   $("proofCopy").addEventListener("click", async () => {
-    const url = `${location.origin}${location.pathname}?burn=${id}`;
+    const url = `${location.origin}/app?burn=${id}`;
     try { await navigator.clipboard.writeText(url); notify("Burn proof link copied"); } catch { prompt("Copy this proof link:", url); }
   });
 }
@@ -868,7 +881,9 @@ async function loadDashboard() {
 
 /* cumulative locks chart from Locked events (sampled block timestamps) */
 let chartPoints: { t: number; n: number }[] = [];
+let chartPointsTvl: { t: number; n: number }[] = [];
 let chartRange = 30;
+let chartMode: "locks" | "tvl" = "locks";
 async function drawChartFromLogs(logs: LockedLog[]) {
   const svg = $("locksChart").querySelector("svg") as SVGElement;
   if (!logs.length) {
@@ -879,18 +894,57 @@ async function drawChartFromLogs(logs: LockedLog[]) {
   // sample ≤ 16 event blocks (always first + last) for timestamps
   const idxs = new Set<number>([0, logs.length - 1]);
   for (let k = 1; k < 15; k++) idxs.add(Math.round((k * (logs.length - 1)) / 15));
-  const pts: { t: number; n: number }[] = [];
-  await Promise.all([...idxs].sort((a, b) => a - b).map(async (i) => {
+  const sorted = [...idxs].sort((a, b) => a - b);
+  const tsByIdx = new Map<number, number>();
+  await Promise.all(sorted.map(async (i) => {
     const ts = await blockTs(logs[i].block);
-    if (ts !== null) pts.push({ t: ts, n: i + 1 });
+    if (ts !== null) tsByIdx.set(i, ts);
   }));
+  const pts: { t: number; n: number }[] = [];
+  for (const i of sorted) { const ts = tsByIdx.get(i); if (ts !== undefined) pts.push({ t: ts, n: i + 1 }); }
   pts.sort((a, b) => a.t - b.t);
   pts.push({ t: Math.floor(Date.now() / 1000), n: logs.length });
   chartPoints = pts;
+
+  // TVL-serien: kumulativt USD-värde av skapade lås, till DAGENS priser —
+  // djup-kapad PER TOKEN med samma politik som tilen (proportionell skalning).
+  try {
+    const uniq = [...new Set(logs.map((l) => l.token.toLowerCase()))];
+    const priceMap = new Map<string, number>();
+    const factorMap = new Map<string, number>();
+    await Promise.all(uniq.map(async (tok) => {
+      const meta = await tokMeta(tok);
+      const p = await tokenPriceUsd(pub as any, tok as `0x${string}`, meta.decimals);
+      priceMap.set(tok, p ?? 0);
+      if (p && p > 0) {
+        const totalAmt = logs.filter((l) => l.token.toLowerCase() === tok)
+          .reduce((a, l) => a + Number(l.amount) / 10 ** meta.decimals, 0);
+        const uncapped = totalAmt * p;
+        const cap = await tokenDepthCapUsd(pub as any, tok as `0x${string}`);
+        factorMap.set(tok, cap !== null && uncapped > 0 ? Math.min(1, cap / uncapped) : 0);
+      } else factorMap.set(tok, 0);
+    }));
+    const vals = logs.map((l) => {
+      const meta = metaCacheGet(l.token.toLowerCase());
+      const dec = meta ? meta.decimals : 18;
+      const tok = l.token.toLowerCase();
+      return (Number(l.amount) / 10 ** dec) * (priceMap.get(tok) ?? 0) * (factorMap.get(tok) ?? 0);
+    });
+    const cum: number[] = []; let acc = 0;
+    for (const v of vals) { acc += v; cum.push(acc); }
+    const tpts: { t: number; n: number }[] = [];
+    for (const i of sorted) { const ts = tsByIdx.get(i); if (ts !== undefined) tpts.push({ t: ts, n: cum[i] }); }
+    tpts.sort((a, b) => a.t - b.t);
+    tpts.push({ t: Math.floor(Date.now() / 1000), n: acc });
+    chartPointsTvl = tpts;
+  } catch { chartPointsTvl = []; }
+
   renderChart();
 }
+function metaCacheGet(addr: string) { return metaCache.get(addr) ?? metaCache.get(getAddress(addr)) ?? null; }
+function activeSeries(): { t: number; n: number }[] { return chartMode === "tvl" ? chartPointsTvl : chartPoints; }
 function countAt(t: number): number {
-  const pts = chartPoints;
+  const pts = activeSeries();
   if (!pts.length) return 0;
   if (t <= pts[0].t) return 0;
   for (let i = pts.length - 1; i >= 0; i--) if (pts[i].t <= t) return pts[i].n;
@@ -899,12 +953,13 @@ function countAt(t: number): number {
 function renderChart() {
   const svg = $("locksChart").querySelector("svg") as SVGElement;
   const tip = $("chartTip");
-  if (!chartPoints.length) return;
+  const series0 = activeSeries();
+  if (!series0.length) return;
   svg.style.display = ""; $("chartEmpty").style.display = "none";
   const now = Math.floor(Date.now() / 1000);
   const from = now - chartRange * 86400;
   // series inside the window (with a boundary point at the left edge)
-  const inWin = chartPoints.filter((p) => p.t >= from);
+  const inWin = series0.filter((p) => p.t >= from);
   const series: { t: number; n: number }[] = [{ t: from, n: countAt(from) }, ...inWin];
   if (series[series.length - 1].t < now) series.push({ t: now, n: countAt(now) });
 
@@ -912,14 +967,14 @@ function renderChart() {
   const el = (tag: string, attrs: Record<string, any>) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, String(attrs[k])); return e; };
   svg.innerHTML = "";
   const W = 640, H = 230, P = { t: 18, r: 14, b: 24, l: 42 };
-  const minN = 0, maxN = Math.max(2, Math.ceil(series[series.length - 1].n * 1.15));
+  const minN = 0, maxN = chartMode === "tvl" ? Math.max(1, series[series.length - 1].n * 1.15) : Math.max(2, Math.ceil(series[series.length - 1].n * 1.15));
   const x = (t: number) => P.l + ((t - from) / (now - from)) * (W - P.l - P.r);
   const y = (n: number) => P.t + (1 - (n - minN) / (maxN - minN)) * (H - P.t - P.b);
   for (let g = 0; g < 4; g++) {
-    const v = Math.round(minN + ((maxN - minN) * g) / 3), gy = y(v);
+    const v = chartMode === "tvl" ? minN + ((maxN - minN) * g) / 3 : Math.round(minN + ((maxN - minN) * g) / 3), gy = y(v);
     svg.appendChild(el("line", { x1: P.l, x2: W - P.r, y1: gy, y2: gy, stroke: "rgba(255,255,255,.05)", "stroke-width": 1 }));
     const tEl = el("text", { x: P.l - 9, y: gy + 3.5, "text-anchor": "end", fill: "#59695e", "font-size": 9.5, "font-family": "JetBrains Mono,monospace" });
-    tEl.textContent = String(v); svg.appendChild(tEl);
+    tEl.textContent = chartMode === "tvl" ? fmtUsd(v) : String(v); svg.appendChild(tEl);
   }
   const defs = el("defs", {});
   defs.innerHTML = `<linearGradient id="tf" x1="0" y1="0" x2="0" y2="1">
@@ -943,7 +998,7 @@ function renderChart() {
     const n = countAt(t);
     cross.setAttribute("x1", String(x(t))); cross.setAttribute("x2", String(x(t))); cross.style.display = "block";
     hdot.setAttribute("cx", String(x(t))); hdot.setAttribute("cy", String(y(n))); hdot.style.display = "block";
-    tip.querySelector(".tv")!.textContent = `${n} lock${n === 1 ? "" : "s"}`;
+    tip.querySelector(".tv")!.textContent = chartMode === "tvl" ? fmtUsd(n) : `${n} lock${n === 1 ? "" : "s"}`;
     tip.querySelector(".tk")!.textContent = new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
     tip.style.display = "block";
     const tipX = (x(t) / W) * r.width, flip = tipX > r.width * 0.72;
@@ -953,6 +1008,14 @@ function renderChart() {
   };
   (svg as any).onmouseleave = () => { cross.style.display = "none"; hdot.style.display = "none"; tip.style.display = "none"; };
 }
+document.querySelectorAll<HTMLElement>("#chartModeRow .mode-btn").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("#chartModeRow .mode-btn").forEach((x) => x.classList.remove("active"));
+  b.classList.add("active");
+  chartMode = (b.dataset.mode as "locks" | "tvl") ?? "locks";
+  $("chartTitle").textContent = chartMode === "tvl" ? "Value locked" : "Locks created";
+  $("chartSub").textContent = chartMode === "tvl" ? "CUMULATIVE · AT CURRENT PRICES" : "CUMULATIVE · FROM LOCKED EVENTS";
+  renderChart();
+}));
 document.querySelectorAll<HTMLElement>(".range-btn").forEach((b) => b.addEventListener("click", () => {
   document.querySelectorAll(".range-btn").forEach((x) => x.classList.remove("active"));
   b.classList.add("active"); chartRange = Number(b.dataset.range); renderChart();
@@ -1017,10 +1080,22 @@ async function loadTvl() {
 loadTvl();
 setInterval(loadTvl, 60_000);
 
+/* ---------- bakåt/framåt i historiken ---------- */
+window.addEventListener("popstate", () => {
+  const q = new URLSearchParams(location.search);
+  const lock = q.get("lock"), burn = q.get("burn");
+  if (lock && /^\d+$/.test(lock)) { showLockProof(Number(lock), false); return; }
+  if (burn && /^\d+$/.test(burn) && BURNER) { showBurnProof(Number(burn), false); return; }
+  const v = location.pathname.match(/^\/app\/([a-z]+)/)?.[1];
+  go(v && TITLES[v] ? v : "dashboard", false);
+});
+
 /* ---------- boot ---------- */
 loadDashboard();
 const _lockParam = new URLSearchParams(location.search).get("lock");
 const _burnParam = new URLSearchParams(location.search).get("burn");
-if (_lockParam && /^\d+$/.test(_lockParam)) showLockProof(Number(_lockParam));
-else if (_burnParam && /^\d+$/.test(_burnParam) && BURNER) showBurnProof(Number(_burnParam));
-else if (location.hash && TITLES[location.hash.slice(1)]) go(location.hash.slice(1));
+const _pathView = location.pathname.match(/^\/app\/([a-z]+)/)?.[1];
+if (_lockParam && /^\d+$/.test(_lockParam)) showLockProof(Number(_lockParam), false);
+else if (_burnParam && /^\d+$/.test(_burnParam) && BURNER) showBurnProof(Number(_burnParam), false);
+else if (_pathView && TITLES[_pathView]) go(_pathView);
+else if (location.hash && TITLES[location.hash.slice(1)]) go(location.hash.slice(1));   // gamla #-länkar

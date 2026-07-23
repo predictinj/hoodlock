@@ -125,3 +125,32 @@ export function fmtUsd(v: number): string {
   if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
   return `$${v.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 }
+
+/** USD-spotpris per HUMAN token (okapad) — för diagramserier m.m. */
+export async function tokenPriceUsd(pub: PublicClient, token: `0x${string}`, decimals: number): Promise<number | null> {
+  const ethUsd = await ethUsdPrice();
+  if (!ethUsd) return null;
+  const pool = await findPool(pub, token);
+  if (!pool) return null;
+  try {
+    const slot0: any = await pub.readContract({ address: pool, abi: POOL_ABI, functionName: "slot0" });
+    const sqrtP = Number(slot0[0] ?? slot0.sqrtPriceX96);
+    if (!sqrtP) return null;
+    const pRaw = (sqrtP / 2 ** 96) ** 2;
+    const wethIsToken0 = WETH.toLowerCase() < token.toLowerCase();
+    const wethPerToken = wethIsToken0 ? (1 / pRaw) * 10 ** (decimals - 18) : pRaw * 10 ** (decimals - 18);
+    return wethPerToken * ethUsd;
+  } catch { return null; }
+}
+
+/** Djup-taket i USD för en token (2× poolens WETH-sida) — null om opoolad. */
+export async function tokenDepthCapUsd(pub: PublicClient, token: `0x${string}`): Promise<number | null> {
+  const ethUsd = await ethUsdPrice();
+  if (!ethUsd) return null;
+  const pool = await findPool(pub, token);
+  if (!pool) return null;
+  try {
+    const bal = await pub.readContract({ address: WETH, abi: ERC20_MIN, functionName: "balanceOf", args: [pool] }) as bigint;
+    return (Number(bal) / 1e18) * DEPTH_CAP * ethUsd;
+  } catch { return null; }
+}

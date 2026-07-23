@@ -115,9 +115,9 @@
   .chart-tip .tv{font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
   .chart-tip .tk{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.06em}
   .range-row{display:flex;gap:4px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;padding:3px}
-  .range-btn{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink-3);background:none;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;transition:.15s;letter-spacing:.06em}
-  .range-btn:hover{color:var(--ink)}
-  .range-btn.active{color:#03130a;background:var(--neon)}
+  .range-btn,.mode-btn{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink-3);background:none;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;transition:.15s;letter-spacing:.06em}
+  .range-btn:hover,.mode-btn:hover{color:var(--ink)}
+  .range-btn.active,.mode-btn.active{color:#03130a;background:var(--neon)}
   .chart-empty{padding:40px 0;text-align:center;font-size:12.5px;color:var(--ink-3)}
 
   /* feed */
@@ -338,7 +338,7 @@
     <!-- DASHBOARD -->
     <section class="view active" id="view-dashboard">
       <div class="page-head">
-        <div><h1>Everything locked<span class="serif">, live.</span></h1><p>All data read straight from the RobinhoodLocker contract — nothing cached, nothing off-chain.</p></div>
+        <div><h1>Everything locked<span class="serif">, live.</span></h1><p>All data read straight from the RobinhoodLocker contract. Everything on-chain.</p></div>
         <button class="btn btn-neon" data-goto="locks">+ Create lock</button>
       </div>
       <div class="tiles">
@@ -346,16 +346,21 @@
         <div class="tile"><div class="k">Locks created</div><div class="v" id="statLocks">—</div><div class="d">all time · on-chain</div></div>
         <div class="tile"><div class="k">Active locks</div><div class="v" id="statActive">—</div><div class="d">currently locked</div></div>
         <div class="tile"><div class="k">Unique wallets</div><div class="v" id="statWallets">—</div><div class="d">have locked here</div></div>
-        <div class="tile"><div class="k">Your next unlock</div><div class="v" id="statNext">—</div><div class="d" id="statNextSub">connect wallet</div></div>
       </div>
       <div class="grid-2">
         <div class="card">
           <div class="card-head">
-            <div><h3>Locks created</h3><div class="sub">CUMULATIVE · FROM LOCKED EVENTS</div></div>
-            <div class="range-row">
-              <button class="range-btn" data-range="7">7D</button>
-              <button class="range-btn active" data-range="30">30D</button>
-              <button class="range-btn" data-range="90">90D</button>
+            <div><h3 id="chartTitle">Locks created</h3><div class="sub" id="chartSub">CUMULATIVE · FROM LOCKED EVENTS</div></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div class="range-row" id="chartModeRow">
+                <button class="mode-btn active" data-mode="locks">LOCKS</button>
+                <button class="mode-btn" data-mode="tvl">TVL</button>
+              </div>
+              <div class="range-row">
+                <button class="range-btn" data-range="7">7D</button>
+                <button class="range-btn active" data-range="30">30D</button>
+                <button class="range-btn" data-range="90">90D</button>
+              </div>
             </div>
           </div>
           <div class="chart-wrap" id="locksChart">
@@ -433,7 +438,7 @@
     <!-- EXPLORE -->
     <section class="view" id="view-explore">
       <div class="page-head">
-        <div><h1>Explore <span class="serif">& verify.</span></h1><p>Every lock is public. Search a token/LP contract or a wallet address — or browse the latest.</p></div>
+        <div><h1>Explore <span class="serif">and verify.</span></h1><p>Every lock is public. Search a token/LP contract or a wallet address — or browse the latest.</p></div>
       </div>
       <div class="explore-bar">
         <div class="input-wrap"><input type="search" id="searchAddr" placeholder="0x… token / LP contract or wallet address (blank = latest locks)" spellcheck="false" /></div>
