@@ -144,9 +144,6 @@ async function loadLive() {
       $("mockRows")!.innerHTML = items.slice(0, 2).map((t) => `
         <div class="wm-row"><span class="ico" style="background:#00e05a">${esc(t.sym.slice(0, 2).toUpperCase())}</span>
         <b>${esc(t.sym)}</b><span class="mono">${t.amt}</span><span class="pill">🔒 ${dt(t.unlockTime)}</span></div>`).join("");
-      const first = items[items.length - 1];
-      $("termLink")!.textContent = `hoodlock.tech/app.html?lock=${first.id}`;
-      document.querySelector(".c-proof .lk")!.textContent = `hoodlock.tech/app.html?lock=${first.id}`;
 
       // bento proof card ← latest still-locked lock (falls back to latest active)
       const nowPick = Math.floor(Date.now() / 1000);
