@@ -4,6 +4,7 @@
 import { createPublicClient, http, defineChain, formatUnits, getAddress } from "viem";
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
+import { computeTvl, fmtUsd } from "./tvl";
 
 const CHAIN = defineChain({
   id: cfg.chainId, name: "Robinhood Chain",
@@ -94,7 +95,6 @@ async function loadLive() {
     const fee = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "fee" }) as bigint;
     const feeStr = `${formatUnits(fee, 18)} ETH`;
     $("heroFee")!.textContent = feeStr;
-    $("mockFee")!.textContent = feeStr;
   } catch { /* keep placeholders */ }
 
   try {
@@ -171,3 +171,18 @@ async function loadLive() {
   }
 }
 loadLive();
+
+/* ---------- TVL i mock-dashboarden (klientside, djup-kapad) ---------- */
+(async function loadMockTvl() {
+  try {
+    const total = Number(await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }));
+    if (!total) { const el = $("mockTvl"); if (el) el.textContent = "$0"; return; }
+    const locks = await Promise.all(Array.from({ length: total }, (_, i) =>
+      (pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "getLock", args: [BigInt(i)] }) as Promise<any>)
+        .then((l) => ({ token: String(l.token), amount: l.amount as bigint, withdrawn: Boolean(l.withdrawn) }))
+        .catch(() => null)));
+    const t = await computeTvl(pub as any, locks.filter((x): x is { token: string; amount: bigint; withdrawn: boolean } => !!x));
+    const el = $("mockTvl");
+    if (el) el.textContent = t.ethUsd > 0 ? fmtUsd(t.usd) : `${t.eth.toFixed(3)} ETH`;
+  } catch { /* behåll — */ }
+})();

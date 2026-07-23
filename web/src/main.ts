@@ -9,6 +9,7 @@ import {
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
 import BURNER_ABI from "./burner-abi.json";
+import { computeTvl, fmtUsd } from "./tvl";
 
 /* ---------- chain + clients ---------- */
 const CHAIN = defineChain({
@@ -997,6 +998,24 @@ async function renderActivity(lockedLogs: LockedLog[], sampledRows: LockRow[]) {
     feed.innerHTML = `<div class="empty"><div class="small">Couldn't load activity.</div></div>`;
   }
 }
+
+/* ---------- TVL (klientside, djup-kapad — se tvl.ts) ---------- */
+async function loadTvl() {
+  try {
+    const total = Number(await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }));
+    if (!total) { $("statTvl").textContent = "$0"; return; }
+    const ids = Array.from({ length: total }, (_, i) => i);
+    const rows = await Promise.all(ids.map((i) => readLock(i).catch(() => null)));
+    const locks = rows.filter((r): r is LockRow => !!r);
+    const t = await computeTvl(pub as any, locks);
+    $("statTvl").textContent = t.ethUsd > 0 ? fmtUsd(t.usd) : `${t.eth.toFixed(3)} ETH`;
+    $("statTvlSub").textContent = t.unpricedTokens > 0
+      ? `depth-capped · ${t.unpricedTokens} token${t.unpricedTokens === 1 ? "" : "s"} unpriced`
+      : "priced from DEX pools · depth-capped";
+  } catch { $("statTvl").textContent = "—"; }
+}
+loadTvl();
+setInterval(loadTvl, 60_000);
 
 /* ---------- boot ---------- */
 loadDashboard();

@@ -90,7 +90,7 @@
   .page-head p{color:var(--ink-2);font-size:13.5px;margin-top:7px}
 
   /* tiles */
-  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
   .tile{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;overflow:hidden;transition:border-color .25s}
   .tile:hover{border-color:var(--line-2)}
   .tile .k{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
@@ -342,7 +342,8 @@
         <button class="btn btn-neon" data-goto="locks">+ Create lock</button>
       </div>
       <div class="tiles">
-        <div class="tile"><div class="k">Locks created</div><div class="v g" id="statLocks">—</div><div class="d">all time · on-chain</div></div>
+        <div class="tile"><div class="k">Value locked</div><div class="v g" id="statTvl">—</div><div class="d" id="statTvlSub">priced from DEX pools · depth-capped</div></div>
+        <div class="tile"><div class="k">Locks created</div><div class="v" id="statLocks">—</div><div class="d">all time · on-chain</div></div>
         <div class="tile"><div class="k">Active locks</div><div class="v" id="statActive">—</div><div class="d">currently locked</div></div>
         <div class="tile"><div class="k">Unique wallets</div><div class="v" id="statWallets">—</div><div class="d">have locked here</div></div>
         <div class="tile"><div class="k">Your next unlock</div><div class="v" id="statNext">—</div><div class="d" id="statNextSub">connect wallet</div></div>
