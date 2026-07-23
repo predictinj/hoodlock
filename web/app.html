@@ -170,7 +170,7 @@
   @keyframes sp{to{transform:rotate(360deg)}}
 
   /* create lock */
-  .lock-layout{display:grid;grid-template-columns:1.55fr 1fr;gap:12px;align-items:start}
+  .lock-layout{display:grid;grid-template-columns:1.55fr 1fr;gap:12px;align-items:stretch}
   .field{margin-bottom:20px}
   .field label{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:9.5px;
     font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:9px}
@@ -199,13 +199,14 @@
     background:rgba(245,183,49,.045);border:1px solid rgba(245,183,49,.16);border-radius:11px;padding:12px 14px;margin-top:22px}
   .note b{color:var(--amber);font-weight:600}
   .note svg{flex-shrink:0;margin-top:2px}
-  .summary{position:sticky;top:84px}
+  .summary{display:flex;flex-direction:column}
   .summary .s-row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .summary .s-row:last-of-type{margin-bottom:18px}
   .summary .s-row .k{color:var(--ink-3)}
   .summary .s-row .v{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:-.01em}
   .summary .s-row .v.g{color:var(--neon)}
   .summary .s-row .v.mono{font-family:var(--mono);font-size:11.5px;font-weight:500}
-  .summary .btn{width:100%;margin-top:18px;padding:13px;font-size:14px;border-radius:11px}
+  .summary .btn{width:100%;margin-top:auto;padding:13px;font-size:14px;border-radius:11px}
   .fee-line{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);text-align:center;margin-top:13px;letter-spacing:.05em}
   .msg{margin-top:12px;font-size:13px;font-weight:500;line-height:1.5;min-height:18px}
   .msg.ok{color:var(--neon)} .msg.bad{color:var(--bad)}
@@ -393,7 +394,7 @@
       <div class="lock-layout">
         <div class="card">
           <div class="field">
-            <label>Token / LP contract <span class="hint">Robinhood Chain · 4663</span></label>
+            <label>Token / LP contract <span class="hint">Robinhood Chain</span></label>
             <div class="input-wrap"><input type="text" id="tokenAddr" placeholder="0x… — or pick from your wallet" spellcheck="false" autocomplete="off" />
               <div class="tok-dd" id="tokDd"></div></div>
             <div class="hintline" id="tokenInfo"></div>
