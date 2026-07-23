@@ -147,7 +147,8 @@ function onConnected() {
   closeWalletModal();
   ($("connectBtn") as HTMLButtonElement).innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:#03130a;box-shadow:0 0 5px rgba(3,19,10,.6)"></span><span class="wallet">${short(account)}</span>`;
   ($("lockBtn") as HTMLButtonElement).disabled = false;
-  refreshToken(); renderMine(); updateSummary(); loadMyNextUnlock();
+  walletToks = null; walletToksFor = "";
+  refreshToken(); renderMine(); updateSummary(); loadMyNextUnlock(); loadWalletTokens();
   notify(`Wallet connected — ${short(account)}`);
 }
 function disconnect() {
@@ -243,14 +244,14 @@ async function refreshToken() {
     let bal = 0n;
     if (account) bal = await pub.readContract({ address: addr, abi: ERC20, functionName: "balanceOf", args: [account as `0x${string}`] }) as bigint;
     tokenMeta = { addr, symbol: String(symbol), decimals: Number(decimals), bal };
-    $("tokenInfo").innerHTML = `<span style="color:var(--neon)">✓</span> <b>${escape(String(symbol))}</b> · ${decimals} decimals`;
+    $("tokenInfo").innerHTML = `<span style="color:var(--neon)">✓</span> <b>$${escape(String(symbol))}</b> · ${decimals} decimals`;
     if (account) {
       const sym = escape(String(symbol));
       const pctStr = supply > 0n
         ? (Number((bal * 10n ** 10n) / supply) / 1e8).toLocaleString("en-US", { maximumFractionDigits: 4 })
         : null;
       const pctPart = bal > 0n && pctStr !== null ? ` · <b>${pctStr}%</b> of supply` : "";
-      $("balHint").innerHTML = `You hold <b>${fmt(bal, Number(decimals))}</b> ${sym}${pctPart} · <a href="#" id="maxBtn">Max</a>`;
+      $("balHint").innerHTML = `You hold <b>${fmt(bal, Number(decimals))}</b> $${sym}${pctPart} · <a href="#" id="maxBtn">Max</a>`;
       const mb = document.getElementById("maxBtn");
       if (mb) mb.addEventListener("click", (e) => { e.preventDefault(); ($("amount") as HTMLInputElement).value = fmt(bal, Number(decimals)); updateSummary(); });
     }
@@ -259,11 +260,69 @@ async function refreshToken() {
 }
 $("tokenAddr").addEventListener("input", debounce(refreshToken, 400));
 
+/* ---------- wallet token dropdown (Blockscout indexes the balances) ---------- */
+type WalletTok = { addr: string; symbol: string; name: string; decimals: number; balance: bigint };
+let walletToks: WalletTok[] | null = null;
+let walletToksFor = "";
+async function loadWalletTokens(): Promise<WalletTok[]> {
+  if (!account) return [];
+  if (walletToks && walletToksFor === account) return walletToks;
+  try {
+    const r = await fetch(`${EXP}/api/v2/addresses/${account}/tokens?type=ERC-20`);
+    const j: any = await r.json();
+    walletToks = (j.items || [])
+      .map((it: any) => {
+        const t = it.token || {};
+        return {
+          addr: String(t.address || t.address_hash || ""),
+          symbol: String(t.symbol || "TOKEN"),
+          name: String(t.name || ""),
+          decimals: Number(t.decimals ?? 18),
+          balance: BigInt(it.value || "0"),
+        };
+      })
+      .filter((t: WalletTok) => isAddress(t.addr) && t.balance > 0n);
+    walletToksFor = account;
+  } catch { walletToks = []; }
+  return walletToks ?? [];
+}
+async function renderTokDd() {
+  const dd = $("tokDd");
+  if (!account) { dd.classList.remove("show"); return; }
+  const q = ($("tokenAddr") as HTMLInputElement).value.trim().toLowerCase();
+  dd.innerHTML = `<div class="td-note">Loading your tokens… <span class="spin"></span></div>`;
+  dd.classList.add("show");
+  const toks = await loadWalletTokens();
+  const hits = toks.filter((t) => !q || t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q) || t.addr.toLowerCase().startsWith(q));
+  if (!hits.length) {
+    if (q) { dd.classList.remove("show"); return; }   // fri inmatning — stör inte
+    dd.innerHTML = `<div class="td-note">No tokens found in this wallet on Robinhood Chain — paste a contract address instead.</div>`;
+    return;
+  }
+  dd.innerHTML = hits.slice(0, 30).map((t, i) => `
+    <div class="td-item" data-i="${i}">
+      <span class="token-ico" style="background:${tokenColor(t.addr)}">${escape(t.symbol.slice(0, 2).toUpperCase())}</span>
+      <div><div class="n">$${escape(t.symbol)}</div><div class="a">${short(t.addr)}</div></div>
+      <span class="bal">${fmtNum(t.balance, t.decimals)}</span>
+    </div>`).join("");
+  dd.querySelectorAll<HTMLElement>(".td-item").forEach((el) => el.addEventListener("mousedown", (e) => {
+    e.preventDefault();   // hinner före inputens blur
+    const t = hits[Number(el.dataset.i)];
+    ($("tokenAddr") as HTMLInputElement).value = t.addr;
+    dd.classList.remove("show");
+    refreshToken();
+  }));
+}
+$("tokenAddr").addEventListener("focus", renderTokDd);
+$("tokenAddr").addEventListener("input", debounce(renderTokDd, 250));
+$("tokenAddr").addEventListener("blur", () => setTimeout(() => $("tokDd").classList.remove("show"), 150));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("tokDd").classList.remove("show"); });
+
 /* ---------- live lock summary ---------- */
 function updateSummary() {
   const amtStr = ($("amount") as HTMLInputElement).value.trim();
   const dt = ($("unlockDate") as HTMLInputElement).value;
-  $("sToken").textContent = tokenMeta ? tokenMeta.symbol : "—";
+  $("sToken").textContent = tokenMeta ? `$${tokenMeta.symbol}` : "—";
   $("sAmount").textContent = amtStr ? Number(amtStr).toLocaleString("en-US", { maximumFractionDigits: 6 }) : "—";
   const btn = $("lockBtn") as HTMLButtonElement;
   if (burnMode) {
@@ -497,7 +556,7 @@ async function lockRowHTML(l: LockRow, mine: boolean): Promise<string> {
   const sym = escape(m.symbol);
   return `<tr data-proof="${l.id}">
     <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(l.token)}">${sym.slice(0, 2).toUpperCase()}</span>
-      <div><div class="n">${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
+      <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
     <td>${fmtNum(l.amount, m.decimals)}</td>
     <td class="addr">${short(l.owner)}</td>
     <td>${dateLabel(l.unlockTime)}</td>
@@ -538,7 +597,7 @@ async function burnRowHTML(b: BurnRow): Promise<string> {
   const sym = escape(m2.symbol);
   return `<tr data-proofburn="${b.id}">
     <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(b.token)}">${sym.slice(0, 2).toUpperCase()}</span>
-      <div><div class="n">${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
+      <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
     <td>${fmtNum(b.amount, m2.decimals)}</td>
     <td class="addr">${short(b.burner)}</td>
     <td>${dateLabel(b.timestamp)}</td>
@@ -598,13 +657,13 @@ async function loadMyNextUnlock() {
     if (unlockable.length) {
       const m = await tokMeta(unlockable[0].token);
       $("statNext").textContent = "Now";
-      $("statNextSub").innerHTML = `<span class="up">${fmtNum(unlockable[0].amount, m.decimals)} ${escape(m.symbol)} unlockable</span>`;
+      $("statNextSub").innerHTML = `<span class="up">${fmtNum(unlockable[0].amount, m.decimals)} $${escape(m.symbol)} unlockable</span>`;
       return;
     }
     const next = active.reduce((a, b) => (a.unlockTime < b.unlockTime ? a : b));
     const m = await tokMeta(next.token);
     $("statNext").textContent = new Date(next.unlockTime * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    $("statNextSub").textContent = `${escape(m.symbol)} · in ${remainingLabel(next.unlockTime - now)}`;
+    $("statNextSub").textContent = `$${escape(m.symbol)} · in ${remainingLabel(next.unlockTime - now)}`;
   } catch { /* leave */ }
 }
 
@@ -718,7 +777,7 @@ async function showLockProof(id: number) {
   box.innerHTML = `
     <div class="proof-card">
       <span class="stamp">✓ ON-CHAIN PROOF</span>
-      <div class="proof-amt">${fmtNum(l.amount, m.decimals)} ${escape(m.symbol)}</div>
+      <div class="proof-amt">${fmtNum(l.amount, m.decimals)} $${escape(m.symbol)}</div>
       <div class="proof-sub">HOODLOCK · LOCK #${id} · ROBINHOOD CHAIN 4663</div>
       <div class="p-row"><span class="k">Status</span><span class="v">${statusHTML}</span></div>
       <div class="p-row"><span class="k">Token</span><span class="v mono">${l.token}</span></div>
@@ -760,7 +819,7 @@ async function showBurnProof(id: number) {
   box.innerHTML = `
     <div class="proof-card">
       <span class="stamp burn">🔥 BURNED FOREVER</span>
-      <div class="proof-amt">${fmtNum(b.amount, m2.decimals)} ${escape(m2.symbol)}</div>
+      <div class="proof-amt">${fmtNum(b.amount, m2.decimals)} $${escape(m2.symbol)}</div>
       <div class="proof-sub">HOODLOCK · BURN #${id} · ROBINHOOD CHAIN 4663</div>
       <div class="p-row"><span class="k">Status</span><span class="v"><span class="status burned"><i></i>BURNED FOREVER</span></span></div>
       ${pct ? `<div class="p-row"><span class="k">Share of supply</span><span class="v" style="color:#ff8a8a">${pct}</span></div>` : ""}
@@ -920,9 +979,9 @@ async function renderActivity(lockedLogs: LockedLog[], sampledRows: LockRow[]) {
       const m = tok ? await tokMeta(tok) : { symbol: `#${ev.id}`, decimals: 18 };
       const sym = escape(m.symbol);
       let ico = "lock", txt = "";
-      if (ev.kind === "lock") txt = `<b>${fmtNum(ev.amount!, m.decimals)} ${sym}</b> locked until ${dateLabel(ev.unlockTime!)}`;
+      if (ev.kind === "lock") txt = `<b>${fmtNum(ev.amount!, m.decimals)} $${sym}</b> locked until ${dateLabel(ev.unlockTime!)}`;
       else if (ev.kind === "ext") { ico = "ext"; txt = `Lock <b>#${ev.id}</b> extended to ${dateLabel(ev.unlockTime!)}`; }
-      else { ico = "wd"; txt = `<b>${fmtNum(ev.amount!, m.decimals)} ${sym}</b> withdrawn`; }
+      else { ico = "wd"; txt = `<b>${fmtNum(ev.amount!, m.decimals)} $${sym}</b> withdrawn`; }
       return { ico, txt, sub: `LOCK #${ev.id}${tok ? " · " + short(tok).toUpperCase() : ""}`, t: ts ? relTime(ts) : "", id: ev.id };
     }));
     feed.innerHTML = items.map((a) => `

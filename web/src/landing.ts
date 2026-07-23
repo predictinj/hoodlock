@@ -139,16 +139,16 @@ async function loadLive() {
         return { ...l, sym: m.symbol, amt: fmtAmt(l.amount, m.decimals) };
       }));
       const tapeHTML = items.map((t) =>
-        `<a class="tape-item" href="/app.html?lock=${t.id}"><span class="lk">🔒</span><span class="sym">${esc(t.sym)}</span><span>${t.amt} locked</span><span class="dt">until ${dt(t.unlockTime)}</span></a>`).join("");
+        `<a class="tape-item" href="/app.html?lock=${t.id}"><span class="lk">🔒</span><span class="sym">$${esc(t.sym)}</span><span>${t.amt} locked</span><span class="dt">until ${dt(t.unlockTime)}</span></a>`).join("");
       $("tape")!.innerHTML = tapeHTML + tapeHTML; // duplicated for the seamless -50% loop
       $("mockRows")!.innerHTML = items.slice(0, 2).map((t) => `
         <div class="wm-row"><span class="ico" style="background:#00e05a">${esc(t.sym.slice(0, 2).toUpperCase())}</span>
-        <b>${esc(t.sym)}</b><span class="mono">${t.amt}</span><span class="pill">🔒 ${dt(t.unlockTime)}</span></div>`).join("");
+        <b>$${esc(t.sym)}</b><span class="mono">${t.amt}</span><span class="pill">🔒 ${dt(t.unlockTime)}</span></div>`).join("");
 
       // bento proof card ← latest still-locked lock (falls back to latest active)
       const nowPick = Math.floor(Date.now() / 1000);
       const latest = items.find((i) => i.unlockTime > nowPick) || items[0];
-      $("pmToken")!.textContent = latest.sym;
+      $("pmToken")!.textContent = `$${latest.sym}`;
       $("pmAmount")!.textContent = Number(formatUnits(latest.amount, metaCache.get(latest.token)!.decimals)).toLocaleString("en-US", { maximumFractionDigits: 2 });
       $("pmOwner")!.textContent = latest.owner.slice(0, 6) + "…" + latest.owner.slice(-4);
       const nowSec = Math.floor(Date.now() / 1000);
