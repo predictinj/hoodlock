@@ -32,7 +32,7 @@ document.querySelectorAll<HTMLElement>(".cell,.stepc").forEach((c) => c.addEvent
 }));
 
 /* ---------- contract links ---------- */
-const contractUrl = `${cfg.explorer}/address/${LOCKER}`;
+const contractUrl = `${cfg.explorer}/address/${LOCKER}?tab=contract`;
 ($("ctaContract") as HTMLAnchorElement | null)?.setAttribute("href", contractUrl);
 ($("footContract") as HTMLAnchorElement | null)?.setAttribute("href", contractUrl);
 
