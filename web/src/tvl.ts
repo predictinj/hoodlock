@@ -121,9 +121,19 @@ export async function computeTvl(
 }
 
 export function fmtUsd(v: number): string {
+  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
   if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
   if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
   return `$${v.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+}
+
+/** Kapat USD-värde för en given mängd av en token (samma djup-politik som TVL:n). */
+export async function amountValueUsd(pub: PublicClient, token: `0x${string}`, amount: bigint, decimals: number): Promise<number | null> {
+  const ethUsd = await ethUsdPrice();
+  if (!ethUsd) return null;
+  const v = await tokenValueWeth(pub, token, amount, decimals);
+  return v === null ? null : v * ethUsd;
 }
 
 /** USD-spotpris per HUMAN token (okapad) — för diagramserier m.m. */

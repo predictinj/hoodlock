@@ -9,7 +9,7 @@ import {
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
 import BURNER_ABI from "./burner-abi.json";
-import { computeTvl, fmtUsd, tokenPriceUsd, tokenDepthCapUsd } from "./tvl";
+import { amountValueUsd, computeTvl, fmtUsd, tokenPriceUsd, tokenDepthCapUsd } from "./tvl";
 
 /* ---------- chain + clients ---------- */
 const CHAIN = defineChain({
@@ -563,8 +563,8 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
   acts.push(`<button class="btn btn-line btn-sm" data-share="${l.id}">Share</button>`);
   const sym = escape(m.symbol);
   if (variant === "explore") {
-    const price = await priceUsdFor(l.token, m.decimals);
-    const tvl = price !== null && price > 0 ? fmtUsd((Number(l.amount) / 10 ** m.decimals) * price) : "—";
+    const v = l.withdrawn ? null : await amountValueUsd(pub as any, l.token as `0x${string}`, l.amount, m.decimals).catch(() => null);
+    const tvl = v !== null && v > 0 ? fmtUsd(v) : "—";
     return `<tr data-proof="${l.id}">
     <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(l.token)}">${sym.slice(0, 2).toUpperCase()}</span>
       <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
@@ -617,8 +617,8 @@ async function burnRowHTML(b: BurnRow, variant: "mine" | "explore" = "mine"): Pr
   const m2 = await tokMeta(b.token);
   const sym = escape(m2.symbol);
   if (variant === "explore") {
-    const price = await priceUsdFor(b.token, m2.decimals);
-    const tvl = price !== null && price > 0 ? fmtUsd((Number(b.amount) / 10 ** m2.decimals) * price) : "—";
+    const v = await amountValueUsd(pub as any, b.token as `0x${string}`, b.amount, m2.decimals).catch(() => null);
+    const tvl = v !== null && v > 0 ? fmtUsd(v) : "—";
     return `<tr data-proofburn="${b.id}">
     <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(b.token)}">${sym.slice(0, 2).toUpperCase()}</span>
       <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
