@@ -142,8 +142,9 @@
   tbody tr:hover{background:rgba(255,255,255,.02)}
   tbody tr:last-child td{border-bottom:none}
   .tk-cell{display:flex;align-items:center;gap:11px;min-width:150px}
-  .token-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  .token-ico{position:relative;overflow:hidden;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-family:var(--mono);font-weight:600;font-size:9.5px;color:#03130a;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.1) inset}
+  .token-ico img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
   .tk-cell .n{font-weight:600;display:flex;align-items:center;gap:7px;letter-spacing:-.01em}
   .tk-cell .a{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.03em}
   .tag{font-family:var(--mono);font-size:8px;font-weight:600;color:var(--neon);background:rgba(0,224,90,.08);border:1px solid rgba(0,224,90,.22);border-radius:4px;padding:1.5px 5px;letter-spacing:.08em}

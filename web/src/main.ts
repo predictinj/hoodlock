@@ -55,6 +55,36 @@ function relTime(sec: number): string {
   if (s < 86400) return `${Math.floor(s / 3600)}H`;
   return `${Math.floor(s / 86400)}D`;
 }
+/* ---------- token-logotyper (DEXScreener, gratis + CORS-öppet) ---------- */
+const logoInflight = new Map<string, Promise<string | null>>();
+function tokenLogo(addr: string): Promise<string | null> {
+  const k = addr.toLowerCase();
+  try {
+    const hit = localStorage.getItem(`hl_logo_${k}`);
+    if (hit !== null) return Promise.resolve(hit === "none" ? null : hit);
+  } catch { /* */ }
+  if (!logoInflight.has(k)) {
+    logoInflight.set(k, (async () => {
+      try {
+        const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${k}`);
+        const j: any = await r.json();
+        const url = (j.pairs || []).map((p: any) => p?.info?.imageUrl).find(Boolean) || null;
+        try { localStorage.setItem(`hl_logo_${k}`, url ?? "none"); } catch { /* */ }
+        return url;
+      } catch { return null; }
+    })());
+  }
+  return logoInflight.get(k)!;
+}
+/** token-ico-span: officiell logga om den finns, annars bokstavsavatar (och
+ *  bokstäverna ligger kvar bakom — trasig bild avslöjar dem via onerror). */
+async function tokenIcoHTML(addr: string, symbol: string): Promise<string> {
+  const letters = escape(symbol.slice(0, 2).toUpperCase());
+  const logo = await tokenLogo(addr);
+  const img = logo ? `<img src="${escape(logo)}" alt="" loading="lazy" onerror="this.remove()" />` : "";
+  return `<span class="token-ico" style="background:${tokenColor(addr)}">${letters}${img}</span>`;
+}
+
 // deterministic token avatar color (greens family, brand-consistent)
 function tokenColor(addr: string): string {
   let h = 0; for (const ch of addr.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -304,12 +334,12 @@ async function renderTokDd() {
     dd.innerHTML = `<div class="td-note">No tokens found in this wallet on Robinhood Chain — paste a contract address instead.</div>`;
     return;
   }
-  dd.innerHTML = hits.slice(0, 30).map((t, i) => `
+  dd.innerHTML = (await Promise.all(hits.slice(0, 30).map(async (t, i) => `
     <div class="td-item" data-i="${i}">
-      <span class="token-ico" style="background:${tokenColor(t.addr)}">${escape(t.symbol.slice(0, 2).toUpperCase())}</span>
+      ${await tokenIcoHTML(t.addr, t.symbol)}
       <div><div class="n">$${escape(t.symbol)}</div><div class="a">${short(t.addr)}</div></div>
       <span class="bal">${fmtNum(t.balance, t.decimals)}</span>
-    </div>`).join("");
+    </div>`))).join("");
   dd.querySelectorAll<HTMLElement>(".td-item").forEach((el) => el.addEventListener("mousedown", (e) => {
     e.preventDefault();   // hinner före inputens blur
     const t = hits[Number(el.dataset.i)];
@@ -571,7 +601,7 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
     const v = l.withdrawn ? null : await amountValueUsd(pub as any, l.token as `0x${string}`, l.amount, m.decimals).catch(() => null);
     const tvl = v !== null && v > 0 ? fmtUsd(v) : "—";
     return `<tr data-proof="${l.id}">
-    <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(l.token)}">${sym.slice(0, 2).toUpperCase()}</span>
+    <td><div class="tk-cell">${await tokenIcoHTML(l.token, m.symbol)}
       <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
     <td>${fmtNum(l.amount, m.decimals)}</td>
     <td>${dateLabel(l.unlockTime)}</td>
@@ -580,7 +610,7 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
     <td><div class="row-actions">${acts.join("")}</div></td></tr>`;
   }
   return `<tr data-proof="${l.id}">
-    <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(l.token)}">${sym.slice(0, 2).toUpperCase()}</span>
+    <td><div class="tk-cell">${await tokenIcoHTML(l.token, m.symbol)}
       <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
     <td>${fmtNum(l.amount, m.decimals)}</td>
     <td class="addr">${short(l.owner)}</td>
@@ -625,7 +655,7 @@ async function burnRowHTML(b: BurnRow, variant: "mine" | "explore" = "mine"): Pr
     const v = await amountValueUsd(pub as any, b.token as `0x${string}`, b.amount, m2.decimals).catch(() => null);
     const tvl = v !== null && v > 0 ? fmtUsd(v) : "—";
     return `<tr data-proofburn="${b.id}">
-    <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(b.token)}">${sym.slice(0, 2).toUpperCase()}</span>
+    <td><div class="tk-cell">${await tokenIcoHTML(b.token, m2.symbol)}
       <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
     <td>${fmtNum(b.amount, m2.decimals)}</td>
     <td>${dateLabel(b.timestamp)}</td>
@@ -634,7 +664,7 @@ async function burnRowHTML(b: BurnRow, variant: "mine" | "explore" = "mine"): Pr
     <td><div class="row-actions"><button class="btn btn-line btn-sm" data-shareburn="${b.id}">Share</button></div></td></tr>`;
   }
   return `<tr data-proofburn="${b.id}">
-    <td><div class="tk-cell"><span class="token-ico" style="background:${tokenColor(b.token)}">${sym.slice(0, 2).toUpperCase()}</span>
+    <td><div class="tk-cell">${await tokenIcoHTML(b.token, m2.symbol)}
       <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
     <td>${fmtNum(b.amount, m2.decimals)}</td>
     <td class="addr">${short(b.burner)}</td>
