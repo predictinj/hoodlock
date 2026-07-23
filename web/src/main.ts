@@ -196,8 +196,9 @@ async function waitTx(hash: string) { return pub.waitForTransactionReceipt({ has
 /* ---------- fee (live from contract) ---------- */
 let lockFee = 0n, burnFee = 0n;
 function renderFee() {
-  const fee = burnMode ? burnFee : lockFee;
-  $("sFee").textContent = fee > 0n ? `${formatUnits(fee, 18)} ETH` : "free";
+  // avgiftsraden är borttagen ur UI:t — avgifterna används fortfarande i tx:erna
+  const el = document.getElementById("sFee");
+  if (el) { const fee = burnMode ? burnFee : lockFee; el.textContent = fee > 0n ? `${formatUnits(fee, 18)} ETH` : "free"; }
 }
 async function loadFee() {
   try { lockFee = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "fee" }) as bigint; } catch { /* leave 0 */ }
