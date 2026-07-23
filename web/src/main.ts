@@ -231,6 +231,7 @@ function setBurnMode(on: boolean) {
 let tokenMeta: { addr: `0x${string}`; symbol: string; decimals: number; bal: bigint } | null = null;
 async function refreshToken() {
   tokenMeta = null; $("tokenInfo").textContent = ""; $("balHint").textContent = "";
+  $("maxBtn").style.display = "none";
   const raw = ($("tokenAddr") as HTMLInputElement).value.trim();
   updateSummary();
   if (!isAddress(raw)) return;
@@ -251,14 +252,18 @@ async function refreshToken() {
         ? (Number((bal * 10n ** 10n) / supply) / 1e8).toLocaleString("en-US", { maximumFractionDigits: 4 })
         : null;
       const pctPart = bal > 0n && pctStr !== null ? ` · <b>${pctStr}%</b> of supply` : "";
-      $("balHint").innerHTML = `You hold <b>${fmt(bal, Number(decimals))}</b> $${sym}${pctPart} · <a href="#" id="maxBtn">Max</a>`;
-      const mb = document.getElementById("maxBtn");
-      if (mb) mb.addEventListener("click", (e) => { e.preventDefault(); ($("amount") as HTMLInputElement).value = fmt(bal, Number(decimals)); updateSummary(); });
+      $("balHint").innerHTML = `You hold <b>${fmt(bal, Number(decimals))}</b> $${sym}${pctPart}`;
+      $("maxBtn").style.display = bal > 0n ? "" : "none";
     }
     updateSummary();
   } catch { $("tokenInfo").innerHTML = `<span class="badv">Couldn't read this token on Robinhood Chain.</span>`; }
 }
 $("tokenAddr").addEventListener("input", debounce(refreshToken, 400));
+$("maxBtn").addEventListener("click", () => {
+  if (!tokenMeta) return;
+  ($("amount") as HTMLInputElement).value = fmt(tokenMeta.bal, tokenMeta.decimals);
+  updateSummary();
+});
 
 /* ---------- wallet token dropdown (Blockscout indexes the balances) ---------- */
 type WalletTok = { addr: string; symbol: string; name: string; decimals: number; balance: bigint };
