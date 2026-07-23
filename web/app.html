@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HoodLock App — lock, verify & manage on Robinhood Chain</title>
+<meta name="description" content="Create token & LP locks on Robinhood Chain, manage your locks and verify anyone's — every lock has a public on-chain proof page." />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta property="og:site_name" content="HoodLock" />
+<meta property="og:title" content="HoodLock App — lock tokens, build trust" />
+<meta property="og:description" content="Create and verify token locks on Robinhood Chain. Every lock has a shareable on-chain proof." />
+<meta property="og:image" content="https://hoodlock.tech/og-image.png" />
+<meta property="og:url" content="https://hoodlock.tech/app.html" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050807; --card:#0a0f0c; --card-2:#0d1410; --input:#0e1611;
+    --line:rgba(255,255,255,.065); --line-2:rgba(255,255,255,.12);
+    --neon:#00e05a; --neon-dim:#0aa84f; --amber:#f5b731; --bad:#ff6b6b;
+    --ink:#eef4ef; --ink-2:#8fa396; --ink-3:#59695e;
+    --sans:'Inter',system-ui,sans-serif; --serif:'Instrument Serif',Georgia,serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --sbw:236px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+  a{color:inherit;text-decoration:none}
+  button{font-family:var(--sans)}
+  ::selection{background:rgba(0,224,90,.22)}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+  body::after{content:'';position:fixed;inset:0;z-index:999;pointer-events:none;opacity:.028;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .mono{font-family:var(--mono)}
+
+  /* sidebar */
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sbw);border-right:1px solid var(--line);
+    background:rgba(8,12,10,.7);backdrop-filter:blur(14px);display:flex;flex-direction:column;padding:22px 14px 18px;z-index:50}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:-.03em;padding:2px 10px 26px}
+  .logo img{width:24px;height:24px;object-fit:contain;filter:drop-shadow(0 0 8px rgba(0,224,90,.45))}
+  .logo b{color:var(--neon)}
+  .nav-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);padding:0 12px 9px}
+  .nav-group{margin-bottom:22px}
+  .nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;padding:8.5px 12px;border-radius:9px;
+    font-size:13.5px;font-weight:500;color:var(--ink-2);cursor:pointer;background:none;border:none;text-align:left;transition:.15s}
+  .nav-item:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+  .nav-item.active{color:var(--ink);background:rgba(255,255,255,.05)}
+  .nav-item.active::before{content:'';position:absolute;left:-14px;top:20%;bottom:20%;width:2px;border-radius:2px;background:var(--neon);box-shadow:0 0 10px var(--neon)}
+  .nav-item.active svg{stroke:var(--neon)}
+  .nav-item svg{stroke:currentColor;flex-shrink:0;opacity:.95}
+  .nav-item .soon{margin-left:auto;font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.12em;color:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+  .sb-bottom{margin-top:auto;padding:16px 12px 0;border-top:1px solid var(--line)}
+  .chain-chip{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;margin-bottom:14px}
+  .chain-chip i{width:5px;height:5px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px var(--neon);animation:blink 2.4s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+  .sb-bottom a{display:block;font-size:12px;color:var(--ink-3);padding:4px 0;transition:.15s}
+  .sb-bottom a:hover{color:var(--neon)}
+
+  /* main / topbar */
+  .main{margin-left:var(--sbw);min-height:100vh}
+  .topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;height:64px;padding:0 28px;
+    background:rgba(5,8,7,.78);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+  .crumb{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-3);text-transform:uppercase}
+  .crumb b{color:var(--ink);font-weight:600}
+  .topbar .spacer{flex:1}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:600;letter-spacing:-.01em;
+    border-radius:9px;padding:9px 16px;cursor:pointer;border:1px solid transparent;transition:all .2s cubic-bezier(.2,.7,.3,1);white-space:nowrap}
+  .btn-neon{background:var(--neon);color:#03130a;box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 6px 20px -6px rgba(0,224,90,.5)}
+  .btn-neon:hover{transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 10px 28px -6px rgba(0,224,90,.65)}
+  .btn-neon:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn-line{color:var(--ink);border-color:var(--line-2);background:rgba(255,255,255,.02)}
+  .btn-line:hover{border-color:rgba(255,255,255,.26);background:rgba(255,255,255,.05)}
+  .btn-danger{color:#ffb3ad;border-color:rgba(255,107,107,.3);background:rgba(255,107,107,.06)}
+  .btn-danger:hover{border-color:rgba(255,107,107,.5)}
+  .btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+  .wallet{font-family:var(--mono);font-size:11.5px;letter-spacing:.02em}
+
+  .content{padding:30px 28px 60px;max-width:1120px;margin:0 auto}
+  .view{display:none}
+  .view.active{display:block;animation:fadeUp .35s cubic-bezier(.2,.7,.2,1)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:26px;flex-wrap:wrap}
+  .page-head h1{font-size:27px;font-weight:700;letter-spacing:-.035em}
+  .page-head h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+  .page-head p{color:var(--ink-2);font-size:13.5px;margin-top:7px}
+
+  /* tiles */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .tile{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;overflow:hidden;transition:border-color .25s}
+  .tile:hover{border-color:var(--line-2)}
+  .tile .k{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+  .tile .v{font-size:25px;font-weight:700;letter-spacing:-.04em;margin-top:9px;font-variant-numeric:tabular-nums}
+  .tile .v.g{color:var(--neon)}
+  .tile .d{font-family:var(--mono);font-size:10px;margin-top:7px;color:var(--ink-3)}
+  .tile .d .up{color:var(--neon)}
+
+  /* cards */
+  .card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;transition:border-color .25s}
+  .card:hover{border-color:rgba(255,255,255,.1)}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px}
+  .card-head h3{font-size:14.5px;font-weight:600;letter-spacing:-.015em}
+  .card-head .sub{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:4px;letter-spacing:.04em}
+  .grid-2{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-bottom:12px}
+
+  /* chart */
+  .chart-wrap{position:relative}
+  .chart-wrap svg{display:block;width:100%;height:auto}
+  .chart-tip{position:absolute;pointer-events:none;background:#101a13;border:1px solid var(--line-2);border-radius:9px;
+    padding:8px 11px;display:none;white-space:nowrap;z-index:5;box-shadow:0 10px 30px rgba(0,0,0,.55)}
+  .chart-tip .tv{font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .chart-tip .tk{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.06em}
+  .range-row{display:flex;gap:4px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;padding:3px}
+  .range-btn{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink-3);background:none;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;transition:.15s;letter-spacing:.06em}
+  .range-btn:hover{color:var(--ink)}
+  .range-btn.active{color:#03130a;background:var(--neon)}
+  .chart-empty{padding:40px 0;text-align:center;font-size:12.5px;color:var(--ink-3)}
+
+  /* feed */
+  .feed-item{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .feed-item:last-child{border-bottom:none;padding-bottom:2px}
+  .feed-ico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    background:rgba(0,224,90,.07);border:1px solid rgba(0,224,90,.18)}
+  .feed-ico.ext{background:rgba(245,183,49,.06);border-color:rgba(245,183,49,.2)}
+  .feed-ico.wd{background:rgba(255,255,255,.04);border-color:var(--line-2)}
+  .feed-item .fm{flex:1;min-width:0;line-height:1.45}
+  .feed-item .fm b{font-weight:600}
+  .feed-item .fm .sub{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .feed-item .t{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);flex-shrink:0;padding-top:2px}
+
+  /* table */
+  .tbl-scroll{overflow-x:auto;margin:0 -8px;padding:0 8px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+    text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+  td{padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:middle;font-variant-numeric:tabular-nums}
+  tbody tr{transition:background .12s;cursor:pointer}
+  tbody tr:hover{background:rgba(255,255,255,.02)}
+  tbody tr:last-child td{border-bottom:none}
+  .tk-cell{display:flex;align-items:center;gap:11px;min-width:150px}
+  .token-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-weight:600;font-size:9.5px;color:#03130a;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.1) inset}
+  .tk-cell .n{font-weight:600;display:flex;align-items:center;gap:7px;letter-spacing:-.01em}
+  .tk-cell .a{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.03em}
+  .tag{font-family:var(--mono);font-size:8px;font-weight:600;color:var(--neon);background:rgba(0,224,90,.08);border:1px solid rgba(0,224,90,.22);border-radius:4px;padding:1.5px 5px;letter-spacing:.08em}
+  .addr{font-family:var(--mono);font-size:11px;color:var(--ink-2);letter-spacing:.02em}
+  .prog{min-width:110px}
+  .prog .pb{height:3px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+  .prog .pf{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--neon-dim),var(--neon))}
+  .prog .pl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:8.5px;color:var(--ink-3);margin-top:5px;letter-spacing:.05em}
+  .status{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.08em;border-radius:99px;padding:4px 10px;white-space:nowrap}
+  .status i{width:5px;height:5px;border-radius:50%}
+  .status.locked{color:var(--neon);background:rgba(0,224,90,.07)}
+  .status.locked i{background:var(--neon);box-shadow:0 0 6px var(--neon)}
+  .status.unlockable{color:var(--amber);background:rgba(245,183,49,.08)}
+  .status.unlockable i{background:var(--amber)}
+  .status.withdrawn{color:var(--ink-3);background:rgba(255,255,255,.04)}
+  .status.withdrawn i{background:var(--ink-3)}
+  .status.burned{color:#ff8a8a;background:rgba(255,107,107,.08)}
+  .status.burned i{background:#ff6b6b;box-shadow:0 0 6px #ff6b6b}
+  .row-actions{display:flex;gap:7px;justify-content:flex-end}
+  .empty{padding:52px 20px;text-align:center}
+  .empty .big{font-size:14.5px;color:var(--ink);font-weight:600;margin-bottom:7px}
+  .empty .small{font-size:12.5px;color:var(--ink-3)}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--neon);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* create lock */
+  .lock-layout{display:grid;grid-template-columns:1.55fr 1fr;gap:12px;align-items:start}
+  .field{margin-bottom:20px}
+  .field label{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:9.5px;
+    font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:9px}
+  .field label .hint{letter-spacing:.04em;font-weight:400;text-transform:none;font-size:10px}
+  .input-wrap{position:relative;display:flex;align-items:center}
+  input[type=text],input[type=number],input[type=datetime-local],input[type=search]{
+    width:100%;background:var(--input);border:1px solid var(--line-2);border-radius:11px;
+    padding:13px 15px;font-size:14px;color:var(--ink);font-family:var(--mono);outline:none;transition:.18s}
+  input[type=search]{font-family:var(--sans)}
+  input:focus{border-color:rgba(0,224,90,.5);box-shadow:0 0 0 3px rgba(0,224,90,.1)}
+  input::placeholder{color:var(--ink-3);font-family:var(--sans)}
+  input[type=datetime-local]{color-scheme:dark;font-size:13px}
+  .hintline{font-size:12px;color:var(--ink-2);margin-top:9px;line-height:1.5;min-height:16px}
+  .hintline a{color:var(--neon);font-weight:600}
+  .hintline b{color:var(--ink)}
+  .hintline .badv{color:var(--bad)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+  .chip-dur{font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--ink-2);background:var(--input);
+    border:1px solid var(--line-2);border-radius:99px;padding:7px 14px;cursor:pointer;transition:.15s;letter-spacing:.04em;user-select:none}
+  .chip-dur:hover{color:var(--ink);border-color:rgba(255,255,255,.28)}
+  .chip-dur.on{color:#03130a;background:var(--neon);border-color:var(--neon);font-weight:600}
+  .chip-burn{color:#ff8a8a;border-color:rgba(255,107,107,.35)}
+  .chip-burn:hover{color:#ffb3ad;border-color:rgba(255,107,107,.7)}
+  .chip-burn.on{color:#fff;background:#ff3b30;border-color:#ff3b30;font-weight:700}
+  .note{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--ink-2);line-height:1.6;
+    background:rgba(245,183,49,.045);border:1px solid rgba(245,183,49,.16);border-radius:11px;padding:12px 14px;margin-top:22px}
+  .note b{color:var(--amber);font-weight:600}
+  .note svg{flex-shrink:0;margin-top:2px}
+  .summary{position:sticky;top:84px}
+  .summary .s-row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .summary .s-row .k{color:var(--ink-3)}
+  .summary .s-row .v{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;letter-spacing:-.01em}
+  .summary .s-row .v.g{color:var(--neon)}
+  .summary .s-row .v.mono{font-family:var(--mono);font-size:11.5px;font-weight:500}
+  .summary .btn{width:100%;margin-top:18px;padding:13px;font-size:14px;border-radius:11px}
+  .fee-line{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);text-align:center;margin-top:13px;letter-spacing:.05em}
+  .msg{margin-top:12px;font-size:13px;font-weight:500;line-height:1.5;min-height:18px}
+  .msg.ok{color:var(--neon)} .msg.bad{color:var(--bad)}
+  .msg a{color:var(--neon);text-decoration:underline}
+
+  /* explore */
+  .explore-bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .explore-bar .input-wrap{flex:1;min-width:280px}
+
+  /* proof view */
+  .proof-page{max-width:560px;margin:0 auto}
+  .proof-card{background:var(--card-2);border:1px solid var(--line-2);border-radius:20px;padding:30px;position:relative;box-shadow:0 40px 100px rgba(0,0,0,.6)}
+  .proof-card .stamp{position:absolute;top:-12px;right:22px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    color:#03130a;background:var(--neon);border-radius:99px;padding:5px 12px;box-shadow:0 4px 16px rgba(0,224,90,.45)}
+  .proof-card .stamp.burn{color:#fff;background:#ff3b30;box-shadow:0 4px 16px rgba(255,59,48,.45)}
+  .proof-amt{font-size:30px;font-weight:800;letter-spacing:-.04em;text-align:center;margin:8px 0 2px}
+  .proof-sub{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);text-align:center;margin-bottom:20px}
+  .p-row{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+  .p-row:last-of-type{border-bottom:none}
+  .p-row .k{color:var(--ink-3)}
+  .p-row .v{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+  .p-row .v.mono{font-family:var(--mono);font-size:10.5px;font-weight:500;word-break:break-all;text-align:right}
+  .p-row .v.g{color:var(--neon)}
+  .p-acts{display:flex;flex-direction:column;gap:9px;margin-top:20px}
+  .p-acts .btn{width:100%;padding:12px}
+  .p-back{display:block;text-align:center;margin-top:18px;font-size:13px;color:var(--ink-2)}
+  .p-back:hover{color:var(--neon)}
+
+  /* coming soon */
+  .soon-hero{position:relative;text-align:center;padding:96px 24px;border:1px solid var(--line);border-radius:20px;background:var(--card);overflow:hidden}
+  .soon-hero .glow{position:absolute;top:-160px;left:50%;transform:translateX(-50%);width:600px;height:340px;
+    background:radial-gradient(ellipse,rgba(0,224,90,.08),transparent 65%);pointer-events:none}
+  .soon-hero .mono-tag{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--neon)}
+  .soon-hero h2{font-size:32px;font-weight:700;letter-spacing:-.035em;margin-top:16px}
+  .soon-hero h2 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+  .soon-hero p{color:var(--ink-2);font-size:14px;max-width:430px;margin:14px auto 28px;line-height:1.65}
+  .soon-viz{margin:0 auto 30px;max-width:420px;opacity:.9}
+  .vest-path{stroke:var(--neon);stroke-width:2;fill:none;stroke-dasharray:600;stroke-dashoffset:600;animation:draw 2.4s ease forwards .3s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .dropdot{fill:var(--neon);opacity:0;animation:dropfall 3s ease-in-out infinite}
+  @keyframes dropfall{0%{opacity:0;transform:translateY(-12px)}20%{opacity:.9}70%{opacity:.6;transform:translateY(8px)}100%{opacity:0;transform:translateY(18px)}}
+  .streamline{stroke:var(--neon);stroke-width:2;stroke-linecap:round;stroke-dasharray:10 14;animation:flow 1.4s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-24}}
+
+  /* modals */
+  .modal{position:fixed;inset:0;background:rgba(3,6,4,.7);backdrop-filter:blur(6px);z-index:150;display:none;align-items:center;justify-content:center;padding:24px}
+  .modal.show{display:flex;animation:fadeIn .2s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal-card{width:min(420px,100%);background:var(--card-2);border:1px solid var(--line-2);border-radius:18px;padding:26px;
+    box-shadow:0 40px 100px rgba(0,0,0,.7);animation:fadeUp .3s cubic-bezier(.2,.7,.2,1)}
+  .m-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+  .m-head h3{font-size:16px;font-weight:700;letter-spacing:-.02em}
+  .m-close{background:none;border:none;color:var(--ink-3);font-size:17px;cursor:pointer;padding:4px 8px;border-radius:7px}
+  .m-close:hover{color:var(--ink);background:rgba(255,255,255,.05)}
+  .wchoices{display:flex;flex-direction:column;gap:8px}
+  .wchoice{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:11px;background:var(--input);
+    border:1px solid var(--line-2);cursor:pointer;transition:.15s;font-weight:600;font-size:13.5px}
+  .wchoice:hover{border-color:rgba(0,224,90,.45);transform:translateY(-1px)}
+  .wchoice img{width:26px;height:26px;border-radius:7px}
+  .wchoice .ic{width:26px;height:26px;border-radius:7px;background:rgba(0,224,90,.1);display:grid;place-items:center;font-weight:700;color:var(--neon);font-size:12px}
+  .wchoice .badge2{margin-left:auto;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--ink-3)}
+  .wconn-addr{font-family:var(--mono);font-size:11.5px;word-break:break-all;background:var(--input);border:1px solid var(--line-2);border-radius:11px;padding:12px;margin-bottom:14px;line-height:1.6}
+  .wconn-acts{display:flex;gap:9px;flex-wrap:wrap}
+  .wconn-acts .btn{flex:1;min-width:130px}
+  .m-sub{color:var(--ink-2);font-size:12.5px;line-height:1.6;margin-bottom:14px}
+  .m-sub b{color:var(--ink)}
+
+  /* toast */
+  .toast{position:fixed;bottom:22px;right:22px;background:#101a13;border:1px solid rgba(0,224,90,.3);border-radius:11px;
+    padding:13px 17px;font-size:13px;font-weight:500;display:none;align-items:center;gap:10px;box-shadow:0 16px 50px rgba(0,0,0,.6);z-index:200;animation:fadeUp .25s ease}
+  .toast.show{display:flex}
+
+  @media (max-width:1000px){
+    .sidebar{display:none}
+    .main{margin-left:0}
+    .tiles{grid-template-columns:repeat(2,1fr)}
+    .grid-2,.lock-layout{grid-template-columns:1fr}
+    .summary{position:static}
+  }
+</style>
+</head>
+<body>
+
+<!-- sidebar -->
+<aside class="sidebar">
+  <a class="logo" href="/"><img src="/hoodlock-logo.png" alt="HoodLock" />Hood<b>Lock</b></a>
+  <div class="nav-group">
+    <div class="nav-label">Overview</div>
+    <button class="nav-item active" data-view="dashboard"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>Dashboard</button>
+    <button class="nav-item" data-view="explore"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>Explore / Verify</button>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Products</div>
+    <button class="nav-item" data-view="locks"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>Token Locks</button>
+    <button class="nav-item" data-view="vesting"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 17l5-5 4 3 6-7"/><path d="M14 8h4v4"/></svg>Vesting<span class="soon">SOON</span></button>
+    <button class="nav-item" data-view="airdrops"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v13"/><path d="M7 11l5 5 5-5"/><path d="M4 21h16"/></svg>Airdrops<span class="soon">SOON</span></button>
+    <button class="nav-item" data-view="streams"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 12h6M14 12h6"/><circle cx="12" cy="12" r="2.5"/></svg>Streams<span class="soon">SOON</span></button>
+  </div>
+  <div class="sb-bottom">
+    <span class="chain-chip"><i></i>ROBINHOOD · 4663</span>
+    <a id="ctLink" target="_blank" rel="noopener">Contract on Blockscout ↗</a>
+    <a href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener">X / @HoodLockRH ↗</a>
+    <a href="/">← hoodlock.tech</a>
+  </div>
+</aside>
+
+<!-- main -->
+<div class="main">
+  <div class="topbar">
+    <span class="crumb">HOODLOCK / <b id="viewTitle">DASHBOARD</b></span>
+    <span class="spacer"></span>
+    <button class="btn btn-neon" id="connectBtn">Connect Wallet</button>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-head">
+        <div><h1>Everything locked<span class="serif">, live.</span></h1><p>All data read straight from the RobinhoodLocker contract — nothing cached, nothing off-chain.</p></div>
+        <button class="btn btn-neon" data-goto="locks">+ Create lock</button>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Locks created</div><div class="v g" id="statLocks">—</div><div class="d">all time · on-chain</div></div>
+        <div class="tile"><div class="k">Active locks</div><div class="v" id="statActive">—</div><div class="d">currently locked</div></div>
+        <div class="tile"><div class="k">Unique wallets</div><div class="v" id="statWallets">—</div><div class="d">have locked here</div></div>
+        <div class="tile"><div class="k">Your next unlock</div><div class="v" id="statNext">—</div><div class="d" id="statNextSub">connect wallet</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <div><h3>Locks created</h3><div class="sub">CUMULATIVE · FROM LOCKED EVENTS</div></div>
+            <div class="range-row">
+              <button class="range-btn" data-range="7">7D</button>
+              <button class="range-btn active" data-range="30">30D</button>
+              <button class="range-btn" data-range="90">90D</button>
+            </div>
+          </div>
+          <div class="chart-wrap" id="locksChart">
+            <svg viewBox="0 0 640 230" preserveAspectRatio="none" aria-label="Cumulative locks created over time"></svg>
+            <div class="chart-tip" id="chartTip"><div class="tv"></div><div class="tk"></div></div>
+            <div class="chart-empty" id="chartEmpty" style="display:none"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>Live activity</h3><div class="sub">LATEST ON-CHAIN EVENTS</div></div></div>
+          <div id="activityFeed"><div class="empty"><div class="small">Reading events from Robinhood Chain…</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div><h3>Your locks</h3><div class="sub" id="yourLocksSub">CONNECT WALLET TO MANAGE</div></div>
+        </div>
+        <div class="tbl-scroll" id="yourLocksBox"><div class="empty"><div class="big">No wallet connected</div><div class="small">Connect your wallet to see and manage your locks.</div></div></div>
+      </div>
+    </section>
+
+    <!-- TOKEN LOCKS -->
+    <section class="view" id="view-locks">
+      <div class="page-head">
+        <div><h1 id="locksH1">Create a <span class="serif">lock.</span></h1><p id="locksLede">Lock any Robinhood token or LP until a date you choose. Extend-only — never shortenable.</p></div>
+      </div>
+      <div class="lock-layout">
+        <div class="card">
+          <div class="field">
+            <label>Token / LP contract <span class="hint">Robinhood Chain · 4663</span></label>
+            <div class="input-wrap"><input type="text" id="tokenAddr" placeholder="0x…" spellcheck="false" autocomplete="off" /></div>
+            <div class="hintline" id="tokenInfo"></div>
+            <div class="hintline" id="balHint"></div>
+          </div>
+          <div class="field">
+            <label>Amount</label>
+            <div class="input-wrap"><input type="number" id="amount" placeholder="0.0" inputmode="decimal" min="0" /></div>
+          </div>
+          <div class="field">
+            <label id="unlockLabel">Unlock date</label>
+            <div class="input-wrap" id="unlockInputWrap"><input type="datetime-local" id="unlockDate" /></div>
+            <div class="chips" id="lockPresets">
+              <span class="chip-dur" data-days="7">7D</span>
+              <span class="chip-dur" data-days="30">1M</span>
+              <span class="chip-dur" data-days="90">3M</span>
+              <span class="chip-dur" data-days="180">6M</span>
+              <span class="chip-dur" data-days="365">1Y</span>
+              <span class="chip-dur chip-burn" id="burnChip">🔥 FOREVER · BURN</span>
+            </div>
+          </div>
+          <div class="note" id="lockNote">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5b731" stroke-width="2"><path d="M12 9v4M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg>
+            <span id="lockNoteText"><b>Extend-only.</b> Unlock dates can be pushed later, but never shortened. Locked tokens can only be withdrawn by the lock owner after the unlock time.</span>
+          </div>
+        </div>
+        <div class="card summary">
+          <div class="card-head"><div><h3>Lock summary</h3><div class="sub">REVIEW BEFORE SIGNING</div></div></div>
+          <div class="s-row"><span class="k">Token</span><span class="v" id="sToken">—</span></div>
+          <div class="s-row"><span class="k">Amount</span><span class="v" id="sAmount">—</span></div>
+          <div class="s-row"><span class="k" id="kDate">Unlocks</span><span class="v" id="sDate">—</span></div>
+          <div class="s-row"><span class="k" id="kDuration">Duration</span><span class="v g" id="sDuration">—</span></div>
+          <div class="s-row"><span class="k">Platform fee</span><span class="v mono" id="sFee">—</span></div>
+          <button class="btn btn-neon" id="lockBtn">Connect wallet to lock</button>
+          <div class="fee-line">MINTS A SHAREABLE ON-CHAIN PROOF LINK</div>
+          <div class="msg" id="lockMsg"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-head"><div><h3>My locks</h3><div class="sub">OWNED BY CONNECTED WALLET</div></div></div>
+        <div class="tbl-scroll" id="myLocksBox"><div class="empty"><div class="big">No wallet connected</div><div class="small">Connect your wallet to see and manage your locks.</div></div></div>
+      </div>
+    </section>
+
+    <!-- EXPLORE -->
+    <section class="view" id="view-explore">
+      <div class="page-head">
+        <div><h1>Explore <span class="serif">& verify.</span></h1><p>Every lock is public. Search a token/LP contract or a wallet address — or browse the latest.</p></div>
+      </div>
+      <div class="explore-bar">
+        <div class="input-wrap"><input type="search" id="searchAddr" placeholder="0x… token / LP contract or wallet address (blank = latest locks)" spellcheck="false" /></div>
+        <button class="btn btn-line" id="searchBtn" style="padding:11px 22px">Search</button>
+      </div>
+      <div class="card" style="padding:4px 8px 6px">
+        <div class="tbl-scroll" id="exploreBox"><div class="empty"><div class="small">Loading latest locks from Robinhood Chain…</div></div></div>
+      </div>
+    </section>
+
+    <!-- PROOF (shareable ?lock=<id> deep link) -->
+    <section class="view" id="view-proof">
+      <div class="proof-page" id="proofBox"></div>
+    </section>
+
+    <!-- COMING SOON -->
+    <section class="view" id="view-vesting">
+      <div class="soon-hero"><div class="glow"></div>
+        <div class="mono-tag">SHIPPING NEXT</div>
+        <h2>Vesting, <span class="serif">enforced.</span></h2>
+        <p>Team, investor and advisor schedules with cliffs and linear release — transparent to every holder.</p>
+        <svg class="soon-viz" viewBox="0 0 420 110"><path class="vest-path" d="M10,100 L120,100 L120,72 C190,72 240,48 410,12"/><circle cx="120" cy="100" r="3.5" fill="#00e05a" opacity=".6"/><text x="100" y="92" font-family="JetBrains Mono" font-size="9" fill="#59695e">CLIFF</text></svg>
+        <a class="btn btn-line" href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener">Follow @HoodLockRH for launch</a>
+      </div>
+    </section>
+    <section class="view" id="view-airdrops">
+      <div class="soon-hero"><div class="glow"></div>
+        <div class="mono-tag">SHIPPING NEXT</div>
+        <h2>Airdrops at <span class="serif">scale.</span></h2>
+        <p>Thousands of wallets in one transaction — Merkle claims, snapshots and eligibility built in.</p>
+        <svg class="soon-viz" viewBox="0 0 420 110">
+          <circle class="dropdot" cx="60" cy="40" r="3.5" style="animation-delay:0s"/><circle class="dropdot" cx="130" cy="66" r="3" style="animation-delay:.6s"/><circle class="dropdot" cx="200" cy="34" r="4" style="animation-delay:1.2s"/><circle class="dropdot" cx="270" cy="62" r="3" style="animation-delay:1.8s"/><circle class="dropdot" cx="340" cy="40" r="3.5" style="animation-delay:2.4s"/></svg>
+        <a class="btn btn-line" href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener">Follow @HoodLockRH for launch</a>
+      </div>
+    </section>
+    <section class="view" id="view-streams">
+      <div class="soon-hero"><div class="glow"></div>
+        <div class="mono-tag">SHIPPING NEXT</div>
+        <h2>Money that <span class="serif">flows.</span></h2>
+        <p>Real-time payment streaming for contributors and payroll. Every second, on-chain.</p>
+        <svg class="soon-viz" viewBox="0 0 420 110"><line class="streamline" x1="20" y1="42" x2="400" y2="42"/><line class="streamline" x1="20" y1="68" x2="400" y2="68" style="opacity:.35;animation-duration:2s"/></svg>
+        <a class="btn btn-line" href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener">Follow @HoodLockRH for launch</a>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- wallet modal -->
+<div id="walletModal" class="modal">
+  <div class="modal-card">
+    <div class="m-head"><h3 id="walletModalTitle">Connect a wallet</h3><button id="walletModalClose" class="m-close">✕</button></div>
+    <div id="walletChoices" class="wchoices"></div>
+    <div id="walletConnected" style="display:none"></div>
+  </div>
+</div>
+
+<!-- extend modal -->
+<div id="extendModal" class="modal">
+  <div class="modal-card">
+    <div class="m-head"><h3>Extend lock</h3><button id="extendClose" class="m-close">✕</button></div>
+    <div class="m-sub" id="extendCurrent"></div>
+    <div class="field" style="margin-bottom:0">
+      <label>New unlock date</label>
+      <div class="input-wrap"><input type="datetime-local" id="extendDate" /></div>
+      <div class="chips" id="extendPresets">
+        <span class="chip-dur" data-days="30">+1M</span>
+        <span class="chip-dur" data-days="90">+3M</span>
+        <span class="chip-dur" data-days="180">+6M</span>
+        <span class="chip-dur" data-days="365">+1Y</span>
+      </div>
+    </div>
+    <div class="wconn-acts" style="margin-top:18px">
+      <button id="extendCancel" class="btn btn-line">Cancel</button>
+      <button id="extendConfirm" class="btn btn-neon">Extend lock</button>
+    </div>
+    <div class="msg" id="extendMsg"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00e05a" stroke-width="2.4"><path d="M4 12.5L9.5 18 20 6.5"/></svg><span id="toastMsg"></span></div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

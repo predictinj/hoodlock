@@ -27,204 +27,519 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"HoodLock","url":"https://hoodlock.tech/","description":"The safest liquidity & token locker on Robinhood Chain — lock LP or tokens until a chosen date and share a verifiable on-chain proof."}
 </script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  /* ═══════ HOODLOCK DESIGN SYSTEM v2 — landing ═══════ */
   :root{
-    --bg:#0e1512; --panel:#152019; --panel2:#1b2a20; --line:#264031;
-    --green:#00C805; --green2:#2fae3a; --lime:#6ee27a; --ink:#eaf5ec; --muted:#8fae97; --gold:#e0b24a; --bad:#e0584d;
-    --fd:'Segoe UI',system-ui,sans-serif;
+    --bg:#050807; --card:#0a0f0c;
+    --line:rgba(255,255,255,.065); --line-2:rgba(255,255,255,.12);
+    --neon:#00e05a; --neon-dim:#0aa84f; --amber:#f5b731;
+    --ink:#eef4ef; --ink-2:#8fa396; --ink-3:#59695e;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;
+    --serif:'Instrument Serif',Georgia,serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:radial-gradient(1200px 600px at 50% -10%,#16261b,var(--bg));color:var(--ink);font-family:var(--fd);line-height:1.5;min-height:100vh}
-  a{color:var(--lime);text-decoration:none} a:hover{text-decoration:underline}
-  .wrap{max-width:920px;margin:0 auto;padding:0 18px}
-  header{display:flex;align-items:center;justify-content:space-between;padding:18px 0;gap:12px;flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:20px;text-decoration:none;color:var(--ink);cursor:pointer}
-  .brand:hover{text-decoration:none;opacity:.9}
-  .brand .mark{width:38px;height:38px;object-fit:contain;filter:drop-shadow(0 0 9px rgba(0,200,5,.45))}
-  .brand b{color:var(--green)}
-  .brand .wm{display:inline-block;letter-spacing:.01em}
-  .btn{font-family:var(--fd);font-weight:700;font-size:14px;border:none;border-radius:11px;padding:11px 18px;cursor:pointer;transition:.15s;background:#22331f;color:var(--ink)}
-  .btn:hover{transform:translateY(-1px)}
-  .btn.primary{background:linear-gradient(180deg,#00C805,#0f9e1e);color:#062a0a;box-shadow:0 8px 20px rgba(0,200,5,.3)}
-  .btn.ghost{background:#1a251d;border:1px solid var(--line)}
-  .btn:disabled{opacity:.5;cursor:default;transform:none}
-  .hero{text-align:center;padding:30px 0 14px}
-  .hero h1{font-size:clamp(28px,5vw,42px);font-weight:800;line-height:1.05}
-  .hero h1 .g{color:var(--green)}
-  .hero p{color:var(--muted);margin-top:10px;font-size:16px}
-  .badge{display:inline-block;margin-top:12px;font-size:12px;font-weight:800;color:var(--gold);background:rgba(224,178,74,.12);border:1px solid rgba(224,178,74,.35);border-radius:20px;padding:5px 12px}
-  .tabs{display:flex;gap:6px;justify-content:center;margin:24px 0 16px;flex-wrap:wrap}
-  .tab{font-weight:700;font-size:14px;padding:9px 16px;border-radius:11px;background:#16211a;border:1px solid var(--line);color:var(--muted);cursor:pointer}
-  .tab.on{background:var(--panel2);color:var(--ink);border-color:var(--green2)}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
-  .card h2{font-size:19px;margin-bottom:4px}
-  .card .sub{color:var(--muted);font-size:13.5px;margin-bottom:16px}
-  label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.03em}
-  input,select{width:100%;font-family:var(--fd);font-size:15px;font-weight:600;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#0f1712;color:var(--ink)}
-  input:focus,select:focus{outline:none;border-color:var(--green2)}
-  input:disabled{opacity:.4;cursor:not-allowed}
-  .row{display:flex;gap:12px;flex-wrap:wrap} .row>*{flex:1;min-width:160px}
-  .hint{font-size:12px;color:var(--muted);margin-top:6px}
-  .msg{margin-top:14px;font-size:14px;font-weight:600;min-height:20px}
-  .msg.ok{color:var(--lime)} .msg.bad{color:var(--bad)}
-  .locklist{display:flex;flex-direction:column;gap:12px}
-  .lock{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
-  .lock .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-  .lock .amt{font-weight:800;font-size:16px}
-  .lock .pill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px}
-  .pill.locked{background:rgba(224,178,74,.15);color:var(--gold)}
-  .pill.open{background:rgba(0,200,5,.15);color:var(--lime)}
-  .lock .meta{font-size:12.5px;color:var(--muted);margin-top:7px;word-break:break-all;font-family:ui-monospace,monospace}
-  .lock .acts{margin-top:11px;display:flex;gap:8px;flex-wrap:wrap}
-  .empty{color:var(--muted);text-align:center;padding:26px 0;font-size:14px}
-  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 0}
-  .wallet{font-family:ui-monospace,monospace;font-size:13px}
-  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
-  @keyframes sp{to{transform:rotate(360deg)}}
-  .btn.danger{background:#3a1f1c;color:#f0a8a0}
-  /* wallet modal */
-  .modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(3px)}
-  .modal-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;width:370px;max-width:100%;box-shadow:0 30px 80px rgba(0,0,0,.55)}
-  .modal-head{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:17px;margin-bottom:15px}
-  .xbtn{background:none;border:none;color:var(--muted);font-size:19px;cursor:pointer;line-height:1}
-  .wchoices{display:flex;flex-direction:column;gap:9px}
-  .wchoice{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;background:#16211a;border:1px solid var(--line);cursor:pointer;transition:.14s;font-weight:700}
-  .wchoice:hover{border-color:var(--green2);transform:translateY(-1px)}
-  .wchoice img{width:26px;height:26px;border-radius:7px}
-  .wchoice .ic{width:26px;height:26px;border-radius:7px;background:#22331f;display:grid;place-items:center;font-weight:800;color:var(--lime)}
-  .wchoice .badge2{margin-left:auto;font-size:11px;font-weight:800;color:var(--muted)}
-  .wconn-addr{font-family:ui-monospace,monospace;font-size:13px;word-break:break-all;background:#0f1712;border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:14px}
-  .wconn-acts{display:flex;gap:9px;flex-wrap:wrap}.wconn-acts .btn{flex:1;min-width:130px;text-align:center}
-  /* duration preset chips */
-  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
-  .chip-dur{font-size:12px;font-weight:800;padding:7px 12px;border-radius:9px;background:#16211a;border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:.14s;user-select:none}
-  .chip-dur:hover{transform:translateY(-1px)} .chip-dur.on{border-color:var(--green2);color:var(--ink);background:var(--panel2)}
-  .chip-dur.burn{border-color:rgba(224,88,77,.45);color:#e89a90}
-  .chip-dur.burn.on{border-color:var(--bad);color:#ffb9b1;background:rgba(224,88,77,.14)}
-  .btn.primary.burning{background:linear-gradient(180deg,#e0584d,#a83a31);color:#fff;box-shadow:0 8px 20px rgba(224,88,77,.3)}
-  .pill.burned{background:rgba(224,88,77,.15);color:#ffb9b1}
-  /* shareable proof page */
-  .proof-rows{display:flex;flex-direction:column;gap:1px;margin:18px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .proof-rows>div{display:flex;justify-content:space-between;gap:14px;padding:12px 14px;background:var(--panel2);font-size:14px;flex-wrap:wrap;align-items:center}
-  .proof-rows>div>span{color:var(--muted);font-weight:700}
-  .proof-rows code{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}
-  .proof-links{display:flex;flex-direction:column;gap:9px}.proof-links .btn{text-align:center}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:rgba(0,224,90,.22)}
+  body::after{content:'';position:fixed;inset:0;z-index:999;pointer-events:none;opacity:.032;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .wrap{max-width:1152px;margin:0 auto;padding:0 32px}
+  .microlabel{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;font-weight:500;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3)}
+  .microlabel::before{content:'';width:24px;height:1px;background:var(--neon);opacity:.8}
+  .microlabel .num{color:var(--neon)}
+  .btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-family:var(--sans);
+    font-size:14px;font-weight:600;letter-spacing:-.01em;border-radius:999px;padding:12px 24px;cursor:pointer;
+    border:1px solid transparent;transition:all .25s cubic-bezier(.2,.7,.3,1);white-space:nowrap}
+  .btn-solid{background:var(--ink);color:#0a0f0c}
+  .btn-solid:hover{background:#fff;transform:translateY(-1px)}
+  .btn-neon{background:var(--neon);color:#03130a;box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 8px 28px -8px rgba(0,224,90,.55)}
+  .btn-neon:hover{transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 14px 40px -8px rgba(0,224,90,.7)}
+  .btn-line{color:var(--ink);border-color:var(--line-2);background:rgba(255,255,255,.02)}
+  .btn-line:hover{border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.05)}
+  .btn-lg{padding:15px 30px;font-size:15px}
+  /* nav */
+  .nav{position:fixed;top:0;left:0;right:0;z-index:100;transition:.3s}
+  .nav.scrolled{background:rgba(5,8,7,.72);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);border-bottom:1px solid var(--line)}
+  .nav-inner{max-width:1152px;margin:0 auto;display:flex;align-items:center;padding:0 32px;height:72px;gap:40px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16.5px;letter-spacing:-.03em}
+  .logo img{width:26px;height:26px;object-fit:contain;filter:drop-shadow(0 0 8px rgba(0,224,90,.45))}
+  .logo b{color:var(--neon)}
+  .nav-links{display:flex;gap:2px;flex:1;justify-content:center}
+  .nav-links a{font-size:13.5px;font-weight:500;color:var(--ink-2);padding:8px 14px;border-radius:999px;transition:.2s}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-right{display:flex;align-items:center;gap:10px}
+  .chain-chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink-3);
+    border:1px solid var(--line);border-radius:999px;padding:6px 12px;display:flex;align-items:center;gap:7px}
+  .chain-chip i{width:5px;height:5px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px var(--neon);animation:blink 2.4s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+  .x-link{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2);transition:.2s}
+  .x-link:hover{color:var(--ink);border-color:var(--line-2)}
+  /* hero */
+  .hero{position:relative;padding:196px 0 0;text-align:center}
+  .aurora{position:absolute;inset:-200px 0 0;pointer-events:none;overflow:hidden}
+  .aurora::before{content:'';position:absolute;top:-40%;left:50%;width:1400px;height:900px;transform:translateX(-50%);
+    background:radial-gradient(38% 45% at 38% 40%,rgba(0,224,90,.11),transparent 70%),
+      radial-gradient(30% 40% at 64% 34%,rgba(0,160,120,.09),transparent 70%),
+      radial-gradient(45% 50% at 50% 20%,rgba(245,183,49,.035),transparent 70%);
+    animation:aurora 14s ease-in-out infinite alternate}
+  @keyframes aurora{from{transform:translateX(-52%) rotate(-2deg)}to{transform:translateX(-48%) rotate(2deg) scale(1.06)}}
+  .halo-grid{position:absolute;inset:0;pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+    background-size:72px 72px;
+    mask-image:radial-gradient(ellipse 62% 48% at 50% 32%,#000 20%,transparent 72%);
+    -webkit-mask-image:radial-gradient(ellipse 62% 48% at 50% 32%,#000 20%,transparent 72%)}
+  .hero-badge{position:relative;display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--line-2);
+    background:rgba(255,255,255,.025);border-radius:999px;padding:8px 16px;margin-bottom:34px}
+  .hero-badge i{width:6px;height:6px;border-radius:50%;background:var(--amber)}
+  .hero-badge b{color:var(--amber);font-weight:500}
+  h1{position:relative;font-size:clamp(52px,8.2vw,108px);line-height:.98;letter-spacing:-.045em;font-weight:700}
+  h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.02em;
+    background:linear-gradient(115deg,#7dffb0 8%,var(--neon) 42%,#00b06e 90%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.06em}
+  .hero-sub{position:relative;font-size:clamp(16px,1.8vw,19px);color:var(--ink-2);max-width:600px;margin:30px auto 0;line-height:1.65}
+  .hero-sub b{color:var(--ink);font-weight:500}
+  .hero-actions{position:relative;display:flex;gap:12px;justify-content:center;margin-top:40px;flex-wrap:wrap}
+  .hero-proof{position:relative;margin-top:22px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.04em}
+  .hero-proof em{font-style:normal;color:var(--ink-2)}
+  /* app window mock */
+  .stage{position:relative;margin-top:84px;perspective:1400px}
+  .stage-glow{position:absolute;left:50%;bottom:-8%;width:70%;height:50%;transform:translateX(-50%);
+    background:radial-gradient(ellipse at center,rgba(0,224,90,.16),transparent 65%);filter:blur(30px);pointer-events:none}
+  .window{position:relative;max-width:1020px;margin:0 auto;border-radius:16px;overflow:hidden;
+    border:1px solid var(--line-2);background:#0a0f0c;
+    box-shadow:0 0 0 1px rgba(0,0,0,.4),0 -1px 0 rgba(255,255,255,.06) inset,0 60px 120px -30px rgba(0,0,0,.8);
+    transform:rotateX(6deg) scale(.985);transform-origin:50% 0;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+  .stage:hover .window{transform:rotateX(0) scale(1)}
+  .win-bar{display:flex;align-items:center;gap:14px;height:44px;padding:0 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.014)}
+  .dots{display:flex;gap:7px}
+  .dots i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.1)}
+  .url{flex:1;max-width:340px;margin:0 auto;font-family:var(--mono);font-size:11px;color:var(--ink-3);
+    background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:7px;padding:6px 12px;
+    display:flex;align-items:center;gap:8px;justify-content:center}
+  .win-body{display:grid;grid-template-columns:200px 1fr;min-height:430px;text-align:left}
+  .win-side{border-right:1px solid var(--line);padding:18px 12px;background:rgba(255,255,255,.008)}
+  .ws-label{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);padding:0 10px 8px}
+  .ws-item{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:500;color:var(--ink-2);padding:7px 10px;border-radius:7px;margin-bottom:1px}
+  .ws-item.on{color:var(--neon);background:rgba(0,224,90,.07)}
+  .ws-item .sn{margin-left:auto;font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--ink-3);border:1px solid var(--line);padding:1.5px 5px;border-radius:4px}
+  .ws-item svg{stroke:currentColor;opacity:.9}
+  .win-main{padding:22px 24px}
+  .wm-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+  .wm-tile{border:1px solid var(--line);border-radius:11px;padding:14px;background:rgba(255,255,255,.012)}
+  .wm-tile .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+  .wm-tile .v{font-size:19px;font-weight:700;letter-spacing:-.03em;margin-top:6px;font-variant-numeric:tabular-nums}
+  .wm-tile .v.g{color:var(--neon)}
+  .wm-chart{border:1px solid var(--line);border-radius:11px;padding:16px;background:rgba(255,255,255,.012)}
+  .wm-chart .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .wm-chart .t{font-size:12px;font-weight:600}
+  .wm-chart .rng{display:flex;gap:4px;font-family:var(--mono);font-size:8.5px;color:var(--ink-3)}
+  .wm-chart .rng span{padding:3px 7px;border-radius:5px}
+  .wm-chart .rng .on{color:var(--neon);background:rgba(0,224,90,.08)}
+  .wm-rows{margin-top:12px;border:1px solid var(--line);border-radius:11px;overflow:hidden}
+  .wm-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:11.5px;background:rgba(255,255,255,.008)}
+  .wm-row:last-child{border-bottom:none}
+  .wm-row .ico{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:7.5px;font-weight:600;color:#03130a}
+  .wm-row b{font-weight:600}
+  .wm-row .mono{font-family:var(--mono);font-size:9.5px;color:var(--ink-3)}
+  .wm-row .pill{margin-left:auto;font-family:var(--mono);font-size:8.5px;color:var(--neon);
+    background:rgba(0,224,90,.07);border:1px solid rgba(0,224,90,.2);border-radius:99px;padding:3px 8px}
+  /* ticker tape */
+  .tape{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(255,255,255,.012);overflow:hidden;position:relative}
+  .tape-inner{display:flex;width:max-content;animation:tape 60s linear infinite;padding:13px 0}
+  .tape:hover .tape-inner{animation-play-state:paused}
+  @keyframes tape{to{transform:translateX(-50%)}}
+  .tape-item{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11.5px;color:var(--ink-2);padding:0 26px;white-space:nowrap;letter-spacing:.02em}
+  .tape-item .sym{color:var(--ink);font-weight:600}
+  .tape-item .lk{color:var(--neon)}
+  .tape-item .dt{color:var(--ink-3)}
+  .tape-item::after{content:'';width:3px;height:3px;border-radius:50%;background:var(--ink-3);margin-left:26px;opacity:.5}
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);padding:72px 0}
+  .stat{padding:0 36px;border-left:1px solid var(--line)}
+  .stat:first-child{border-left:none;padding-left:0}
+  .stat .v{font-size:clamp(34px,4vw,50px);font-weight:700;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:2px}
+  .stat .v .u{font-size:.55em;color:var(--neon);font-weight:600}
+  .stat .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-top:12px}
+  /* sections */
+  section{position:relative}
+  .sec-pad{padding:104px 0}
+  .sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-bottom:56px;flex-wrap:wrap}
+  h2{font-size:clamp(34px,4.6vw,56px);letter-spacing:-.04em;font-weight:700;line-height:1.04;margin-top:18px}
+  h2 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+  .sec-sub{color:var(--ink-2);font-size:16px;line-height:1.65;max-width:400px;padding-bottom:6px}
+  /* bento */
+  .bento{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:225px;gap:12px}
+  .cell{position:relative;border:1px solid var(--line);border-radius:18px;background:var(--card);padding:26px;overflow:hidden;transition:border-color .3s;display:flex;flex-direction:column}
+  .cell:hover{border-color:rgba(255,255,255,.16)}
+  .cell::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .4s;pointer-events:none;
+    background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(0,224,90,.07),transparent 55%)}
+  .cell:hover::before{opacity:1}
+  .c-locks{grid-column:span 4;grid-row:span 2}
+  .c-vest,.c-drop,.c-stream,.c-sec,.c-proof{grid-column:span 2}
+  .cell h3{font-size:16.5px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
+  .cell p{color:var(--ink-2);font-size:13.5px;line-height:1.6;margin-top:8px;max-width:420px}
+  .b-tag{font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;border-radius:99px;padding:3.5px 9px}
+  .b-tag.live{color:#03130a;background:var(--neon)}
+  .b-tag.soon{color:var(--ink-3);border:1px solid var(--line-2)}
+  .cell .viz{position:relative;flex:1;margin:18px -6px -6px;min-height:0}
+  .lockviz{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .proof-mini{position:relative;width:min(400px,88%);border:1px solid var(--line-2);border-radius:14px;
+    background:linear-gradient(160deg,rgba(255,255,255,.035),rgba(255,255,255,.008));backdrop-filter:blur(6px);
+    padding:20px;box-shadow:0 30px 70px -20px rgba(0,0,0,.7)}
+  .proof-mini .r{display:flex;justify-content:space-between;font-size:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .proof-mini .r:last-child{border-bottom:none}
+  .proof-mini .r .k{color:var(--ink-3)}
+  .proof-mini .r .v{font-weight:600;font-variant-numeric:tabular-nums}
+  .proof-mini .r .v.g{color:var(--neon)}
+  .proof-mini .r .v.mono{font-family:var(--mono);font-size:10.5px;font-weight:500}
+  .proof-mini .stamp{position:absolute;top:-11px;right:16px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:#03130a;background:var(--neon);border-radius:99px;padding:4px 10px;box-shadow:0 4px 16px rgba(0,224,90,.45)}
+  .lock-track{margin-top:14px}
+  .lock-track .bar{height:4px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+  .lock-track .fill{height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,var(--neon-dim),var(--neon));
+    box-shadow:0 0 10px rgba(0,224,90,.5);transition:width 1.6s cubic-bezier(.2,.7,.2,1)}
+  .cell.reveal-in .lock-track .fill{width:38%}
+  .lock-track .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--ink-3);margin-top:8px}
+  .vestviz svg,.dropviz svg,.streamviz svg{position:absolute;inset:0;width:100%;height:100%}
+  .vest-path{stroke:var(--neon);stroke-width:2;fill:none;stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 2s ease .2s}
+  .cell.reveal-in .vest-path{stroke-dashoffset:0}
+  .dropviz circle{fill:var(--neon);opacity:0;animation:dropfall 3.2s ease-in-out infinite}
+  @keyframes dropfall{0%{opacity:0;transform:translateY(-14px)}18%{opacity:.85}70%{opacity:.65;transform:translateY(10px)}100%{opacity:0;transform:translateY(22px)}}
+  .streamline{stroke:var(--neon);stroke-width:2;stroke-linecap:round;stroke-dasharray:10 14;animation:flow 1.4s linear infinite;opacity:.8}
+  .streamline.s2{opacity:.35;animation-duration:2s}
+  @keyframes flow{to{stroke-dashoffset:-24}}
+  .zero{font-size:96px;font-weight:800;letter-spacing:-.06em;line-height:.9;
+    background:linear-gradient(180deg,var(--ink) 30%,rgba(238,244,239,.15));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .zero-sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-top:10px}
+  .linkline{font-family:var(--mono);font-size:11px;color:var(--ink-2);background:rgba(255,255,255,.03);
+    border:1px solid var(--line);border-radius:9px;padding:10px 13px;display:flex;gap:9px;align-items:center;margin-top:auto}
+  .linkline .lk{color:var(--neon);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* statement */
+  .statement{padding:150px 0;text-align:center;border-top:1px solid var(--line)}
+  .statement .microlabel{justify-content:center}
+  .statement .microlabel::before{display:none}
+  .statement h2{font-size:clamp(38px,6vw,76px);max-width:1000px;margin:26px auto 0;line-height:1.06}
+  .statement .dim{color:var(--ink-3)}
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .stepc{position:relative;border:1px solid var(--line);border-radius:18px;background:var(--card);padding:30px;overflow:hidden}
+  .stepc::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .4s;pointer-events:none;
+    background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%),rgba(0,224,90,.06),transparent 55%)}
+  .stepc:hover::before{opacity:1}
+  .stepc .n{font-family:var(--mono);font-size:11px;color:var(--neon);letter-spacing:.14em}
+  .stepc h4{font-size:18px;font-weight:600;letter-spacing:-.02em;margin-top:44px}
+  .stepc p{color:var(--ink-2);font-size:13.5px;line-height:1.65;margin-top:10px}
+  .stepc .ghost{position:absolute;top:14px;right:20px;font-size:88px;font-weight:800;letter-spacing:-.05em;color:rgba(255,255,255,.028);line-height:1;user-select:none}
+  /* trust */
+  .trust{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+  .t-item{display:flex;gap:16px;padding:22px 0;border-top:1px solid var(--line)}
+  .t-item:last-child{border-bottom:1px solid var(--line)}
+  .t-item .ti-n{font-family:var(--mono);font-size:10.5px;color:var(--neon);padding-top:3px;letter-spacing:.1em}
+  .t-item b{font-size:15px;font-weight:600;letter-spacing:-.01em;display:block}
+  .t-item span{font-size:13px;color:var(--ink-2);line-height:1.6;display:block;margin-top:5px}
+  .term{border:1px solid var(--line-2);border-radius:14px;background:#070c09;overflow:hidden;box-shadow:0 40px 90px -30px rgba(0,0,0,.8)}
+  .term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .term-bar .dots i{width:9px;height:9px}
+  .term-bar .tt{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-left:8px;letter-spacing:.06em}
+  .term-body{padding:20px;font-family:var(--mono);font-size:12px;line-height:2.05;color:var(--ink-2)}
+  .term-body .c{color:var(--ink-3)}
+  .term-body .g{color:var(--neon)}
+  .term-body .y{color:var(--amber)}
+  .term-body .w{color:var(--ink)}
+  .cursor{display:inline-block;width:7px;height:14px;background:var(--neon);vertical-align:-2px;animation:blink 1.1s steps(1) infinite}
+  /* CTA + footer */
+  .cta{padding:150px 0 140px;text-align:center;position:relative;overflow:hidden}
+  .cta .aurora2{position:absolute;left:50%;bottom:-300px;width:1100px;height:600px;transform:translateX(-50%);
+    background:radial-gradient(ellipse at center,rgba(0,224,90,.1),transparent 65%);pointer-events:none}
+  .cta h2{font-size:clamp(40px,6vw,80px)}
+  .cta p{color:var(--ink-2);margin:22px auto 0;font-size:16px;max-width:420px;line-height:1.6}
+  footer{border-top:1px solid var(--line);position:relative;overflow:hidden}
+  .foot{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;padding:72px 0 40px}
+  .foot h5{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);margin-bottom:20px}
+  .foot a.fl{display:block;font-size:13.5px;color:var(--ink-2);margin-bottom:12px;transition:.15s;width:fit-content}
+  .foot a.fl:hover{color:var(--neon)}
+  .foot-desc{font-size:13px;color:var(--ink-3);line-height:1.7;margin-top:16px;max-width:280px}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;padding:26px 0 40px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.05em;flex-wrap:wrap;gap:10px}
+  .ghost-word{display:block;font-size:clamp(90px,17vw,240px);font-weight:800;letter-spacing:-.05em;line-height:.78;
+    text-align:center;user-select:none;pointer-events:none;margin-bottom:-.14em;
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0) 82%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+  /* reveals */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+  .reveal-in{opacity:1;transform:none}
+  .d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}.d4{transition-delay:.32s}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+  @media (max-width:960px){
+    .nav-links{display:none}
+    .stats{grid-template-columns:repeat(2,1fr);gap:40px 0}
+    .stat:nth-child(3){border-left:none;padding-left:0}
+    .bento{grid-template-columns:1fr;grid-auto-rows:auto}
+    .cell{min-height:230px;grid-column:span 1!important;grid-row:span 1!important}
+    .c-locks{min-height:420px}
+    .steps,.trust{grid-template-columns:1fr}
+    .win-body{grid-template-columns:1fr}
+    .win-side{display:none}
+    .foot{grid-template-columns:1fr 1fr}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <a class="brand" href="/" title="HoodLock — home">
-      <img class="mark" src="/hoodlock-logo.png" alt="HoodLock" />
-      <span class="wm">Hood<b>Lock</b></span>
-    </a>
-    <div style="display:flex;align-items:center;gap:10px">
-      <a href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener" title="HoodLock on X" aria-label="HoodLock on X" style="display:grid;place-items:center;width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:#16211a;color:var(--ink);flex:none">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+
+<!-- ═════════ NAV ═════════ -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="logo" href="/"><img src="/hoodlock-logo.png" alt="HoodLock" />Hood<b>Lock</b></a>
+    <div class="nav-links">
+      <a href="#suite">Suite</a><a href="#how">How it works</a><a href="#security">Security</a><a href="/app.html#explore">Explore</a>
+    </div>
+    <div class="nav-right">
+      <span class="chain-chip"><i></i>CHAIN 4663</span>
+      <a class="x-link" href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener" aria-label="HoodLock on X">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       </a>
-      <button id="connectBtn" class="btn primary">Connect Wallet</button>
+      <a class="btn btn-solid" style="padding:9px 18px;font-size:13px" href="/app.html">Launch App</a>
     </div>
-  </header>
-
-  <div class="hero">
-    <h1>Lock liquidity. <span class="g">Prove it.</span></h1>
-    <p>The safest liquidity & token locker on Robinhood Chain. Lock LP or any token, get shareable on-chain proof.</p>
-    <span class="badge">🔒 Verified contract · trustless · no admin access to your funds</span>
   </div>
+</nav>
 
-  <section id="lockProof" class="card" style="display:none;margin-bottom:16px"></section>
+<!-- ═════════ HERO ═════════ -->
+<header class="hero">
+  <div class="aurora"></div>
+  <div class="halo-grid"></div>
+  <div class="wrap">
+    <div class="hero-badge reveal"><i></i>Verified contract &nbsp;·&nbsp; <b>no admin access to funds</b></div>
+    <h1 class="reveal d1">Lock liquidity.<br><span class="serif">Prove it.</span></h1>
+    <p class="hero-sub reveal d2">The token infrastructure of Robinhood Chain. Lock LP or any token with <b>on-chain, shareable proof</b> — then vest teams, stream payments and drop tokens from the same dashboard.</p>
+    <div class="hero-actions reveal d3">
+      <a class="btn btn-neon btn-lg" href="/app.html">Start locking</a>
+      <a class="btn btn-line btn-lg" href="/app.html#explore">Verify a lock</a>
+    </div>
+    <div class="hero-proof reveal d4">$ flat fee <em id="heroFee">—</em> · no percentage cuts · extend-only by design</div>
 
-  <div class="tabs">
-    <div class="tab on" data-tab="lock">Lock tokens</div>
-    <div class="tab" data-tab="mine">My locks</div>
-    <div class="tab" data-tab="explore">Explore / Verify</div>
-  </div>
-
-  <!-- LOCK -->
-  <section id="tab-lock" class="card">
-    <h2 id="lockTitle">Create a lock</h2>
-    <div class="sub" id="lockSub">Lock any Robinhood tokens or LP until a date you choose.</div>
-    <label>Token / LP contract address</label>
-    <input id="tokenAddr" placeholder="0x…" spellcheck="false" />
-    <div id="tokenInfo" class="hint"></div>
-    <div class="row">
-      <div>
-        <label>Amount</label>
-        <input id="amount" placeholder="0.0" inputmode="decimal" />
-        <div class="hint" id="balHint"></div>
-      </div>
-      <div>
-        <label>Unlock date</label>
-        <input id="unlockDate" type="datetime-local" />
-        <div class="chips" id="lockPresets">
-          <span class="chip-dur" data-days="7">7 days</span>
-          <span class="chip-dur" data-days="30">1 month</span>
-          <span class="chip-dur" data-days="90">3 months</span>
-          <span class="chip-dur" data-days="180">6 months</span>
-          <span class="chip-dur" data-days="365">1 year</span>
-          <span class="chip-dur burn" id="burnChip">🔥 FOREVER · BURN</span>
+    <div class="stage reveal d4">
+      <div class="stage-glow"></div>
+      <div class="window">
+        <div class="win-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="url"><svg width="9" height="10" viewBox="0 0 10 12" fill="none"><rect x="1" y="5" width="8" height="6" rx="1.5" stroke="#59695e"/><path d="M3 5V3.5a2 2 0 114 0V5" stroke="#59695e"/></svg>app.hoodlock.tech</span>
         </div>
-        <div class="hint" id="durHint">Can only be extended later, never shortened.</div>
+        <div class="win-body">
+          <div class="win-side">
+            <div class="ws-label">Overview</div>
+            <div class="ws-item on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>Dashboard</div>
+            <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>Explore</div>
+            <div class="ws-label" style="margin-top:16px">Products</div>
+            <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>Locks</div>
+            <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 17l5-5 4 3 6-7"/></svg>Vesting<span class="sn">SOON</span></div>
+            <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3v13M7 11l5 5 5-5"/></svg>Airdrops<span class="sn">SOON</span></div>
+            <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 12h6M14 12h6"/><circle cx="12" cy="12" r="2.5"/></svg>Streams<span class="sn">SOON</span></div>
+          </div>
+          <div class="win-main">
+            <div class="wm-tiles">
+              <div class="wm-tile"><div class="k">Locks created</div><div class="v g" id="mockLocks">—</div></div>
+              <div class="wm-tile"><div class="k">Unique wallets</div><div class="v" id="mockWallets">—</div></div>
+              <div class="wm-tile"><div class="k">Platform fee</div><div class="v" id="mockFee">—</div></div>
+            </div>
+            <div class="wm-chart">
+              <div class="head"><span class="t">Locks created</span><span class="rng"><span>7D</span><span class="on">30D</span><span>90D</span></span></div>
+              <svg viewBox="0 0 560 110" preserveAspectRatio="none" style="width:100%;height:110px;display:block">
+                <defs><linearGradient id="wmg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#00e05a" stop-opacity=".22"/><stop offset="1" stop-color="#00e05a" stop-opacity="0"/>
+                </linearGradient></defs>
+                <!-- redrawn from real Locked events by landing.ts -->
+                <polygon id="mockArea" fill="url(#wmg)" points="0,110 0,84 40,80 80,72 120,76 160,64 200,58 240,62 280,50 320,44 360,48 400,36 440,30 480,24 520,20 560,12 560,110"/>
+                <polyline id="mockLine" fill="none" stroke="#00e05a" stroke-width="2" stroke-linejoin="round" points="0,84 40,80 80,72 120,76 160,64 200,58 240,62 280,50 320,44 360,48 400,36 440,30 480,24 520,20 560,12"/>
+                <circle id="mockDot" cx="560" cy="12" r="3.5" fill="#00e05a"/>
+              </svg>
+            </div>
+            <div class="wm-rows" id="mockRows">
+              <div class="wm-row"><span class="ico" style="background:#00e05a">··</span><b>Loading live locks…</b><span class="pill">🔒</span></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div style="margin-top:-30px;display:flex;gap:10px;flex-wrap:wrap">
-      <button id="lockBtn" class="btn primary">Connect wallet to lock</button>
-    </div>
-    <div class="hint" id="feeHint" style="margin:8px 0 0"></div>
-    <div id="lockMsg" class="msg"></div>
-  </section>
+  </div>
 
-  <!-- MY LOCKS -->
-  <section id="tab-mine" class="card" style="display:none">
-    <h2>My locks</h2>
-    <div class="sub">Locks owned by your connected wallet.</div>
-    <div id="mineList" class="locklist"><div class="empty">Connect your wallet to see your locks.</div></div>
-  </section>
+  <!-- live ticker tape -->
+  <div class="tape" style="margin-top:88px">
+    <div class="tape-inner" id="tape"><span class="tape-item"><span class="lk">🔒</span><span class="sym">HOODLOCK</span><span>reading live locks from Robinhood Chain…</span></span></div>
+  </div>
+</header>
 
-  <!-- EXPLORE -->
-  <section id="tab-explore" class="card" style="display:none">
-    <h2>Explore &amp; verify</h2>
-    <div class="sub">Every lock is public. Search by token/LP address, or browse the latest — then share the proof link.</div>
-    <label>Search by token / LP address</label>
-    <div class="row" style="align-items:flex-end">
-      <input id="searchAddr" placeholder="0x…  (leave blank for latest)" spellcheck="false" />
-      <button id="searchBtn" class="btn ghost" style="flex:0 0 auto;min-width:120px">Search</button>
-    </div>
-    <div id="exploreList" class="locklist" style="margin-top:16px"><div class="empty">Loading latest locks…</div></div>
-  </section>
-
-  <footer>
-    HoodLock · contract <a id="ctLink" target="_blank">on Blockscout</a> · Robinhood Chain (4663)<br/>
-    Locked tokens can only be withdrawn by the lock owner after the unlock time. Burned tokens go to the dead address and can never be recovered.
-  </footer>
-</div>
-<div id="walletModal" class="modal" style="display:none">
-  <div class="modal-card">
-    <div class="modal-head"><span id="walletModalTitle">Connect a wallet</span><button id="walletModalClose" class="xbtn">✕</button></div>
-    <div id="walletChoices" class="wchoices"></div>
-    <div id="walletConnected" style="display:none"></div>
+<!-- ═════════ LIVE STATS ═════════ -->
+<div class="wrap">
+  <div class="stats">
+    <div class="stat reveal"><div class="v"><span id="statLocks">—</span></div><div class="k">Locks created</div></div>
+    <div class="stat reveal d1"><div class="v"><span id="statActive">—</span></div><div class="k">Active locks</div></div>
+    <div class="stat reveal d2"><div class="v"><span id="statWallets">—</span></div><div class="k">Unique wallets</div></div>
+    <div class="stat reveal d3"><div class="v"><span>0</span></div><div class="k">Admin keys over funds</div></div>
   </div>
 </div>
 
-<div id="extendModal" class="modal" style="display:none">
-  <div class="modal-card">
-    <div class="modal-head"><span>Extend lock</span><button id="extendClose" class="xbtn">✕</button></div>
-    <div class="sub" id="extendCurrent" style="color:var(--muted);font-size:13.5px;margin-bottom:14px"></div>
-    <label>New unlock date</label>
-    <input id="extendDate" type="datetime-local" />
-    <div class="chips" id="extendPresets">
-      <span class="chip-dur" data-days="30">+1 month</span>
-      <span class="chip-dur" data-days="90">+3 months</span>
-      <span class="chip-dur" data-days="180">+6 months</span>
-      <span class="chip-dur" data-days="365">+1 year</span>
+<!-- ═════════ BENTO SUITE ═════════ -->
+<section id="suite">
+  <div class="wrap sec-pad">
+    <div class="sec-head">
+      <div class="reveal">
+        <div class="microlabel"><span class="num">01</span> The suite</div>
+        <h2>One dashboard.<br>Every <span class="serif">token operation.</span></h2>
+      </div>
+      <p class="sec-sub reveal d1">Locks are live today. The rest ships on the same trustless foundation — one wallet connection, one interface.</p>
     </div>
-    <div class="wconn-acts" style="margin-top:18px">
-      <button id="extendCancel" class="btn ghost">Cancel</button>
-      <button id="extendConfirm" class="btn primary">Extend lock</button>
+    <div class="bento">
+      <a class="cell c-locks reveal" href="/app.html">
+        <h3>Token & LP Locks <span class="b-tag live">Live</span></h3>
+        <p>Lock any Robinhood token or LP until a date you choose. Every lock mints a public proof page your community can verify in one click.</p>
+        <div class="viz lockviz">
+          <!-- populated with the latest real lock by landing.ts -->
+          <div class="proof-mini">
+            <span class="stamp">✓ On-chain</span>
+            <div class="r"><span class="k">Token</span><span class="v" id="pmToken">—</span></div>
+            <div class="r"><span class="k">Amount</span><span class="v" id="pmAmount">—</span></div>
+            <div class="r"><span class="k">Owner</span><span class="v mono" id="pmOwner">—</span></div>
+            <div class="r"><span class="k">Status</span><span class="v g" id="pmStatus">reading chain…</span></div>
+            <div class="lock-track">
+              <div class="bar"><div class="fill" id="pmFill"></div></div>
+              <div class="lbl"><span id="pmStart">LOCKED</span><span id="pmEnd">UNLOCKS</span></div>
+            </div>
+          </div>
+        </div>
+      </a>
+      <div class="cell c-vest reveal d1">
+        <h3>Vesting <span class="b-tag soon">Soon</span></h3>
+        <p>Cliffs and linear release, enforced by contract.</p>
+        <div class="viz vestviz"><svg viewBox="0 0 260 90" preserveAspectRatio="none">
+          <path class="vest-path" d="M8,82 L78,82 L78,58 C120,58 150,40 252,10"/>
+          <circle cx="78" cy="82" r="3" fill="#00e05a" opacity=".55"/>
+          <text x="66" y="76" font-family="JetBrains Mono" font-size="7.5" fill="#59695e">CLIFF</text></svg></div>
+      </div>
+      <div class="cell c-drop reveal d2">
+        <h3>Airdrops <span class="b-tag soon">Soon</span></h3>
+        <p>Thousands of wallets, one transaction.</p>
+        <div class="viz dropviz"><svg viewBox="0 0 260 90">
+          <circle cx="30" cy="30" r="3" style="animation-delay:0s"/><circle cx="70" cy="52" r="2.5" style="animation-delay:.5s"/>
+          <circle cx="110" cy="26" r="3.5" style="animation-delay:1s"/><circle cx="150" cy="56" r="2.5" style="animation-delay:1.5s"/>
+          <circle cx="190" cy="32" r="3" style="animation-delay:2s"/><circle cx="228" cy="50" r="2.5" style="animation-delay:2.5s"/></svg></div>
+      </div>
+      <div class="cell c-stream reveal d1">
+        <h3>Streams <span class="b-tag soon">Soon</span></h3>
+        <p>Payroll that moves every second.</p>
+        <div class="viz streamviz"><svg viewBox="0 0 260 90">
+          <line class="streamline" x1="10" y1="34" x2="250" y2="34"/><line class="streamline s2" x1="10" y1="56" x2="250" y2="56"/></svg></div>
+      </div>
+      <div class="cell c-sec reveal d2">
+        <h3>Admin keys</h3>
+        <div class="viz" style="display:flex;flex-direction:column;justify-content:flex-end">
+          <div class="zero">0</div>
+          <div class="zero-sub">No backdoors. Not us. Not anyone.</div>
+        </div>
+      </div>
+      <div class="cell c-proof reveal d3">
+        <h3>Shareable proof</h3>
+        <p>Drop the link. Let the contract speak.</p>
+        <div class="linkline"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e05a" stroke-width="2"><path d="M10 14a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11 5.93"/><path d="M14 10a5 5 0 00-7.07 0L4.1 12.83a5 5 0 007.07 7.07L13 18.07"/></svg><span class="lk">hoodlock.tech/app.html?lock=0</span></div>
+      </div>
     </div>
-    <div id="extendMsg" class="msg"></div>
   </div>
-</div>
-<script type="module" src="/src/main.ts"></script>
+</section>
+
+<!-- ═════════ STATEMENT ═════════ -->
+<section class="statement">
+  <div class="wrap">
+    <div class="microlabel reveal">— the thesis —</div>
+    <h2 class="reveal d1"><span class="dim">Trust isn't</span> promised<span class="dim">.</span><br>It's <span class="serif">proven on-chain.</span></h2>
+  </div>
+</section>
+
+<!-- ═════════ HOW ═════════ -->
+<section id="how" style="border-top:1px solid var(--line)">
+  <div class="wrap sec-pad">
+    <div class="sec-head">
+      <div class="reveal">
+        <div class="microlabel"><span class="num">02</span> How it works</div>
+        <h2>Sixty seconds<br>to <span class="serif">on-chain trust.</span></h2>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="stepc reveal"><span class="ghost">1</span><div class="n">STEP / 01</div><h4>Connect & choose</h4><p>Connect your wallet, paste any token or LP contract on Robinhood Chain, set the amount.</p></div>
+      <div class="stepc reveal d1"><span class="ghost">2</span><div class="n">STEP / 02</div><h4>Set the unlock date</h4><p>Pick a date or a preset — 7 days to 1 year. Extend-only: dates move later, never earlier.</p></div>
+      <div class="stepc reveal d2"><span class="ghost">3</span><div class="n">STEP / 03</div><h4>Share the proof</h4><p>A public proof page, verifiable on Blockscout. Post the link and let the contract do the talking.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ SECURITY ═════════ -->
+<section id="security" style="border-top:1px solid var(--line)">
+  <div class="wrap sec-pad">
+    <div class="trust">
+      <div>
+        <div class="microlabel reveal"><span class="num">03</span> Security</div>
+        <h2 class="reveal d1">Trustless<br>by <span class="serif">construction.</span></h2>
+        <div style="margin-top:44px">
+          <div class="t-item reveal"><span class="ti-n">/01</span><div><b>Zero admin access</b><span>The contract has no owner powers over locked funds. Only the lock owner, only after the unlock time.</span></div></div>
+          <div class="t-item reveal d1"><span class="ti-n">/02</span><div><b>Verified & open source</b><span>Source verified on Blockscout. What you read is exactly what runs.</span></div></div>
+          <div class="t-item reveal d2"><span class="ti-n">/03</span><div><b>Extend-only locks</b><span>Unlock dates can be pushed later, never pulled earlier. A rug-proof guarantee anyone can check.</span></div></div>
+          <div class="t-item reveal d3"><span class="ti-n">/04</span><div><b>Public proof, forever</b><span>Every lock is a permanent on-chain record with a shareable verification page.</span></div></div>
+        </div>
+      </div>
+      <div class="term reveal d2">
+        <div class="term-bar"><span class="dots"><i></i><i></i><i></i></span><span class="tt">hoodlock — verify · blockscout</span></div>
+        <div class="term-body">
+          <div><span class="c">$</span> <span class="w">hoodlock verify --contract</span></div>
+          <div><span class="c">→ querying Robinhood Chain (4663)…</span></div>
+          <div>&nbsp;</div>
+          <div><span class="g">✓ contract verified</span> <span class="c">· source matches bytecode</span></div>
+          <div><span class="g">✓ admin over locked funds</span> <span class="c">·</span> <span class="w">none</span></div>
+          <div><span class="g">✓ withdraw</span> <span class="c">·</span> <span class="w">owner only, after unlockTime</span></div>
+          <div><span class="g">✓ extend</span> <span class="c">·</span> <span class="w">later only</span> <span class="y">(never shortened)</span></div>
+          <div>&nbsp;</div>
+          <div><span class="c">proof</span> <span class="g" id="termLink">hoodlock.tech/app.html?lock=0</span> <span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ CTA ═════════ -->
+<section class="cta">
+  <div class="aurora2"></div>
+  <div class="wrap">
+    <h2 class="reveal">Ready to <span class="serif">prove it?</span></h2>
+    <p class="reveal d1">Your first lock takes under a minute. Flat fee, no percentage cuts — ever.</p>
+    <div class="hero-actions reveal d2" style="margin-top:36px">
+      <a class="btn btn-neon btn-lg" href="/app.html">Launch App</a>
+      <a class="btn btn-line btn-lg" id="ctaContract" target="_blank" rel="noopener">Read the contract</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════ FOOTER ═════════ -->
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="logo" href="/"><img src="/hoodlock-logo.png" alt="HoodLock" style="width:22px;height:22px" />Hood<b>Lock</b></a>
+        <p class="foot-desc">The token infrastructure of Robinhood Chain. Trustless, verified, extend-only. Locked tokens can only be withdrawn by their owner after the unlock time.</p>
+      </div>
+      <div><h5>Products</h5><a class="fl" href="/app.html">Token Locks</a><a class="fl" href="#suite">Vesting</a><a class="fl" href="#suite">Airdrops</a><a class="fl" href="#suite">Streams</a></div>
+      <div><h5>Protocol</h5><a class="fl" href="/app.html#explore">Explore locks</a><a class="fl" id="footContract" target="_blank" rel="noopener">Contract ↗</a><a class="fl" href="#security">Security</a></div>
+      <div><h5>Community</h5><a class="fl" href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener">X / Twitter ↗</a><a class="fl" href="/app.html">Launch App ↗</a></div>
+    </div>
+    <div class="foot-bottom"><span>© 2026 HOODLOCK</span><span>ROBINHOOD CHAIN · 4663</span></div>
+  </div>
+  <span class="ghost-word">HOODLOCK</span>
+</footer>
+
+<script type="module" src="/src/landing.ts"></script>
 </body>
 </html>
