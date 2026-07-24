@@ -102,7 +102,7 @@ function notify(msg: string) {
 ($("ctLink") as HTMLAnchorElement).href = `${EXP}/address/${LOCKER}`;
 
 /* ---------- view routing ---------- */
-const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS", admin: "ADMIN CONSOLE" };
+const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS", affiliate: "AFFILIATE", admin: "ADMIN CONSOLE" };
 const ADMIN_WALLET = "0x79c1230cab12d53d040f5fe1f5279e1a481ccea2";
 function go(view: string, writeHistory = true) {
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
@@ -113,6 +113,7 @@ function go(view: string, writeHistory = true) {
   if (view === "explore" && !exploreLoaded) loadExplore();
   if (view === "locks") renderMine();
   if (view === "admin") loadAdmin();
+  if (view === "affiliate") loadAffiliatePage();
 }
 document.querySelectorAll<HTMLElement>(".nav-item").forEach((n) => n.addEventListener("click", () => { go(n.dataset.view!); closeSidebar(); }));
 
@@ -228,6 +229,7 @@ function onConnected() {
   walletToks = null; walletToksFor = "";
   refreshToken(); renderMine(); updateSummary(); loadWalletTokens();
   syncAdminNav(); attributeRef();
+  if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
   fetch("/api/track/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wallet: account }) }).catch(() => { /* analytics only */ });
   notify(`Wallet connected — ${short(account)}`);
 }
@@ -239,6 +241,8 @@ function disconnect() {
   $("balHint").textContent = "";
   $("yourLocksSub").textContent = "CONNECT WALLET TO MANAGE";
   renderMine(); updateSummary(); closeWalletModal(); syncAdminNav();
+  try { localStorage.removeItem("hl_afftok"); localStorage.removeItem("hl_affexp"); } catch { /* */ }
+  if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
 }
 function openWalletModal() {
   $("walletModal").classList.add("show");
@@ -1177,6 +1181,169 @@ window.addEventListener("popstate", () => {
   go(v && TITLES[v] ? v : "dashboard", false);
 });
 
+/* ================= PUBLIC AFFILIATE PROGRAM ================= */
+function cachedAffToken(): string | null {
+  try { const t = localStorage.getItem("hl_afftok"), e = Number(localStorage.getItem("hl_affexp")); return t && e > Date.now() + 5000 ? t : null; } catch { return null; }
+}
+async function affSignIn(): Promise<string> {
+  const ts = Math.floor(Date.now() / 1000);
+  const signature = await provider!.request({ method: "personal_sign", params: [`HoodLock affiliate ${ts}`, account] });
+  const r = await fetch("/api/aff/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: account, ts, signature }) });
+  if (!r.ok) throw new Error(await r.text());
+  const { token, exp } = await r.json();
+  try { localStorage.setItem("hl_afftok", token); localStorage.setItem("hl_affexp", String(exp)); } catch { /* */ }
+  return token;
+}
+async function loadAffiliatePage() {
+  const box = $("affBody");
+  if (!account) {
+    box.innerHTML = `<div class="card"><div class="empty"><div class="big">Connect your wallet</div><div class="small">Connect to create your referral link and track earnings.</div><button class="btn btn-neon btn-sm" id="affConnect" style="margin-top:12px">Connect Wallet</button></div></div>`;
+    document.getElementById("affConnect")?.addEventListener("click", openWalletModal);
+    return;
+  }
+  const token = cachedAffToken();
+  if (!token) {
+    box.innerHTML = `<div class="card"><div class="empty"><div class="big">Your affiliate dashboard</div><div class="small">Sign a message to open your dashboard — no transaction, it just proves this wallet is yours.</div><button class="btn btn-neon btn-sm" id="affSign" style="margin-top:12px">Sign in</button></div></div>`;
+    document.getElementById("affSign")?.addEventListener("click", async () => { try { await affSignIn(); loadAffiliatePage(); } catch (e: any) { alert("Sign-in failed: " + (e?.message || e)); } });
+    return;
+  }
+  box.innerHTML = `<div class="card"><div class="empty"><div class="small">Loading your dashboard… <span class="spin"></span></div></div></div>`;
+  let me: any;
+  try {
+    const r = await fetch("/api/aff/me", { headers: { Authorization: "Bearer " + token } });
+    if (r.status === 401) { try { localStorage.removeItem("hl_afftok"); } catch { /* */ } return loadAffiliatePage(); }
+    me = await r.json();
+  } catch { box.innerHTML = `<div class="card"><div class="empty"><div class="small">Couldn't reach the affiliate service.</div></div></div>`; return; }
+  if (!me.hasCode) return renderAffCreate();
+  renderAffDashboard(me);
+}
+function renderAffCreate() {
+  const box = $("affBody");
+  box.innerHTML = `<div class="card">
+    <div class="card-head"><div><h3>Create your affiliate link</h3><div class="sub">EARN 30% OF EVERY REFERRED LOCK FEE</div></div></div>
+    <p class="hintline">Pick a code for your link — 3–20 characters (letters, numbers, - or _).</p>
+    <div class="explore-bar">
+      <div class="input-wrap"><span style="position:absolute;left:14px;color:var(--ink-3);font-family:var(--mono);font-size:12px;pointer-events:none">hoodlock.tech/r/</span><input type="text" id="affCode" placeholder="yourname" spellcheck="false" style="padding-left:150px" maxlength="20" /></div>
+      <button class="btn btn-neon" id="affCreateBtn" style="padding:11px 22px" disabled>Create link</button>
+    </div>
+    <div class="hintline" id="affCodeHint"></div>
+  </div>`;
+  const input = $("affCode") as HTMLInputElement, btn = $("affCreateBtn") as HTMLButtonElement, hint = $("affCodeHint");
+  const check = debounce(async () => {
+    const code = input.value.trim().toLowerCase();
+    if (!/^[a-z0-9_-]{3,20}$/.test(code)) { hint.innerHTML = code ? `<span class="badv">Use 3–20 letters, numbers, - or _.</span>` : ""; btn.disabled = true; return; }
+    try {
+      const r = await (await fetch("/api/aff/available?code=" + encodeURIComponent(code))).json();
+      hint.innerHTML = r.available ? `<span style="color:var(--neon)">✓ hoodlock.tech/r/${escape(code)} is available</span>` : `<span class="badv">${r.reason === "invalid" ? "That code isn't allowed." : "Already taken — try another."}</span>`;
+      btn.disabled = !r.available;
+    } catch { hint.textContent = ""; }
+  }, 300);
+  input.addEventListener("input", check);
+  btn.addEventListener("click", async () => {
+    const code = input.value.trim().toLowerCase();
+    btn.disabled = true; btn.textContent = "Creating…";
+    try {
+      let token = cachedAffToken(); if (!token) token = await affSignIn();
+      const r = await fetch("/api/aff/create", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ code }) });
+      if (!r.ok) throw new Error((await r.json()).error || "failed");
+      notify("Affiliate link created"); loadAffiliatePage();
+    } catch (e: any) { alert("Couldn't create: " + (e?.message || e)); btn.disabled = false; btn.textContent = "Create link"; }
+  });
+}
+async function affLocksTable(me: any): Promise<string> {
+  const attrMap = new Map<string, number>(me.attributions.map((a: any) => [a.wallet.toLowerCase(), a.ts]));
+  const self = account.toLowerCase();
+  const cut = me.commission * me.feeEth;
+  const logs = await loadLockedLogs();
+  const cand = logs.filter((l) => attrMap.has(l.owner.toLowerCase()) && l.owner.toLowerCase() !== self);
+  const rows: string[] = [];
+  for (const l of cand) {
+    const ts = await blockTs(l.block);
+    if (ts === null || ts <= (attrMap.get(l.owner.toLowerCase()) as number)) continue;
+    const mt = await tokMeta(l.token);
+    rows.push(`<tr><td><div class="tk-cell">${await tokenIcoHTML(l.token, mt.symbol)}<div><div class="n">$${escape(mt.symbol)} <span class="tag">#${l.id}</span></div><div class="a">${short(l.owner)}</div></div></div></td>
+      <td>${fmtNum(l.amount, mt.decimals)}</td><td>${dateLabel(ts)}</td><td>${me.feeEth} ETH</td>
+      <td style="text-align:right;color:var(--neon)">+${cut.toFixed(4)} ETH</td></tr>`);
+  }
+  return rows.length
+    ? `<table><thead><tr><th>Token</th><th>Amount</th><th>Locked</th><th>Fee</th><th style="text-align:right">Your 30%</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
+    : `<div class="empty"><div class="small">No referred locks yet — share your link to start earning.</div></div>`;
+}
+async function renderAffDashboard(me: any) {
+  const box = $("affBody");
+  const claimableUsd = me.claimableEth * (me.ethUsd || 0);
+  const canClaim = me.ethUsd > 0 && claimableUsd >= me.minClaimUsd;
+  const link = `${location.origin}/r/${me.code}`;
+  const stTag = (s: string) => s === "paid" ? "unlockable" : s === "failed" ? "withdrawn" : "locked";
+  box.innerHTML = `
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-head"><div><h3>Your link</h3><div class="sub">SHARE IT ANYWHERE</div></div></div>
+      <div class="explore-bar"><div class="input-wrap"><input type="text" readonly value="${escape(link)}" /></div>
+        <button class="btn btn-neon" id="affCopy" style="padding:11px 22px">Copy</button></div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k">Lifetime earnings</div><div class="v g">${me.lifetimeEarnedEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(me.lifetimeEarnedEth * me.ethUsd) : "30% of referred fees"}</div></div>
+      <div class="tile"><div class="k">Claimable now</div><div class="v">${me.claimableEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(claimableUsd) : ""} · min $${me.minClaimUsd}</div></div>
+      <div class="tile"><div class="k">Clicks</div><div class="v">${me.clicks.toLocaleString("en-US")}</div><div class="d">link visits</div></div>
+      <div class="tile"><div class="k">Referred lockers</div><div class="v">${me.lockers.toLocaleString("en-US")}</div><div class="d">of ${me.signups.toLocaleString("en-US")} signups</div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-head"><div><h3>Claim earnings</h3><div class="sub">PAID IN ETH TO ${short(account).toUpperCase()}</div></div>
+        <button class="btn btn-neon" id="affClaimBtn" ${canClaim ? "" : "disabled"}>Claim ${me.claimableEth.toFixed(4)} ETH</button></div>
+      <div class="hintline" id="affClaimMsg">${canClaim ? "" : (me.claimableEth > 0 ? `You can claim once your balance reaches $${me.minClaimUsd}.` : "Earn from referred locks to unlock claiming.")}</div>
+      ${me.claims && me.claims.length ? `<div class="tbl-scroll" style="margin-top:10px"><table><thead><tr><th>Amount</th><th>Status</th><th>Date</th><th style="text-align:right">Tx</th></tr></thead><tbody>${me.claims.map((c: any) => `<tr><td>${c.amount_eth.toFixed(4)} ETH</td><td><span class="status ${stTag(c.status)}"><i></i>${c.status.toUpperCase()}</span></td><td>${dateLabel(c.paid_at || c.requested_at)}</td><td style="text-align:right">${c.tx_hash ? `<a href="${EXP}/tx/${c.tx_hash}" target="_blank" rel="noopener">view</a>` : "—"}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h3>Referred locks</h3><div class="sub">LOCKS YOU EARNED FROM</div></div></div>
+      <div class="tbl-scroll" id="affLocksBox"><div class="empty"><div class="small">Loading… <span class="spin"></span></div></div></div>
+    </div>`;
+  $("affCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(link); notify("Link copied — share it anywhere"); } catch { prompt("Copy your link:", link); } });
+  if (canClaim) document.getElementById("affClaimBtn")?.addEventListener("click", () => claimEarnings(me));
+  $("affLocksBox").innerHTML = await affLocksTable(me);
+}
+async function claimEarnings(me: any) {
+  const btn = $("affClaimBtn") as HTMLButtonElement, msg = $("affClaimMsg");
+  btn.disabled = true; btn.textContent = "Claiming…";
+  try {
+    let token = cachedAffToken(); if (!token) token = await affSignIn();
+    const r = await fetch("/api/aff/claim", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({}) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "claim failed");
+    if (d.status === "paid") { msg.innerHTML = `<span style="color:var(--neon)">Paid ${d.amount.toFixed(4)} ETH — <a href="${EXP}/tx/${d.tx}" target="_blank" rel="noopener">view tx</a></span>`; notify("Paid 🎉"); }
+    else { msg.innerHTML = `<span style="color:var(--amber)">Claim received (${d.amount.toFixed(4)} ETH) — queued for payout, you'll receive it shortly.</span>`; notify("Claim queued"); }
+    setTimeout(loadAffiliatePage, 2500);
+  } catch (e: any) { msg.innerHTML = `<span class="badv">${escape(e?.message || String(e))}</span>`; btn.disabled = false; btn.textContent = `Claim ${me.claimableEth.toFixed(4)} ETH`; }
+}
+
+/* admin: affiliate payout claims */
+async function loadAdminClaims() {
+  const box = $("adClaimsBox");
+  const token = cachedToken();
+  if (!token) { box.innerHTML = `<div class="empty"><div class="small">Sign in to view claims.</div></div>`; return; }
+  try {
+    const r = await fetch("/api/admin/claims", { headers: { Authorization: "Bearer " + token } });
+    if (!r.ok) throw new Error(String(r.status));
+    const d = await r.json();
+    const claims = (d.claims || []) as any[];
+    if (!claims.length) { box.innerHTML = `<div class="empty"><div class="small">No affiliate claims yet.</div></div>`; return; }
+    const stTag = (s: string) => s === "paid" ? "unlockable" : s === "failed" ? "withdrawn" : "locked";
+    box.innerHTML = `<table><thead><tr><th>Affiliate</th><th>Code</th><th>Amount</th><th>Status</th><th>Requested</th><th style="text-align:right">Action</th></tr></thead><tbody>${
+      claims.map((c) => `<tr><td class="addr">${short(c.owner_wallet)}</td><td>${escape(c.code)}</td><td>${c.amount_eth.toFixed(4)} ETH</td>
+        <td><span class="status ${stTag(c.status)}"><i></i>${c.status.toUpperCase()}</span></td><td>${dateLabel(c.requested_at)}</td>
+        <td style="text-align:right">${c.status === "paid" ? (c.tx_hash ? `<a href="${EXP}/tx/${c.tx_hash}" target="_blank" rel="noopener">tx</a>` : "—") : `<button class="btn btn-line btn-sm" data-pay="${c.id}" data-wallet="${c.owner_wallet}" data-amt="${c.amount_eth}">Mark paid</button>`}</td></tr>`).join("")
+    }</tbody></table>`;
+    box.querySelectorAll<HTMLButtonElement>("[data-pay]").forEach((b) => b.addEventListener("click", async () => {
+      const tx = prompt(`Send ${b.dataset.amt} ETH to ${b.dataset.wallet}, then paste the tx hash:`);
+      if (!tx) return;
+      try {
+        const t = cachedToken();
+        await fetch("/api/admin/claims/pay", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + t }, body: JSON.stringify({ id: Number(b.dataset.pay), tx_hash: tx }) });
+        notify("Marked paid"); loadAdminClaims();
+      } catch (e: any) { alert("Failed: " + (e?.message || e)); }
+    }));
+  } catch { box.innerHTML = `<div class="empty"><div class="small">Couldn't load claims.</div></div>`; }
+}
+
 /* ---------- ADMIN CONSOLE (gated to the collector wallet) ---------- */
 const isAdmin = () => account.toLowerCase() === ADMIN_WALLET;
 function syncAdminNav() {
@@ -1271,6 +1438,7 @@ async function loadAdmin() {
   } catch { /* leave placeholders */ }
 
   loadAffiliates();
+  loadAdminClaims();
 }
 
 /* ---------- affiliates (needs the backend; degrades to a notice) ---------- */

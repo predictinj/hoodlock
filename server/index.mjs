@@ -5,7 +5,8 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { createPublicClient, http, defineChain, getAddress, verifyMessage, isAddress } from "viem";
+import { createPublicClient, createWalletClient, http, defineChain, getAddress, verifyMessage, isAddress, parseEther } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -54,7 +55,11 @@ try {
     CREATE TABLE IF NOT EXISTS affiliates (code TEXT PRIMARY KEY, label TEXT, clicks INTEGER DEFAULT 0, created_at INTEGER);
     CREATE TABLE IF NOT EXISTS attributions (wallet TEXT PRIMARY KEY, code TEXT, ts INTEGER);
     CREATE TABLE IF NOT EXISTS connections (wallet TEXT PRIMARY KEY, first_ts INTEGER, last_ts INTEGER, hits INTEGER DEFAULT 0);
+    CREATE TABLE IF NOT EXISTS claims (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT, owner_wallet TEXT, amount_eth REAL, status TEXT, tx_hash TEXT, requested_at INTEGER, paid_at INTEGER);
   `);
+  // public affiliates: an affiliates row with an owner earns 30% (NULL = internal campaign)
+  const cols = db.prepare("PRAGMA table_info(affiliates)").all().map((c) => c.name);
+  if (!cols.includes("owner_wallet")) db.exec("ALTER TABLE affiliates ADD COLUMN owner_wallet TEXT");
   console.log("[hoodlock] db ready at", dir);
 } catch (e) {
   console.error("[hoodlock] DB unavailable — affiliate features disabled, site still serves:", e?.message || e);
@@ -70,14 +75,112 @@ function validToken(req) {
   return true;
 }
 
+/* ---------- public affiliate program ---------- */
+const nowSec = () => Math.floor(Date.now() / 1000);
+const COMMISSION = 0.30;
+const CODE_RE = /^[a-z0-9_-]{3,20}$/;
+const RESERVED = new Set(["hoodlock", "admin", "app", "api", "r", "blog", "official", "support", "www", "help", "docs", "test"]);
+const normCode = (c) => String(c || "").toLowerCase();
+const codeValid = (c) => CODE_RE.test(c) && !RESERVED.has(c);
+
+// ETH/USD for the $10 claim gate (5-min cache; same source as the frontend)
+let ethUsdCache = { at: 0, v: 0 };
+async function ethUsd() {
+  if (Date.now() - ethUsdCache.at < 5 * 60_000 && ethUsdCache.v > 0) return ethUsdCache.v;
+  try {
+    const j = await (await fetch("https://api.coinbase.com/v2/prices/ETH-USD/spot")).json();
+    const p = Number(j?.data?.amount);
+    if (p > 0) ethUsdCache = { at: Date.now(), v: p };
+  } catch { /* keep last */ }
+  return ethUsdCache.v;
+}
+
+// per-owner lock block-timestamps (drives post-attribution commission), cached 60s
+const blockTsCache = new Map();
+async function blockTsOf(bn) {
+  const k = bn.toString();
+  if (blockTsCache.has(k)) return blockTsCache.get(k);
+  const b = await pub.getBlock({ blockNumber: bn });
+  const ts = Number(b.timestamp);
+  blockTsCache.set(k, ts);
+  return ts;
+}
+let lockRecCache = { at: 0, byOwner: new Map() };
+async function lockRecords() {
+  if (Date.now() - lockRecCache.at < 60_000) return lockRecCache.byOwner;
+  const logs = await pub.getLogs({ address: LOCKER, event: LOCKED_EVENT, fromBlock: 0n, toBlock: "latest" });
+  const byOwner = new Map();
+  for (const lg of logs) {
+    const owner = String(lg.args.owner).toLowerCase();
+    const ts = await blockTsOf(lg.blockNumber);
+    if (!byOwner.has(owner)) byOwner.set(owner, []);
+    byOwner.get(owner).push(ts);
+  }
+  lockRecCache = { at: Date.now(), byOwner };
+  return byOwner;
+}
+
+// 30% × fee × locks by attributed wallets that happened AFTER attribution (excl. self)
+async function affiliateEarnings(code, ownerWallet) {
+  const records = await lockRecords();
+  const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE LOWER(code) = ?").all(code.toLowerCase());
+  let lockers = 0, qualifyingLocks = 0;
+  for (const a of attrs) {
+    const w = a.wallet.toLowerCase();
+    if (w === ownerWallet.toLowerCase()) continue;   // block same-wallet self-referral
+    const q = (records.get(w) || []).filter((t) => t > a.ts).length;
+    if (q > 0) { lockers++; qualifyingLocks += q; }
+  }
+  return { lockers, qualifyingLocks, lifetimeEarnedEth: COMMISSION * FEE_ETH * qualifyingLocks };
+}
+const claimedFor = (code) => db.prepare("SELECT COALESCE(SUM(amount_eth),0) s FROM claims WHERE LOWER(code)=? AND status IN ('pending','paid')").get(code.toLowerCase()).s;
+const dailyPaid = () => db.prepare("SELECT COALESCE(SUM(amount_eth),0) s FROM claims WHERE status='paid' AND paid_at > ?").get(nowSec() - 86400).s;
+
+// hardened hot payout wallet (optional — claims queue as 'pending' if unset/disabled)
+const PAYOUTS_ENABLED = process.env.PAYOUTS_ENABLED !== "false";
+const PAYOUT_MAX_ETH = Number(process.env.PAYOUT_MAX_ETH || 0.5);
+const PAYOUT_DAILY_ETH = Number(process.env.PAYOUT_DAILY_ETH || 1);
+let payoutAccount = null, walletClient = null;
+try {
+  if (process.env.PAYOUT_PRIVATE_KEY) {
+    const pk = process.env.PAYOUT_PRIVATE_KEY.startsWith("0x") ? process.env.PAYOUT_PRIVATE_KEY : "0x" + process.env.PAYOUT_PRIVATE_KEY;
+    payoutAccount = privateKeyToAccount(pk);
+    walletClient = createWalletClient({ account: payoutAccount, chain: CHAIN, transport: http(cfg.rpc) });
+    console.log("[hoodlock] payout wallet ready:", payoutAccount.address);
+  } else {
+    console.log("[hoodlock] no PAYOUT_PRIVATE_KEY — claims will queue as pending");
+  }
+} catch (e) { console.error("[hoodlock] payout wallet init failed:", e?.message || e); }
+
+// public affiliate sessions (separate namespace from admin — NEVER grants admin)
+const affSessions = new Map(); // token -> { address, exp }
+function affWallet(req) {
+  const t = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  const s = affSessions.get(t);
+  if (!s || s.exp < Date.now()) { if (s) affSessions.delete(t); return null; }
+  return s.address;
+}
+
+// tiny per-IP rate limiter
+const rlMap = new Map();
+function limited(req, res, max, windowMs = 60_000) {
+  const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.ip || "?";
+  const now = Date.now();
+  let e = rlMap.get(ip);
+  if (!e || e.reset < now) { e = { count: 0, reset: now + windowMs }; rlMap.set(ip, e); }
+  if (++e.count > max) { res.status(429).json({ error: "rate limited" }); return true; }
+  return false;
+}
+
 const app = express();
+app.set("trust proxy", true);
 app.use(express.json({ limit: "16kb" }));
 
 /* affiliate redirect: /r/<code> → count a click, hand off to the app with ?ref */
 app.get("/r/:code", (req, res) => {
   const code = req.params.code;
-  if (db && REF_RE.test(code)) {
-    try { db.prepare("UPDATE affiliates SET clicks = clicks + 1 WHERE code = ?").run(code); } catch { /* */ }
+  if (db && REF_RE.test(code) && !limited(req, res, 120)) {
+    try { db.prepare("UPDATE affiliates SET clicks = clicks + 1 WHERE LOWER(code) = LOWER(?)").run(code); } catch { /* */ }
   }
   res.redirect(302, "/app/locks?ref=" + encodeURIComponent(code));
 });
@@ -85,12 +188,13 @@ app.get("/r/:code", (req, res) => {
 /* first-touch attribution — open (analytics only, immutable once set) */
 app.post("/api/ref/visit", (req, res) => {
   if (!db) return res.json({ ok: false });
+  if (limited(req, res, 30)) return;
   const wallet = String(req.body?.wallet || "").toLowerCase();
   const ref = String(req.body?.ref || "");
   if (!isAddress(wallet) || !REF_RE.test(ref)) return res.status(400).json({ ok: false });
-  const known = db.prepare("SELECT 1 FROM affiliates WHERE code = ?").get(ref);
-  if (!known) return res.json({ ok: false });
-  try { db.prepare("INSERT OR IGNORE INTO attributions (wallet, code, ts) VALUES (?,?,?)").run(wallet, ref, Math.floor(Date.now() / 1000)); } catch { /* */ }
+  const row = db.prepare("SELECT code FROM affiliates WHERE LOWER(code) = LOWER(?)").get(ref);
+  if (!row) return res.json({ ok: false });
+  try { db.prepare("INSERT OR IGNORE INTO attributions (wallet, code, ts) VALUES (?,?,?)").run(wallet, row.code, nowSec()); } catch { /* */ }
   res.json({ ok: true });
 });
 
@@ -163,6 +267,114 @@ app.post("/api/admin/affiliates", (req, res) => {
     db.prepare("INSERT INTO affiliates (code, label, clicks, created_at) VALUES (?,?,0,?)").run(code, label, Math.floor(Date.now() / 1000));
     res.json({ ok: true, code });
   } catch (e) { res.status(500).json({ error: String(e?.message || e) }); }
+});
+
+/* ---------- public affiliate program endpoints ---------- */
+// wallet session: one signature → 30-min wallet-scoped token (NEVER admin)
+app.post("/api/aff/session", async (req, res) => {
+  if (limited(req, res, 20)) return;
+  try {
+    const { address, ts, signature } = req.body || {};
+    if (!isAddress(address)) return res.status(400).json({ error: "bad address" });
+    if (Math.abs(nowSec() - Number(ts)) > 300) return res.status(400).json({ error: "stale" });
+    const ok = await verifyMessage({ address: getAddress(address), message: `HoodLock affiliate ${ts}`, signature });
+    if (!ok) return res.status(403).json({ error: "bad signature" });
+    const token = newToken();
+    affSessions.set(token, { address: address.toLowerCase(), exp: Date.now() + 30 * 60_000 });
+    res.json({ token, exp: Date.now() + 30 * 60_000 });
+  } catch (e) { res.status(400).json({ error: String(e?.message || e) }); }
+});
+
+app.get("/api/aff/available", (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  const code = normCode(req.query.code);
+  if (!codeValid(code)) return res.json({ available: false, reason: "invalid" });
+  const taken = db.prepare("SELECT 1 FROM affiliates WHERE LOWER(code) = ?").get(code);
+  res.json({ available: !taken, reason: taken ? "taken" : "ok" });
+});
+
+app.post("/api/aff/create", (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  const wallet = affWallet(req);
+  if (!wallet) return res.status(401).json({ error: "unauthorized" });
+  const code = normCode(req.body?.code);
+  if (!codeValid(code)) return res.status(400).json({ error: "invalid code" });
+  if (db.prepare("SELECT code FROM affiliates WHERE owner_wallet = ?").get(wallet)) return res.status(400).json({ error: "you already have a link" });
+  if (db.prepare("SELECT 1 FROM affiliates WHERE LOWER(code) = ?").get(code)) return res.status(409).json({ error: "code taken" });
+  try {
+    db.prepare("INSERT INTO affiliates (code, label, clicks, created_at, owner_wallet) VALUES (?,?,0,?,?)").run(code, "", nowSec(), wallet);
+    res.json({ ok: true, code });
+  } catch (e) { res.status(500).json({ error: String(e?.message || e) }); }
+});
+
+app.get("/api/aff/me", async (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  const wallet = affWallet(req);
+  if (!wallet) return res.status(401).json({ error: "unauthorized" });
+  const aff = db.prepare("SELECT code, clicks, created_at FROM affiliates WHERE owner_wallet = ?").get(wallet);
+  if (!aff) return res.json({ hasCode: false });
+  const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE LOWER(code) = ?").all(aff.code.toLowerCase());
+  const { lockers, qualifyingLocks, lifetimeEarnedEth } = await affiliateEarnings(aff.code, wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0 }));
+  const claimed = claimedFor(aff.code);
+  const claimable = Math.max(0, lifetimeEarnedEth - claimed);
+  const claims = db.prepare("SELECT amount_eth, status, tx_hash, requested_at, paid_at FROM claims WHERE LOWER(code) = ? ORDER BY id DESC LIMIT 20").all(aff.code.toLowerCase());
+  res.json({
+    hasCode: true, code: aff.code, clicks: aff.clicks,
+    signups: attrs.length, lockers, qualifyingLocks,
+    lifetimeEarnedEth, claimedEth: claimed, claimableEth: claimable,
+    ethUsd: await ethUsd(), minClaimUsd: 10, commission: COMMISSION, feeEth: FEE_ETH,
+    attributions: attrs.map((a) => ({ wallet: a.wallet, ts: a.ts })), claims,
+  });
+});
+
+app.post("/api/aff/claim", async (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  if (limited(req, res, 10)) return;
+  const wallet = affWallet(req);
+  if (!wallet) return res.status(401).json({ error: "unauthorized" });
+  const aff = db.prepare("SELECT code, owner_wallet FROM affiliates WHERE owner_wallet = ?").get(wallet);
+  if (!aff) return res.status(404).json({ error: "no affiliate link" });
+  const price = await ethUsd();
+  const { lifetimeEarnedEth } = await affiliateEarnings(aff.code, wallet).catch(() => ({ lifetimeEarnedEth: 0 }));
+  // atomic reserve: claimable = earned − (pending+paid); insert one pending claim
+  const reserve = db.transaction(() => {
+    const claimed = claimedFor(aff.code);
+    const claimable = Math.max(0, lifetimeEarnedEth - claimed);
+    if (claimable <= 0) return { error: "nothing to claim" };
+    if (price > 0 && claimable * price < 10) return { error: "below $10 minimum", claimableUsd: claimable * price };
+    const info = db.prepare("INSERT INTO claims (code, owner_wallet, amount_eth, status, requested_at) VALUES (?,?,?,'pending',?)").run(aff.code, aff.owner_wallet, claimable, nowSec());
+    return { id: Number(info.lastInsertRowid), amount: claimable };
+  });
+  const r = reserve();
+  if (r.error) return res.status(400).json(r);
+
+  const autoOk = PAYOUTS_ENABLED && walletClient && r.amount <= PAYOUT_MAX_ETH && (dailyPaid() + r.amount) <= PAYOUT_DAILY_ETH;
+  if (!autoOk) return res.json({ ok: true, status: "pending", amount: r.amount });
+  try {
+    const hash = await walletClient.sendTransaction({ to: getAddress(aff.owner_wallet), value: parseEther(r.amount.toFixed(18)) });
+    await pub.waitForTransactionReceipt({ hash, timeout: 120_000 });
+    db.prepare("UPDATE claims SET status='paid', tx_hash=?, paid_at=? WHERE id=?").run(hash, nowSec(), r.id);
+    res.json({ ok: true, status: "paid", amount: r.amount, tx: hash });
+  } catch (e) {
+    db.prepare("UPDATE claims SET status='failed' WHERE id=?").run(r.id);   // failed frees the amount for retry
+    res.status(500).json({ error: "payout failed — queued for manual review", status: "failed" });
+  }
+});
+
+/* admin: review + manually pay claims */
+app.get("/api/admin/claims", (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  if (!validToken(req)) return res.status(401).json({ error: "unauthorized" });
+  const claims = db.prepare("SELECT id, code, owner_wallet, amount_eth, status, tx_hash, requested_at, paid_at FROM claims ORDER BY id DESC LIMIT 100").all();
+  const publicAffiliates = db.prepare("SELECT code, owner_wallet, clicks, created_at FROM affiliates WHERE owner_wallet IS NOT NULL ORDER BY created_at DESC").all();
+  res.json({ claims, publicAffiliates });
+});
+app.post("/api/admin/claims/pay", (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  if (!validToken(req)) return res.status(401).json({ error: "unauthorized" });
+  const { id, tx_hash } = req.body || {};
+  db.prepare("UPDATE claims SET status='paid', tx_hash=?, paid_at=? WHERE id=? AND status IN ('pending','failed')").run(String(tx_hash || "").slice(0, 80), nowSec(), Number(id));
+  res.json({ ok: true });
 });
 
 /* ---------- static site with the same rewrites as serve.json ---------- */

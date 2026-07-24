@@ -321,6 +321,7 @@
     <div class="nav-label">Overview</div>
     <button class="nav-item active" data-view="dashboard"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>Dashboard</button>
     <button class="nav-item" data-view="explore"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>Explore / Verify</button>
+    <button class="nav-item" data-view="affiliate"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Affiliate</button>
   </div>
   <div class="nav-group">
     <div class="nav-label">Products</div>
@@ -468,6 +469,14 @@
       </div>
     </section>
 
+    <!-- AFFILIATE (public referral program) -->
+    <section class="view" id="view-affiliate">
+      <div class="page-head">
+        <div><h1>Earn with <span class="serif">referrals.</span></h1><p>Share your link and earn 30% of the fee from every lock you bring in — paid in ETH, straight to your wallet.</p></div>
+      </div>
+      <div id="affBody"><div class="card"><div class="empty"><div class="small">Loading…</div></div></div></div>
+    </section>
+
     <!-- PROOF (shareable ?lock=<id> deep link) -->
     <section class="view" id="view-proof">
       <div class="proof-page" id="proofBox"></div>
@@ -528,6 +537,11 @@
             <button class="btn btn-neon" id="afCreate" style="padding:11px 22px">Create link</button>
           </div>
           <div class="tbl-scroll" id="afBox"><div class="empty"><div class="small">Sign in with the admin wallet to manage affiliate links.</div></div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><div><h3>Affiliate payouts</h3><div class="sub">PUBLIC AFFILIATE CLAIMS</div></div></div>
+          <div class="tbl-scroll" id="adClaimsBox"><div class="empty"><div class="small">Loading…</div></div></div>
         </div>
 
         <div class="card">
