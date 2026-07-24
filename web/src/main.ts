@@ -1244,6 +1244,8 @@ async function affSignIn(): Promise<string> {
 }
 async function loadAffiliatePage() {
   const box = $("affBody");
+  // default the hero rate to 30% for pre-dashboard states; the dashboard overrides with the real rate
+  const heroRate = $("affHeroRate"); if (heroRate) heroRate.textContent = "30%";
   if (!account) {
     box.innerHTML = `<div class="card"><div class="empty"><div class="big">Connect your wallet</div><div class="small">Connect to create your referral link and track earnings.</div><button class="btn btn-neon btn-sm" id="affConnect" style="margin-top:12px">Connect Wallet</button></div></div>`;
     document.getElementById("affConnect")?.addEventListener("click", openWalletModal);
@@ -1319,6 +1321,7 @@ async function affLocksTable(me: any): Promise<string> {
 }
 async function renderAffDashboard(me: any) {
   const box = $("affBody");
+  const heroRate = $("affHeroRate"); if (heroRate) heroRate.textContent = `${Math.round((me.commission || 0) * 100)}%`;
   const claimableUsd = me.claimableEth * (me.ethUsd || 0);
   const canClaim = me.ethUsd > 0 && claimableUsd >= me.minClaimUsd;
   const link = `${location.origin}/r/${me.code}`;
@@ -1334,6 +1337,7 @@ async function renderAffDashboard(me: any) {
       <div class="tile"><div class="k">Claimable now</div><div class="v">${me.claimableEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(claimableUsd) : ""} · min $${me.minClaimUsd}</div></div>
       <div class="tile"><div class="k">Clicks</div><div class="v">${me.clicks.toLocaleString("en-US")}</div><div class="d">link visits</div></div>
       <div class="tile"><div class="k">Referred lockers</div><div class="v">${me.lockers.toLocaleString("en-US")}</div><div class="d">of ${me.signups.toLocaleString("en-US")} signups</div></div>
+      <div class="tile"><div class="k">Commission rate</div><div class="v g">${Math.round((me.commission || 0) * 100)}%</div><div class="d">${(me.commission || 0) > 0.3 ? "boosted rate" : "your share per lock"}</div></div>
     </div>
     <div class="card" style="margin-bottom:12px">
       <div class="card-head"><div><h3>Claim earnings</h3><div class="sub">PAID IN ETH TO ${short(account).toUpperCase()}</div></div>
