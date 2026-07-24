@@ -143,20 +143,27 @@ function injectedProviders(): { name: string; icon?: string; provider: Eip1193 }
   return out;
 }
 type Choice = { name: string; icon?: string; installed: boolean; connect: () => Promise<void> };
-const CURATED: { name: string; keys: string[]; url: string; icon?: string; wc?: boolean }[] = [
+const WC_ICON = "data:image/svg+xml;base64," + btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect width='48' height='48' rx='11' fill='#3B99FC'/><path d='M15 21.5c5-4.8 13-4.8 18 0l.7.7c.25.24.25.63 0 .87l-2.2 2.1a.33.33 0 01-.45 0l-.95-.9c-3.5-3.36-9.2-3.36-12.7 0l-1 .97a.33.33 0 01-.46 0l-2.2-2.1a.6.6 0 010-.88l.75-.73zm22.3 4.1l1.95 1.9c.25.24.25.63 0 .87l-8.8 8.5a.66.66 0 01-.92 0l-6.25-6a.17.17 0 00-.23 0l-6.24 6a.66.66 0 01-.92 0l-8.8-8.5a.6.6 0 010-.88l1.95-1.88a.66.66 0 01.92 0l6.24 6.02c.07.06.17.06.23 0l6.25-6.02a.66.66 0 01.92 0l6.24 6.02c.07.06.17.06.23 0l6.25-6.02a.66.66 0 01.92 0z' fill='#fff'/></svg>`);
+const CURATED: { name: string; keys: string[]; url: string; icon?: string }[] = [
   { name: "MetaMask", keys: ["metamask"], url: "https://metamask.io/download" },
   { name: "Rabby", keys: ["rabby"], url: "https://rabby.io/" },
-  { name: "Robinhood Wallet (mobile)", keys: ["robinhood"], url: "https://robinhood.com/us/en/wallet/", icon: RH_ICON, wc: true },
+  { name: "Phantom", keys: ["phantom"], url: "https://phantom.com/download" },
+  { name: "Keplr", keys: ["keplr"], url: "https://www.keplr.app/get" },
 ];
 function walletChoices(): Choice[] {
   const inj = injectedProviders();
-  const find = (keys: string[]) => inj.find((p) => keys.some((k) => p.name.toLowerCase().includes(k)));
-  return CURATED.map((cw) => {
-    if (cw.wc) return { name: cw.name, icon: cw.icon, installed: true, connect: connectWC };
-    const hit = find(cw.keys);
-    if (hit) return { name: cw.name, icon: hit.icon || cw.icon, installed: true, connect: () => connectInjected(hit.provider) };
-    return { name: cw.name, icon: cw.icon, installed: false, connect: async () => { window.open(cw.url, "_blank", "noopener"); throw new Error(`${cw.name} isn't installed — opening its download page.`); } };
-  });
+  // 1) ALLT som är installerat (EIP-6963) visas — Phantom, Keplr, Brave, you name it
+  const choices: Choice[] = inj.map((p) => ({ name: p.name, icon: p.icon, installed: true, connect: () => connectInjected(p.provider) }));
+  // 2) kuraterade favoriter som saknas får installationslänk
+  const have = (keys: string[]) => inj.some((p) => keys.some((k) => p.name.toLowerCase().includes(k)));
+  for (const cw of CURATED) {
+    if (have(cw.keys)) continue;
+    choices.push({ name: cw.name, icon: cw.icon, installed: false, connect: async () => { window.open(cw.url, "_blank", "noopener"); throw new Error(`${cw.name} isn't installed — opening its download page.`); } });
+  }
+  // 3) mobil/QR: Robinhood Wallet + generiska WalletConnect (500+ wallets)
+  choices.push({ name: "Robinhood Wallet (mobile)", icon: RH_ICON, installed: true, connect: connectWC });
+  choices.push({ name: "WalletConnect · 500+ wallets", icon: WC_ICON, installed: true, connect: connectWC });
+  return choices;
 }
 async function ensureChain(p: Eip1193) {
   try { await p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: numberToHex(CHAIN.id) }] }); }

@@ -7,6 +7,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 # Bump CACHEBUST to force the source copy + Vite build to re-run (invalidates buildkit cache).
 ARG CACHEBUST=3
+# WalletConnect/Reown-projekt-id — Vite bakar in VITE_-vars vid BYGGET
+ARG VITE_WALLETCONNECT_PROJECT_ID
+ENV VITE_WALLETCONNECT_PROJECT_ID=$VITE_WALLETCONNECT_PROJECT_ID
 COPY . .
 RUN npx vite build web
 
