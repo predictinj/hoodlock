@@ -192,7 +192,9 @@ async function ensureChain(p: Eip1193) {
 }
 async function connectInjected(p: Eip1193) {
   const accs: string[] = await p.request({ method: "eth_requestAccounts" });
-  provider = p; account = getAddress(accs[0]); await ensureChain(p); onConnected();
+  provider = p; account = getAddress(accs[0]); await ensureChain(p);
+  try { localStorage.setItem("hl_conn", "injected"); } catch { /* */ }
+  attachProviderEvents(p); onConnected();
 }
 async function connectWC() {
   if (!WC_PROJECT_ID) throw new Error("Mobile sign-in isn't enabled yet — a WalletConnect project id is needed.");
@@ -220,10 +222,12 @@ async function connectWC() {
   const accs: string[] = await wp.request({ method: "eth_accounts" });
   provider = wp as unknown as Eip1193; wcProvider = wp; account = getAddress(accs[0]);
   try { await ensureChain(wp as unknown as Eip1193); } catch { /* vissa wallets sköter kedjebyte i appen */ }
-  onConnected();
+  try { localStorage.setItem("hl_conn", "wc"); } catch { /* */ }
+  attachProviderEvents(provider); onConnected();
 }
-function onConnected() {
-  closeWalletModal();
+function onConnected(silent = false) {
+  if (!silent) closeWalletModal();
+  try { localStorage.setItem("hl_acct", account.toLowerCase()); } catch { /* */ }
   ($("connectBtn") as HTMLButtonElement).innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:#03130a;box-shadow:0 0 5px rgba(3,19,10,.6)"></span><span class="wallet">${short(account)}</span>`;
   ($("lockBtn") as HTMLButtonElement).disabled = false;
   walletToks = null; walletToksFor = "";
@@ -231,7 +235,51 @@ function onConnected() {
   syncAdminNav(); attributeRef();
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
   fetch("/api/track/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wallet: account }) }).catch(() => { /* analytics only */ });
-  notify(`Wallet connected — ${short(account)}`);
+  if (!silent) notify(`Wallet connected — ${short(account)}`);
+}
+// keep the app in sync if the wallet switches account or disconnects in-wallet
+function attachProviderEvents(p: Eip1193) {
+  try {
+    (p as any).on?.("accountsChanged", (accs: string[]) => {
+      if (!accs || !accs.length) return disconnect();
+      account = getAddress(accs[0]); onConnected(true);
+    });
+    (p as any).on?.("disconnect", () => disconnect());
+  } catch { /* */ }
+}
+// silently restore the session on page load (no wallet prompt)
+async function restoreConnection() {
+  let conn = ""; try { conn = localStorage.getItem("hl_conn") || ""; } catch { /* */ }
+  if (!conn) return;
+  if (conn === "wc") {
+    if (!WC_PROJECT_ID) return;
+    try {
+      const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
+      const wp: any = await EthereumProvider.init({ projectId: WC_PROJECT_ID, optionalChains: [CHAIN.id, 1], showQrModal: false, rpcMap: { [CHAIN.id]: cfg.rpc } } as any);
+      const accs: string[] = wp.accounts || [];
+      if (wp.session && accs.length) {
+        provider = wp; wcProvider = wp; account = getAddress(accs[0]);
+        attachProviderEvents(provider); onConnected(true);
+      }
+    } catch { /* */ }
+    return;
+  }
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+  await new Promise((r) => setTimeout(r, 300));
+  let stored = ""; try { stored = (localStorage.getItem("hl_acct") || "").toLowerCase(); } catch { /* */ }
+  const cands: Eip1193[] = [...announced.values()].map((d) => d.provider);
+  const eth = (window as any).ethereum; if (eth) cands.push(eth);
+  for (const p of cands) {
+    try {
+      const accs: string[] = await p.request({ method: "eth_accounts" });   // silent — no prompt
+      if (!accs || !accs.length) continue;
+      const lc = accs.map((a) => a.toLowerCase());
+      if (stored && !lc.includes(stored)) continue;
+      provider = p; account = getAddress(stored && lc.includes(stored) ? accs[lc.indexOf(stored)] : accs[0]);
+      attachProviderEvents(p); onConnected(true);
+      return;
+    } catch { /* try next */ }
+  }
 }
 function disconnect() {
   try { wcProvider?.disconnect?.(); } catch { /* */ }
@@ -241,7 +289,7 @@ function disconnect() {
   $("balHint").textContent = "";
   $("yourLocksSub").textContent = "CONNECT WALLET TO MANAGE";
   renderMine(); updateSummary(); closeWalletModal(); syncAdminNav();
-  try { localStorage.removeItem("hl_afftok"); localStorage.removeItem("hl_affexp"); } catch { /* */ }
+  try { localStorage.removeItem("hl_afftok"); localStorage.removeItem("hl_affexp"); localStorage.removeItem("hl_conn"); localStorage.removeItem("hl_acct"); } catch { /* */ }
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
 }
 function openWalletModal() {
@@ -1315,6 +1363,60 @@ async function claimEarnings(me: any) {
   } catch (e: any) { msg.innerHTML = `<span class="badv">${escape(e?.message || String(e))}</span>`; btn.disabled = false; btn.textContent = `Claim ${me.claimableEth.toFixed(4)} ETH`; }
 }
 
+/* admin: every public affiliate, sortable */
+let adAffData: any[] = [], adAffEthUsd = 0;
+const adAffSort = { key: "earnedEth", dir: -1 };
+async function loadAdminPublicAffiliates() {
+  const box = $("adAffBox");
+  const token = cachedToken();
+  if (!token) { box.innerHTML = `<div class="empty"><div class="small">Sign in to view.</div></div>`; return; }
+  try {
+    const r = await fetch("/api/admin/public-affiliates", { headers: { Authorization: "Bearer " + token } });
+    if (!r.ok) throw new Error(String(r.status));
+    const d = await r.json();
+    adAffData = d.affiliates || []; adAffEthUsd = d.ethUsd || 0;
+    const sm = d.summary || {};
+    const usd = (e: number) => adAffEthUsd > 0 ? fmtUsd(e * adAffEthUsd) : `${e.toFixed(4)} ETH`;
+    $("adPayerBal").textContent = sm.payoutWallet ? usd(sm.payoutBalanceEth) : "not set";
+    $("adPayerSub").textContent = sm.payoutWallet ? `${(sm.payoutBalanceEth || 0).toFixed(4)} ETH · ${short(sm.payoutWallet)}` : "no payout wallet configured";
+    $("adUnclaimed").textContent = usd(sm.totalUnclaimedEth || 0);
+    renderAdAffTable();
+  } catch { box.innerHTML = `<div class="empty"><div class="small">Couldn't load affiliates.</div></div>`; }
+}
+function renderAdAffTable() {
+  const box = $("adAffBox");
+  if (!adAffData.length) { box.innerHTML = `<div class="empty"><div class="small">No public affiliates yet.</div></div>`; return; }
+  const money = (e: number) => adAffEthUsd > 0 ? fmtUsd(e * adAffEthUsd) : `${e.toFixed(4)} ETH`;
+  const cols = [
+    { k: "code", label: "Code", num: false }, { k: "owner", label: "Owner", num: false },
+    { k: "clicks", label: "Clicks", num: true }, { k: "signups", label: "Signups", num: true },
+    { k: "lockers", label: "Lockers", num: true }, { k: "locks", label: "Locks", num: true },
+    { k: "earnedEth", label: "Earned", num: true }, { k: "claimedEth", label: "Claimed", num: true },
+    { k: "claimableEth", label: "Unclaimed", num: true },
+  ];
+  const sorted = [...adAffData].sort((a, b) => {
+    const k = adAffSort.key, av = a[k], bv = b[k];
+    return (typeof av === "number" ? av - bv : String(av).localeCompare(String(bv))) * adAffSort.dir;
+  });
+  const arrow = (k: string) => adAffSort.key === k ? (adAffSort.dir === 1 ? " ▲" : " ▼") : "";
+  const head = cols.map((c) => `<th data-sort="${c.k}" style="cursor:pointer${c.num ? ";text-align:right" : ""}">${c.label}${arrow(c.k)}</th>`).join("");
+  const body = sorted.map((a) => `<tr>
+    <td><b>${escape(a.code)}</b></td><td class="addr">${short(a.owner)}</td>
+    <td style="text-align:right">${a.clicks.toLocaleString("en-US")}</td>
+    <td style="text-align:right">${a.signups.toLocaleString("en-US")}</td>
+    <td style="text-align:right">${a.lockers.toLocaleString("en-US")}</td>
+    <td style="text-align:right">${a.locks.toLocaleString("en-US")}</td>
+    <td style="text-align:right;color:var(--neon)">${money(a.earnedEth)}</td>
+    <td style="text-align:right">${money(a.claimedEth)}</td>
+    <td style="text-align:right">${money(a.claimableEth)}</td></tr>`).join("");
+  box.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  box.querySelectorAll<HTMLElement>("[data-sort]").forEach((th) => th.addEventListener("click", () => {
+    const k = th.dataset.sort!;
+    if (adAffSort.key === k) adAffSort.dir *= -1; else { adAffSort.key = k; adAffSort.dir = -1; }
+    renderAdAffTable();
+  }));
+}
+
 /* admin: affiliate payout claims */
 async function loadAdminClaims() {
   const box = $("adClaimsBox");
@@ -1439,6 +1541,7 @@ async function loadAdmin() {
 
   loadAffiliates();
   loadAdminClaims();
+  loadAdminPublicAffiliates();
 }
 
 /* ---------- affiliates (needs the backend; degrades to a notice) ---------- */
@@ -1515,6 +1618,7 @@ $("afCreate").addEventListener("click", async () => {
 });
 
 /* ---------- boot ---------- */
+restoreConnection();
 loadDashboard();
 const _refParam = new URLSearchParams(location.search).get("ref");
 if (_refParam && /^[A-Za-z0-9_-]{3,32}$/.test(_refParam)) { try { localStorage.setItem("hl_ref", _refParam); } catch { /* */ } }

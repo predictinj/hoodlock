@@ -377,6 +377,33 @@ app.post("/api/admin/claims/pay", (req, res) => {
   res.json({ ok: true });
 });
 
+/* admin: every public affiliate with full stats (earnings, claimed, etc.) */
+app.get("/api/admin/public-affiliates", async (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  if (!validToken(req)) return res.status(401).json({ error: "unauthorized" });
+  try {
+    const affs = db.prepare("SELECT code, owner_wallet, clicks, created_at FROM affiliates WHERE owner_wallet IS NOT NULL ORDER BY created_at DESC").all();
+    const out = [];
+    let totalUnclaimedEth = 0, totalEarnedEth = 0, totalClaimedEth = 0;
+    for (const a of affs) {
+      const signups = db.prepare("SELECT COUNT(*) n FROM attributions WHERE LOWER(code)=?").get(a.code.toLowerCase()).n;
+      const { lockers, qualifyingLocks, lifetimeEarnedEth } = await affiliateEarnings(a.code, a.owner_wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0 }));
+      const claimed = claimedFor(a.code);
+      const claimable = Math.max(0, lifetimeEarnedEth - claimed);
+      totalUnclaimedEth += claimable; totalEarnedEth += lifetimeEarnedEth; totalClaimedEth += claimed;
+      out.push({ code: a.code, owner: a.owner_wallet, clicks: a.clicks, signups, lockers, locks: qualifyingLocks,
+        earnedEth: lifetimeEarnedEth, claimedEth: claimed, claimableEth: claimable, createdAt: a.created_at });
+    }
+    let payoutWallet = null, payoutBalanceEth = 0;
+    if (payoutAccount) {
+      payoutWallet = payoutAccount.address;
+      try { payoutBalanceEth = Number(await pub.getBalance({ address: payoutAccount.address })) / 1e18; } catch { /* */ }
+    }
+    res.json({ affiliates: out, ethUsd: await ethUsd(),
+      summary: { totalEarnedEth, totalClaimedEth, totalUnclaimedEth, payoutWallet, payoutBalanceEth } });
+  } catch (e) { res.status(500).json({ error: String(e?.message || e) }); }
+});
+
 /* ---------- static site with the same rewrites as serve.json ---------- */
 const send = (res, file) => res.sendFile(join(PUBLIC, file));
 app.get("/", (_req, res) => send(res, "index.html"));
