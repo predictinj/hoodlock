@@ -12,6 +12,26 @@
     {
       "source": "/app/**",
       "destination": "/app.html"
+    },
+    {
+      "source": "/blog",
+      "destination": "/blog/index.html"
+    },
+    {
+      "source": "/blog/how-to-lock-liquidity-on-robinhood-chain",
+      "destination": "/blog/how-to-lock-liquidity-on-robinhood-chain.html"
+    },
+    {
+      "source": "/blog/what-is-a-liquidity-lock",
+      "destination": "/blog/what-is-a-liquidity-lock.html"
+    },
+    {
+      "source": "/blog/how-to-burn-tokens-on-robinhood-chain",
+      "destination": "/blog/how-to-burn-tokens-on-robinhood-chain.html"
+    },
+    {
+      "source": "/blog/token-locks-vs-vesting-vs-burning",
+      "destination": "/blog/token-locks-vs-vesting-vs-burning.html"
     }
   ]
 }

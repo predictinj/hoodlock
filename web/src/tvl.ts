@@ -2,7 +2,7 @@
  *   locked amounts  ← locker getLock-reads (everything not withdrawn)
  *   token prices    ← the chain's Uniswap-v3 DEX (WETH pools, slot0 spot)
  *   ETH/USD         ← Coinbase's free spot API (cached as fallback)
- * Honest by design:每 token's contribution is CAPPED at 2× the pool's actual
+ * Honest by design: each token's contribution is CAPPED at 2× the pool's actual
  * WETH depth, so a huge lock of a thin-pool token can't inflate the number.
  * Tokens without a WETH pool are counted as "unpriced", never guessed. */
 import type { PublicClient } from "viem";

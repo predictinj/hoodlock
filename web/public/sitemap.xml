@@ -7,4 +7,9 @@
     <priority>1.0</priority>
   </url>
   <url><loc>https://hoodlock.tech/app</loc></url>
+  <url><loc>https://hoodlock.tech/blog</loc></url>
+  <url><loc>https://hoodlock.tech/blog/how-to-lock-liquidity-on-robinhood-chain</loc></url>
+  <url><loc>https://hoodlock.tech/blog/what-is-a-liquidity-lock</loc></url>
+  <url><loc>https://hoodlock.tech/blog/how-to-burn-tokens-on-robinhood-chain</loc></url>
+  <url><loc>https://hoodlock.tech/blog/token-locks-vs-vesting-vs-burning</loc></url>
 </urlset>

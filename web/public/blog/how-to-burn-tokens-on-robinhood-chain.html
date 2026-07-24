@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Burn Tokens on Robinhood Chain — Proof of Burn Guide | HoodLock</title>
+<meta name="description" content="Burn tokens permanently on Robinhood Chain and get a shareable on-chain proof page showing the amount and share of supply destroyed. Step-by-step burn guide.">
+<link rel="canonical" href="https://hoodlock.tech/blog/how-to-burn-tokens-on-robinhood-chain">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="How to Burn Tokens on Robinhood Chain — Proof of Burn Guide | HoodLock"><meta property="og:description" content="Burn tokens permanently on Robinhood Chain and get a shareable on-chain proof page showing the amount and share of supply destroyed. Step-by-step burn guide.">
+<meta property="og:url" content="https://hoodlock.tech/blog/how-to-burn-tokens-on-robinhood-chain">
+<meta property="og:image" content="https://hoodlock.tech/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "How to Burn Tokens on Robinhood Chain \u2014 Proof of Burn Guide | HoodLock", "description": "Burn tokens permanently on Robinhood Chain and get a shareable on-chain proof page showing the amount and share of supply destroyed. Step-by-step burn guide.", "datePublished": "2026-07-24", "dateModified": "2026-07-24", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/how-to-burn-tokens-on-robinhood-chain"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Can burned tokens ever be recovered?", "acceptedAnswer": {"@type": "Answer", "text": "No. Tokens sent to the dead address (0x\u2026dEaD) are permanently irrecoverable by anyone \u2014 including the burner, the token team and HoodLock."}}, {"@type": "Question", "name": "What does the proof-of-burn page show?", "acceptedAnswer": {"@type": "Answer", "text": "The amount burned, its percentage of total supply, the burner address, the UTC timestamp, and a link to the burn transaction on Blockscout \u2014 publicly viewable without a wallet."}}, {"@type": "Question", "name": "Does the burn registry take custody of my tokens?", "acceptedAnswer": {"@type": "Answer", "text": "No. The burn is a single transferFrom directly from your wallet to the dead address in one transaction. The registry only records it."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>How to burn tokens — with proof, <span class="serif">forever.</span></h1>
+<div class="meta">Published 2026-07-24 · HoodLock Team</div>
+
+<p>Burning tokens means sending them to the dead address (<code>0x…dEaD</code>) where nobody can ever recover them. Projects burn to cut supply, honor commitments, or prove skin in the game. On Robinhood Chain, <a href="/">HoodLock</a>'s burn registry does it in one transaction — and mints a <b>public proof-of-burn page</b> you can share anywhere.</p>
+
+<h2>Why burn through a registry instead of sending manually?</h2>
+<p>Anyone can send tokens to the dead address manually — but then the burn is just a loose transaction that's hard to present. HoodLock's <a href="https://robinhoodchain.blockscout.com/address/0x6bf43ca706faa8ea46803299c191484e82280652?tab=contract" rel="noopener" target="_blank">verified burn registry</a> records every burn with an id, links it to the burner and token, and generates a proof page showing:</p>
+<ul>
+<li>The exact amount burned and <b>the percentage of total supply</b> it represents</li>
+<li>Who burned it and when (UTC timestamp)</li>
+<li>A one-click link to the burn transaction on Blockscout</li>
+</ul>
+<p>The tokens move straight from your wallet to the dead address in a single hop — the registry never holds custody.</p>
+
+<h2>Step-by-step: burn tokens</h2>
+<ol>
+<li>Open <a href="/app/locks">hoodlock.tech/app/locks</a> and connect your wallet.</li>
+<li>Pick the token (dropdown or paste the contract address) and enter the amount.</li>
+<li>Click the red <b>🔥 FOREVER · BURN</b> chip — the form flips into burn mode.</li>
+<li>Confirm the warning, approve, and sign the burn. Flat fee: 0.005 ETH.</li>
+<li>Open your burn proof page (<code>hoodlock.tech/app?burn=&lt;id&gt;</code>) and share it.</li>
+</ol>
+
+<div class="box">
+<p style="margin:0"><b>⚠️ Burning is irreversible.</b> There is no undo, no recovery, no exception. Tokens sent to the dead address are gone forever — that's precisely what makes a burn meaningful.</p>
+</div>
+
+<h2>Burn or lock — which should you choose?</h2>
+<p>Burn when you want supply gone permanently. Lock when you want tokens provably out of circulation for a period but still recoverable at a known future date (LP, team allocations, reserves). Many projects do both: lock the LP, burn a share of supply. See our comparison: <a href="/blog/token-locks-vs-vesting-vs-burning">Token locks vs vesting vs burning</a>.</p>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Lock tokens with on-chain proof</h2>
+  <p>Flat 0.005 ETH fee · extend-only locks · no admin access to funds — verified on Robinhood Chain.</p>
+  <a class="btn" href="/app/locks">Start locking →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

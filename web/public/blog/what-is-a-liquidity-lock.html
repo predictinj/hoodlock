@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Is a Liquidity Lock? Rug Pulls, Locked LP & How to Verify | HoodLock</title>
+<meta name="description" content="A liquidity lock puts LP tokens in a time-locked smart contract so developers can't pull liquidity. Learn how locks prevent rug pulls and how to verify any lock on-chain.">
+<link rel="canonical" href="https://hoodlock.tech/blog/what-is-a-liquidity-lock">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="What Is a Liquidity Lock? Rug Pulls, Locked LP & How to Verify | HoodLock"><meta property="og:description" content="A liquidity lock puts LP tokens in a time-locked smart contract so developers can't pull liquidity. Learn how locks prevent rug pulls and how to verify any lock on-chain.">
+<meta property="og:url" content="https://hoodlock.tech/blog/what-is-a-liquidity-lock">
+<meta property="og:image" content="https://hoodlock.tech/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "What Is a Liquidity Lock? Rug Pulls, Locked LP & How to Verify | HoodLock", "description": "A liquidity lock puts LP tokens in a time-locked smart contract so developers can't pull liquidity. Learn how locks prevent rug pulls and how to verify any lock on-chain.", "datePublished": "2026-07-24", "dateModified": "2026-07-24", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/what-is-a-liquidity-lock"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does a liquidity lock guarantee a token is safe?", "acceptedAnswer": {"@type": "Answer", "text": "No. A lock removes the classic rug pull (pulling LP), but a project can still fail or have other risks like mint functions or concentrated holdings. A lock is one strong signal, not a complete audit."}}, {"@type": "Question", "name": "How long should liquidity be locked?", "acceptedAnswer": {"@type": "Answer", "text": "Longer is stronger. Serious projects commonly lock for 6\u201312 months or more, and extend the lock as the project matures. Watch for locks that expire soon after launch."}}, {"@type": "Question", "name": "Can a locked position be unlocked early?", "acceptedAnswer": {"@type": "Answer", "text": "Not on HoodLock. Unlock times are extend-only \u2014 they can be pushed later but never shortened, and only the lock owner can withdraw once the date passes."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>What is a liquidity lock — and why it <span class="serif">matters.</span></h1>
+<div class="meta">Published 2026-07-24 · HoodLock Team</div>
+
+<p>A <b>liquidity lock</b> is a smart contract that holds a project's LP (liquidity pool) tokens until a fixed date. While the lock is active, the team physically cannot remove the liquidity backing their token — which removes the single most common exit scam in crypto: the rug pull.</p>
+
+<h2>What is a rug pull?</h2>
+<p>When a team creates a token and pairs it with ETH in a DEX pool, they receive LP tokens representing that liquidity. If they keep those LP tokens in their own wallet, nothing stops them from withdrawing the entire pool once buyers have piled in — the price instantly collapses to zero and holders are left with worthless tokens. That's a rug pull, and it happens every day on every chain.</p>
+
+<h2>How a lock changes the math</h2>
+<p>When LP tokens sit in a time-locked contract, the team <i>cannot</i> pull liquidity before the unlock date — not if they get greedy, not if they get hacked, not if they change their minds. A long lock doesn't guarantee a project succeeds, but it removes the fastest way to steal from holders. It converts a promise ("we won't rug") into a mathematical fact.</p>
+
+<h2>What a real lock must have</h2>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>Verified contract source</b> — if you can't read the locker's code, the lock proves nothing.</li>
+<li><b>No admin functions over funds</b> — some "lockers" let their own admins withdraw anything. Check for owner/admin withdrawal paths.</li>
+<li><b>Extend-only unlock times</b> — a lock that can be shortened is not a lock.</li>
+<li><b>Public verifiability</b> — anyone should be able to check the lock without trusting a screenshot.</li>
+</ul>
+</div>
+<p>The <a href="https://robinhoodchain.blockscout.com/address/0xD0f7d8c6e9f6D80c297bEbe4F7fD1B9C8125C32F?tab=contract" rel="noopener" target="_blank">HoodLock locker contract</a> on Robinhood Chain meets all four: verified source, zero admin access to locked funds, extend-only dates, owner-only withdrawals after unlock.</p>
+
+<h2>How to verify any lock on Robinhood Chain</h2>
+<ol>
+<li>Open <a href="/app/explore">hoodlock.tech/app/explore</a>.</li>
+<li>Paste the token or LP contract address (or the team's wallet).</li>
+<li>Every lock for that token appears with amount, unlock date, TVL and status — read straight from the chain.</li>
+<li>Click a lock to open its proof page and confirm the actual transaction on Blockscout.</li>
+</ol>
+<p>No account, no wallet connection, no trust required — that's the point.</p>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Lock tokens with on-chain proof</h2>
+  <p>Flat 0.005 ETH fee · extend-only locks · no admin access to funds — verified on Robinhood Chain.</p>
+  <a class="btn" href="/app/locks">Start locking →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

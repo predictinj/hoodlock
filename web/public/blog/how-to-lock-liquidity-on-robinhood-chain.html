@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Lock Liquidity on Robinhood Chain — Step-by-Step Guide (2026) | HoodLock</title>
+<meta name="description" content="Lock LP or project tokens on Robinhood Chain in under a minute. Step-by-step guide with a verified locker contract, extend-only unlocks and a shareable on-chain proof link.">
+<link rel="canonical" href="https://hoodlock.tech/blog/how-to-lock-liquidity-on-robinhood-chain">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="How to Lock Liquidity on Robinhood Chain — Step-by-Step Guide (2026) | HoodLock"><meta property="og:description" content="Lock LP or project tokens on Robinhood Chain in under a minute. Step-by-step guide with a verified locker contract, extend-only unlocks and a shareable on-chain proof link.">
+<meta property="og:url" content="https://hoodlock.tech/blog/how-to-lock-liquidity-on-robinhood-chain">
+<meta property="og:image" content="https://hoodlock.tech/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "How to Lock Liquidity on Robinhood Chain \u2014 Step-by-Step Guide (2026) | HoodLock", "description": "Lock LP or project tokens on Robinhood Chain in under a minute. Step-by-step guide with a verified locker contract, extend-only unlocks and a shareable on-chain proof link.", "datePublished": "2026-07-24", "dateModified": "2026-07-24", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/how-to-lock-liquidity-on-robinhood-chain"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How much does it cost to lock liquidity on Robinhood Chain?", "acceptedAnswer": {"@type": "Answer", "text": "HoodLock charges a flat 0.005 ETH per lock plus network gas. There are no percentage fees and no token cuts."}}, {"@type": "Question", "name": "Can I unlock my tokens early?", "acceptedAnswer": {"@type": "Answer", "text": "No. Locks are extend-only by design \u2014 the unlock date can be moved later but never earlier. That is exactly what makes the lock a credible promise to your holders."}}, {"@type": "Question", "name": "Can I lock LP tokens from the Robinhood Chain DEX?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Any ERC-20 token works, including DEX LP tokens \u2014 paste the LP contract address and lock it like any other token."}}, {"@type": "Question", "name": "How do holders verify my lock?", "acceptedAnswer": {"@type": "Answer", "text": "Every lock has a public proof page (hoodlock.tech/app?lock=<id>) showing amount, owner, unlock date and the on-chain transaction \u2014 no wallet needed to view it."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>How to lock liquidity on <span class="serif">Robinhood Chain.</span></h1>
+<div class="meta">Published 2026-07-24 · HoodLock Team</div>
+
+<p>Locking liquidity is the single strongest trust signal a token project can send. On <b>Robinhood Chain (chain id 4663)</b>, you can lock LP tokens or any ERC-20 in under a minute using <a href="/">HoodLock</a> — a trustless locker with a <a href="https://robinhoodchain.blockscout.com/address/0xD0f7d8c6e9f6D80c297bEbe4F7fD1B9C8125C32F?tab=contract" rel="noopener" target="_blank">verified contract</a>, no admin keys, and a public proof page for every lock.</p>
+
+<h2>What you need</h2>
+<ul>
+<li>A wallet on Robinhood Chain (MetaMask, Rabby, Phantom, Robinhood Wallet or any WalletConnect-compatible wallet)</li>
+<li>The token or LP contract address you want to lock</li>
+<li>A small amount of ETH for gas plus the flat <b>0.005 ETH</b> platform fee</li>
+</ul>
+
+<h2>Step-by-step: lock tokens in under a minute</h2>
+<ol>
+<li><b>Open the app.</b> Go to <a href="/app/locks">hoodlock.tech/app/locks</a> and connect your wallet. The app adds Robinhood Chain automatically if your wallet doesn't have it yet.</li>
+<li><b>Pick the token.</b> Paste the token or LP contract address — or simply pick it from the dropdown that lists every token in your wallet. The app verifies the symbol, decimals and your balance on-chain.</li>
+<li><b>Set the amount.</b> Type it or hit <b>MAX</b>.</li>
+<li><b>Choose the unlock date.</b> Use the presets (7D, 1M, 3M, 6M, 1Y) or pick a custom date. Remember: locks are <b>extend-only</b> — you can always push the date later, never earlier.</li>
+<li><b>Approve and lock.</b> Two wallet confirmations: an ERC-20 approval, then the lock itself. Done.</li>
+</ol>
+
+<h2>Share the proof</h2>
+<p>Every lock gets a public proof page like <code>hoodlock.tech/app?lock=0</code> that anyone can open — no wallet needed. It shows the amount, token, owner, unlock time and a direct link to the lock transaction on Blockscout. Drop it in your Telegram, pin it on X, put it in your docs. The contract speaks for itself.</p>
+
+<h2>Why HoodLock's locker can be trusted</h2>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>Verified source code</b> — the locker at <code>0xD0f7…C32F</code> is verified on Blockscout; anyone can read every line.</li>
+<li><b>No admin path to funds</b> — nobody, including HoodLock, can touch locked tokens.</li>
+<li><b>Owner-only withdrawal</b> — only the lock owner can withdraw, and only after the unlock time.</li>
+<li><b>Extend-only</b> — unlock dates can be pushed later but never shortened.</li>
+<li><b>Flat fee</b> — 0.005 ETH per lock. No percentage cuts of your tokens, ever.</li>
+</ul>
+</div>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Lock tokens with on-chain proof</h2>
+  <p>Flat 0.005 ETH fee · extend-only locks · no admin access to funds — verified on Robinhood Chain.</p>
+  <a class="btn" href="/app/locks">Start locking →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>
