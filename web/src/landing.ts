@@ -168,7 +168,7 @@ async function loadLive() {
         const val = usd !== null && usd > 0 ? fmtUsd(usd) : "";
         return `
         <div class="wm-row"><span class="ico" style="background:#00e05a">${esc(t.sym.slice(0, 2).toUpperCase())}${img}</span>
-        <b>$${esc(t.sym)}</b><span class="mono">${t.amt}</span><span class="val">${val}</span><span class="pill">🔒 ${dt(t.unlockTime)}</span></div>`;
+        <b>$${esc(t.sym)}</b><span class="mono">${t.amt} Tokens</span><span class="val">${val}</span><span class="pill">🔒 ${dt(t.unlockTime)}</span></div>`;
       }))).join("");
 
       // bento proof card ← latest still-locked lock (falls back to latest active)
