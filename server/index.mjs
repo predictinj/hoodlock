@@ -60,6 +60,8 @@ try {
   // public affiliates: an affiliates row with an owner earns 30% (NULL = internal campaign)
   const cols = db.prepare("PRAGMA table_info(affiliates)").all().map((c) => c.name);
   if (!cols.includes("owner_wallet")) db.exec("ALTER TABLE affiliates ADD COLUMN owner_wallet TEXT");
+  // per-affiliate commission rate (NULL = platform default). Admin can raise it (e.g. 0.30 -> 0.50).
+  if (!cols.includes("commission")) db.exec("ALTER TABLE affiliates ADD COLUMN commission REAL");
   console.log("[hoodlock] db ready at", dir);
 } catch (e) {
   console.error("[hoodlock] DB unavailable — affiliate features disabled, site still serves:", e?.message || e);
@@ -120,7 +122,14 @@ async function lockRecords() {
   return byOwner;
 }
 
-// 30% × fee × locks by attributed wallets that happened AFTER attribution (excl. self)
+// effective commission for a code: per-affiliate override, else the platform default
+function commissionFor(code) {
+  const row = db.prepare("SELECT commission FROM affiliates WHERE LOWER(code) = ?").get(code.toLowerCase());
+  const r = row && row.commission != null ? Number(row.commission) : COMMISSION;
+  return Number.isFinite(r) && r >= 0 && r <= 1 ? r : COMMISSION;
+}
+
+// rate × fee × locks by attributed wallets that happened AFTER attribution (excl. self)
 async function affiliateEarnings(code, ownerWallet) {
   const records = await lockRecords();
   const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE LOWER(code) = ?").all(code.toLowerCase());
@@ -131,7 +140,8 @@ async function affiliateEarnings(code, ownerWallet) {
     const q = (records.get(w) || []).filter((t) => t > a.ts).length;
     if (q > 0) { lockers++; qualifyingLocks += q; }
   }
-  return { lockers, qualifyingLocks, lifetimeEarnedEth: COMMISSION * FEE_ETH * qualifyingLocks };
+  const rate = commissionFor(code);
+  return { lockers, qualifyingLocks, rate, lifetimeEarnedEth: rate * FEE_ETH * qualifyingLocks };
 }
 const claimedFor = (code) => db.prepare("SELECT COALESCE(SUM(amount_eth),0) s FROM claims WHERE LOWER(code)=? AND status IN ('pending','paid')").get(code.toLowerCase()).s;
 const dailyPaid = () => db.prepare("SELECT COALESCE(SUM(amount_eth),0) s FROM claims WHERE status='paid' AND paid_at > ?").get(nowSec() - 86400).s;
@@ -314,7 +324,7 @@ app.get("/api/aff/me", async (req, res) => {
   const aff = db.prepare("SELECT code, clicks, created_at FROM affiliates WHERE owner_wallet = ?").get(wallet);
   if (!aff) return res.json({ hasCode: false });
   const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE LOWER(code) = ?").all(aff.code.toLowerCase());
-  const { lockers, qualifyingLocks, lifetimeEarnedEth } = await affiliateEarnings(aff.code, wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0 }));
+  const { lockers, qualifyingLocks, rate, lifetimeEarnedEth } = await affiliateEarnings(aff.code, wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, rate: COMMISSION, lifetimeEarnedEth: 0 }));
   const claimed = claimedFor(aff.code);
   const claimable = Math.max(0, lifetimeEarnedEth - claimed);
   const claims = db.prepare("SELECT amount_eth, status, tx_hash, requested_at, paid_at FROM claims WHERE LOWER(code) = ? ORDER BY id DESC LIMIT 20").all(aff.code.toLowerCase());
@@ -322,7 +332,7 @@ app.get("/api/aff/me", async (req, res) => {
     hasCode: true, code: aff.code, clicks: aff.clicks,
     signups: attrs.length, lockers, qualifyingLocks,
     lifetimeEarnedEth, claimedEth: claimed, claimableEth: claimable,
-    ethUsd: await ethUsd(), minClaimUsd: 10, commission: COMMISSION, feeEth: FEE_ETH,
+    ethUsd: await ethUsd(), minClaimUsd: 10, commission: rate, feeEth: FEE_ETH,
     attributions: attrs.map((a) => ({ wallet: a.wallet, ts: a.ts })), claims,
   });
 });
@@ -387,21 +397,38 @@ app.get("/api/admin/public-affiliates", async (req, res) => {
     let totalUnclaimedEth = 0, totalEarnedEth = 0, totalClaimedEth = 0;
     for (const a of affs) {
       const signups = db.prepare("SELECT COUNT(*) n FROM attributions WHERE LOWER(code)=?").get(a.code.toLowerCase()).n;
-      const { lockers, qualifyingLocks, lifetimeEarnedEth } = await affiliateEarnings(a.code, a.owner_wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0 }));
+      const { lockers, qualifyingLocks, rate, lifetimeEarnedEth } = await affiliateEarnings(a.code, a.owner_wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, rate: COMMISSION, lifetimeEarnedEth: 0 }));
       const claimed = claimedFor(a.code);
       const claimable = Math.max(0, lifetimeEarnedEth - claimed);
       totalUnclaimedEth += claimable; totalEarnedEth += lifetimeEarnedEth; totalClaimedEth += claimed;
       out.push({ code: a.code, owner: a.owner_wallet, clicks: a.clicks, signups, lockers, locks: qualifyingLocks,
-        earnedEth: lifetimeEarnedEth, claimedEth: claimed, claimableEth: claimable, createdAt: a.created_at });
+        commission: rate, earnedEth: lifetimeEarnedEth, claimedEth: claimed, claimableEth: claimable, createdAt: a.created_at });
     }
     let payoutWallet = null, payoutBalanceEth = 0;
     if (payoutAccount) {
       payoutWallet = payoutAccount.address;
       try { payoutBalanceEth = Number(await pub.getBalance({ address: payoutAccount.address })) / 1e18; } catch { /* */ }
     }
-    res.json({ affiliates: out, ethUsd: await ethUsd(),
+    res.json({ affiliates: out, ethUsd: await ethUsd(), defaultCommission: COMMISSION,
       summary: { totalEarnedEth, totalClaimedEth, totalUnclaimedEth, payoutWallet, payoutBalanceEth } });
   } catch (e) { res.status(500).json({ error: String(e?.message || e) }); }
+});
+
+/* admin: set a specific affiliate's commission rate (e.g. 0.30 -> 0.50) */
+app.post("/api/admin/aff-commission", (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  if (!validToken(req)) return res.status(401).json({ error: "unauthorized" });
+  const { code } = req.body || {};
+  let rate = Number((req.body || {}).rate);
+  if (!code || typeof code !== "string") return res.status(400).json({ error: "code required" });
+  if (!Number.isFinite(rate)) return res.status(400).json({ error: "rate required" });
+  if (rate > 1) rate = rate / 100;                 // accept 50 as 0.50
+  if (rate < 0 || rate > 1) return res.status(400).json({ error: "rate must be 0–100%" });
+  const aff = db.prepare("SELECT code FROM affiliates WHERE LOWER(code)=? AND owner_wallet IS NOT NULL").get(code.toLowerCase());
+  if (!aff) return res.status(404).json({ error: "affiliate not found" });
+  // null it back to the platform default when set to exactly the default
+  db.prepare("UPDATE affiliates SET commission=? WHERE LOWER(code)=?").run(rate === COMMISSION ? null : rate, code.toLowerCase());
+  res.json({ ok: true, code: aff.code, commission: rate });
 });
 
 /* ---------- static site with the same rewrites as serve.json ---------- */

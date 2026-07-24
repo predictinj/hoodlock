@@ -1251,7 +1251,7 @@ async function loadAffiliatePage() {
   }
   const token = cachedAffToken();
   if (!token) {
-    box.innerHTML = `<div class="card"><div class="empty"><div class="big">Your affiliate dashboard</div><div class="small">Sign a message to open your dashboard — no transaction, it just proves this wallet is yours.</div><button class="btn btn-neon btn-sm" id="affSign" style="margin-top:12px">Sign in</button></div></div>`;
+    box.innerHTML = `<div class="card"><div class="empty"><div class="big">Your affiliate dashboard</div><div class="small">Sign a message to open your dashboard. No transaction, it just proves this wallet is yours.</div><button class="btn btn-neon btn-sm" id="affSign" style="margin-top:12px">Sign in</button></div></div>`;
     document.getElementById("affSign")?.addEventListener("click", async () => { try { await affSignIn(); loadAffiliatePage(); } catch (e: any) { alert("Sign-in failed: " + (e?.message || e)); } });
     return;
   }
@@ -1269,7 +1269,7 @@ function renderAffCreate() {
   const box = $("affBody");
   box.innerHTML = `<div class="card">
     <div class="card-head"><div><h3>Create your affiliate link</h3><div class="sub">EARN 30% OF EVERY REFERRED LOCK FEE</div></div></div>
-    <p class="hintline">Pick a code for your link — 3–20 characters (letters, numbers, - or _).</p>
+    <p class="hintline">Pick a code for your link, 3–20 characters</p>
     <div class="explore-bar">
       <div class="input-wrap"><span style="position:absolute;left:14px;color:var(--ink-3);font-family:var(--mono);font-size:12px;pointer-events:none">hoodlock.tech/r/</span><input type="text" id="affCode" placeholder="yourname" spellcheck="false" style="padding-left:150px" maxlength="20" /></div>
       <button class="btn btn-neon" id="affCreateBtn" style="padding:11px 22px" disabled>Create link</button>
@@ -1314,7 +1314,7 @@ async function affLocksTable(me: any): Promise<string> {
       <td style="text-align:right;color:var(--neon)">+${cut.toFixed(4)} ETH</td></tr>`);
   }
   return rows.length
-    ? `<table><thead><tr><th>Token</th><th>Amount</th><th>Locked</th><th>Fee</th><th style="text-align:right">Your 30%</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
+    ? `<table><thead><tr><th>Token</th><th>Amount</th><th>Locked</th><th>Fee</th><th style="text-align:right">Your ${Math.round((me.commission || 0) * 100)}%</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
     : `<div class="empty"><div class="small">No referred locks yet — share your link to start earning.</div></div>`;
 }
 async function renderAffDashboard(me: any) {
@@ -1330,7 +1330,7 @@ async function renderAffDashboard(me: any) {
         <button class="btn btn-neon" id="affCopy" style="padding:11px 22px">Copy</button></div>
     </div>
     <div class="tiles">
-      <div class="tile"><div class="k">Lifetime earnings</div><div class="v g">${me.lifetimeEarnedEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(me.lifetimeEarnedEth * me.ethUsd) : "30% of referred fees"}</div></div>
+      <div class="tile"><div class="k">Lifetime earnings</div><div class="v g">${me.lifetimeEarnedEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(me.lifetimeEarnedEth * me.ethUsd) : `${Math.round((me.commission || 0) * 100)}% of referred fees`}</div></div>
       <div class="tile"><div class="k">Claimable now</div><div class="v">${me.claimableEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(claimableUsd) : ""} · min $${me.minClaimUsd}</div></div>
       <div class="tile"><div class="k">Clicks</div><div class="v">${me.clicks.toLocaleString("en-US")}</div><div class="d">link visits</div></div>
       <div class="tile"><div class="k">Referred lockers</div><div class="v">${me.lockers.toLocaleString("en-US")}</div><div class="d">of ${me.signups.toLocaleString("en-US")} signups</div></div>
@@ -1391,6 +1391,7 @@ function renderAdAffTable() {
     { k: "code", label: "Code", num: false }, { k: "owner", label: "Owner", num: false },
     { k: "clicks", label: "Clicks", num: true }, { k: "signups", label: "Signups", num: true },
     { k: "lockers", label: "Lockers", num: true }, { k: "locks", label: "Locks", num: true },
+    { k: "commission", label: "Rate", num: true },
     { k: "earnedEth", label: "Earned", num: true }, { k: "claimedEth", label: "Claimed", num: true },
     { k: "claimableEth", label: "Unclaimed", num: true },
   ];
@@ -1406,6 +1407,7 @@ function renderAdAffTable() {
     <td style="text-align:right">${a.signups.toLocaleString("en-US")}</td>
     <td style="text-align:right">${a.lockers.toLocaleString("en-US")}</td>
     <td style="text-align:right">${a.locks.toLocaleString("en-US")}</td>
+    <td style="text-align:right"><a href="#" data-editrate="${escape(a.code)}" data-rate="${a.commission}" title="Click to change commission" style="color:var(--fg);border-bottom:1px dashed var(--muted)">${Math.round((a.commission || 0) * 100)}%</a></td>
     <td style="text-align:right;color:var(--neon)">${money(a.earnedEth)}</td>
     <td style="text-align:right">${money(a.claimedEth)}</td>
     <td style="text-align:right">${money(a.claimableEth)}</td></tr>`).join("");
@@ -1415,6 +1417,27 @@ function renderAdAffTable() {
     if (adAffSort.key === k) adAffSort.dir *= -1; else { adAffSort.key = k; adAffSort.dir = -1; }
     renderAdAffTable();
   }));
+  box.querySelectorAll<HTMLElement>("[data-editrate]").forEach((el) => el.addEventListener("click", (e) => {
+    e.preventDefault();
+    editCommission(el.dataset.editrate!, Number(el.dataset.rate));
+  }));
+}
+async function editCommission(code: string, current: number) {
+  const token = cachedToken();
+  if (!token) return;
+  const input = window.prompt(`Commission for "${code}" (%). Default is 30.`, String(Math.round((current || 0) * 100)));
+  if (input == null) return;
+  const pct = Number(input.trim().replace("%", ""));
+  if (!Number.isFinite(pct) || pct < 0 || pct > 100) { notify("Enter a percentage between 0 and 100."); return; }
+  try {
+    const r = await fetch("/api/admin/aff-commission", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ code, rate: pct / 100 }),
+    });
+    if (!r.ok) throw new Error(String(r.status));
+    notify(`Commission for ${code} set to ${pct}%.`);
+    loadAdminPublicAffiliates();
+  } catch { notify("Couldn't update commission."); }
 }
 
 /* admin: affiliate payout claims */
