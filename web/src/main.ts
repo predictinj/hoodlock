@@ -150,17 +150,24 @@ const CURATED: { name: string; keys: string[]; url: string; icon?: string }[] = 
   { name: "Phantom", keys: ["phantom"], url: "https://phantom.com/download" },
   { name: "Keplr", keys: ["keplr"], url: "https://www.keplr.app/get" },
 ];
+const IS_MOBILE = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 function walletChoices(): Choice[] {
   const inj = injectedProviders();
-  // 1) ALLT som är installerat (EIP-6963) visas — Phantom, Keplr, Brave, you name it
+  // ALLT som är installerat/injicerat visas (desktop-extensions eller walletens egen in-app-browser)
   const choices: Choice[] = inj.map((p) => ({ name: p.name, icon: p.icon, installed: true, connect: () => connectInjected(p.provider) }));
-  // 2) kuraterade favoriter som saknas får installationslänk
+  if (IS_MOBILE) {
+    // Mobil: appar kan inte injicera i Safari/Chrome — anslut via WalletConnect,
+    // som öppnar/deep-linkar den wallet användaren väljer (Phantom, MetaMask …).
+    choices.push({ name: "Robinhood Wallet", icon: RH_ICON, installed: true, connect: connectWC });
+    choices.push({ name: "Phantom, MetaMask & other wallets", icon: WC_ICON, installed: true, connect: connectWC });
+    return choices;
+  }
+  // Desktop: kuraterade favoriter som saknas får installationslänk
   const have = (keys: string[]) => inj.some((p) => keys.some((k) => p.name.toLowerCase().includes(k)));
   for (const cw of CURATED) {
     if (have(cw.keys)) continue;
     choices.push({ name: cw.name, icon: cw.icon, installed: false, connect: async () => { window.open(cw.url, "_blank", "noopener"); throw new Error(`${cw.name} isn't installed — opening its download page.`); } });
   }
-  // 3) mobil/QR: Robinhood Wallet + generiska WalletConnect (500+ wallets)
   choices.push({ name: "Robinhood Wallet (mobile)", icon: RH_ICON, installed: true, connect: connectWC });
   choices.push({ name: "WalletConnect · 500+ wallets", icon: WC_ICON, installed: true, connect: connectWC });
   return choices;
@@ -176,10 +183,19 @@ async function connectInjected(p: Eip1193) {
 async function connectWC() {
   if (!WC_PROJECT_ID) throw new Error("Mobile sign-in isn't enabled yet — a WalletConnect project id is needed.");
   const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
-  const wp = await EthereumProvider.init({ projectId: WC_PROJECT_ID, chains: [CHAIN.id], showQrModal: true, rpcMap: { [CHAIN.id]: cfg.rpc } });
+  // optionalChains (inte chains): annars NEKAR wallets som inte redan känner
+  // till Robinhood Chain hela sessionen. Vi lägger till/byter kedja efteråt.
+  const wp = await EthereumProvider.init({
+    projectId: WC_PROJECT_ID,
+    optionalChains: [CHAIN.id, 1],
+    showQrModal: true,
+    rpcMap: { [CHAIN.id]: cfg.rpc },
+  } as any);
   await wp.connect();
   const accs: string[] = await wp.request({ method: "eth_accounts" });
-  provider = wp as unknown as Eip1193; wcProvider = wp; account = getAddress(accs[0]); onConnected();
+  provider = wp as unknown as Eip1193; wcProvider = wp; account = getAddress(accs[0]);
+  try { await ensureChain(wp as unknown as Eip1193); } catch { /* vissa wallets sköter kedjebyte i appen */ }
+  onConnected();
 }
 function onConnected() {
   closeWalletModal();
@@ -211,9 +227,12 @@ function openWalletModal() {
   }
   title.textContent = "Connect a wallet"; connBox.style.display = "none"; choicesBox.style.display = "";
   const choices = walletChoices();
+  const tip = IS_MOBILE && !injectedProviders().length
+    ? `<div class="m-sub" style="margin-top:10px">Pick an option above — your wallet app opens automatically. Tip: you can also browse hoodlock.tech inside your wallet's built-in browser.</div>`
+    : "";
   choicesBox.innerHTML = choices.map((c, i) => `<div class="wchoice" data-i="${i}">
     ${c.icon ? `<img src="${c.icon}" alt="">` : `<span class="ic">${escape(c.name[0])}</span>`}
-    <span>${escape(c.name)}</span><span class="badge2">${c.installed ? "" : "NOT DETECTED"}</span></div>`).join("");
+    <span>${escape(c.name)}</span><span class="badge2">${c.installed ? "" : "NOT DETECTED"}</span></div>`).join("") + tip;
   choicesBox.querySelectorAll<HTMLElement>(".wchoice").forEach((el) => el.addEventListener("click", async () => {
     const c = choices[Number(el.dataset.i)];
     const b = el.querySelector(".badge2")!; b.textContent = "CONNECTING…";
