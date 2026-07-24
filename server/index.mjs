@@ -400,7 +400,8 @@ app.get("/api/aff/me", async (req, res) => {
   const aff = db.prepare("SELECT code, clicks, created_at FROM affiliates WHERE owner_wallet = ?").get(wallet);
   if (!aff) return res.json({ hasCode: false });
   const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE LOWER(code) = ?").all(aff.code.toLowerCase());
-  const { lockers, qualifyingLocks, rate, lifetimeEarnedEth } = await affiliateEarnings(aff.code, wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, rate: COMMISSION, lifetimeEarnedEth: 0 }));
+  const rate = commissionFor(aff.code); // pure DB read — must NOT depend on the chain fetch below
+  const { lockers, qualifyingLocks, lifetimeEarnedEth } = await affiliateEarnings(aff.code, wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0 }));
   const claimed = claimedFor(aff.code);
   const claimable = Math.max(0, lifetimeEarnedEth - claimed);
   const claims = db.prepare("SELECT amount_eth, status, tx_hash, requested_at, paid_at FROM claims WHERE LOWER(code) = ? ORDER BY id DESC LIMIT 20").all(aff.code.toLowerCase());
@@ -500,7 +501,8 @@ app.get("/api/admin/public-affiliates", async (req, res) => {
     let totalUnclaimedEth = 0, totalEarnedEth = 0, totalClaimedEth = 0;
     for (const a of affs) {
       const signups = db.prepare("SELECT COUNT(*) n FROM attributions WHERE LOWER(code)=?").get(a.code.toLowerCase()).n;
-      const { lockers, qualifyingLocks, rate, lifetimeEarnedEth } = await affiliateEarnings(a.code, a.owner_wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, rate: COMMISSION, lifetimeEarnedEth: 0 }));
+      const rate = commissionFor(a.code); // pure DB read — resilient to chain-fetch failures
+      const { lockers, qualifyingLocks, lifetimeEarnedEth } = await affiliateEarnings(a.code, a.owner_wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0 }));
       const claimed = claimedFor(a.code);
       const claimable = Math.max(0, lifetimeEarnedEth - claimed);
       totalUnclaimedEth += claimable; totalEarnedEth += lifetimeEarnedEth; totalClaimedEth += claimed;
