@@ -1199,6 +1199,17 @@ async function loadAdmin() {
     $("adminGate").innerHTML = `<div class="card"><div class="empty"><div class="big">Admin access only</div><div class="small">Connect the HoodLock collector wallet to view this console.${account ? "" : " No wallet connected."}</div></div></div>`;
     return;
   }
+  // Hard gate: nothing in the console renders until the admin wallet has signed
+  // in (server-verified session). No wallet-forced DOM can reveal the panel.
+  if (!cachedToken()) {
+    $("adminBody").style.display = "none";
+    $("adminGate").innerHTML = `<div class="card"><div class="empty"><div class="big">Admin sign-in required</div><div class="small">Sign a message with the collector wallet to open the console.</div><button class="btn btn-neon btn-sm" id="adSignIn" style="margin-top:12px">Sign in as admin</button></div></div>`;
+    const b = document.getElementById("adSignIn");
+    if (b) b.addEventListener("click", async () => {
+      try { await adminSignIn(); loadAdmin(); } catch (e: any) { alert("Sign-in failed: " + (e?.message || e)); }
+    });
+    return;
+  }
   $("adminGate").innerHTML = "";
   $("adminBody").style.display = "";
 
