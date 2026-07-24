@@ -112,7 +112,18 @@ function go(view: string, writeHistory = true) {
   if (view === "explore" && !exploreLoaded) loadExplore();
   if (view === "locks") renderMine();
 }
-document.querySelectorAll<HTMLElement>(".nav-item").forEach((n) => n.addEventListener("click", () => go(n.dataset.view!)));
+document.querySelectorAll<HTMLElement>(".nav-item").forEach((n) => n.addEventListener("click", () => { go(n.dataset.view!); closeSidebar(); }));
+
+/* ---------- mobilmeny (drawer) ---------- */
+function closeSidebar() {
+  document.querySelector(".sidebar")?.classList.remove("open");
+  $("sbBackdrop").classList.remove("show");
+}
+$("menuBtn").addEventListener("click", () => {
+  const open = document.querySelector(".sidebar")!.classList.toggle("open");
+  $("sbBackdrop").classList.toggle("show", open);
+});
+$("sbBackdrop").addEventListener("click", closeSidebar);
 document.querySelectorAll<HTMLElement>("[data-goto]").forEach((b) => b.addEventListener("click", () => go(b.dataset.goto!)));
 
 /* ---------- wallet (EIP-6963 + WalletConnect) ---------- */

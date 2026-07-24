@@ -296,8 +296,14 @@
     padding:13px 17px;font-size:13px;font-weight:500;display:none;align-items:center;gap:10px;box-shadow:0 16px 50px rgba(0,0,0,.6);z-index:200;animation:fadeUp .25s ease}
   .toast.show{display:flex}
 
+  .menu-btn{display:none;background:none;border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+  .menu-btn svg{display:block}
+  .sb-backdrop{position:fixed;inset:0;background:rgba(3,6,4,.6);backdrop-filter:blur(3px);z-index:110;display:none}
+  .sb-backdrop.show{display:block;animation:fadeIn .2s ease}
   @media (max-width:1000px){
-    .sidebar{display:none}
+    .sidebar{transform:translateX(-105%);transition:transform .25s cubic-bezier(.2,.7,.2,1);z-index:120;box-shadow:24px 0 60px rgba(0,0,0,.5)}
+    .sidebar.open{transform:none}
+    .menu-btn{display:inline-flex}
     .main{margin-left:0}
     .tiles{grid-template-columns:repeat(2,1fr)}
     .grid-2,.lock-layout{grid-template-columns:1fr}
@@ -333,6 +339,9 @@
 <!-- main -->
 <div class="main">
   <div class="topbar">
+    <button class="menu-btn" id="menuBtn" aria-label="Meny">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+    </button>
     <span class="crumb">HOODLOCK / <b id="viewTitle">DASHBOARD</b></span>
     <span class="spacer"></span>
     <button class="btn btn-neon" id="connectBtn">Connect Wallet</button>
@@ -490,6 +499,8 @@
     </section>
   </div>
 </div>
+
+<div class="sb-backdrop" id="sbBackdrop"></div>
 
 <!-- wallet modal -->
 <div id="walletModal" class="modal">
