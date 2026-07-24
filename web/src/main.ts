@@ -102,7 +102,8 @@ function notify(msg: string) {
 ($("ctLink") as HTMLAnchorElement).href = `${EXP}/address/${LOCKER}`;
 
 /* ---------- view routing ---------- */
-const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS" };
+const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS", admin: "ADMIN CONSOLE" };
+const ADMIN_WALLET = "0x79c1230cab12d53d040f5fe1f5279e1a481ccea2";
 function go(view: string, writeHistory = true) {
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
   $(`view-${view}`).classList.add("active");
@@ -111,6 +112,7 @@ function go(view: string, writeHistory = true) {
   if (view !== "proof" && writeHistory) { history.replaceState(null, "", "/app/" + view); }
   if (view === "explore" && !exploreLoaded) loadExplore();
   if (view === "locks") renderMine();
+  if (view === "admin") loadAdmin();
 }
 document.querySelectorAll<HTMLElement>(".nav-item").forEach((n) => n.addEventListener("click", () => { go(n.dataset.view!); closeSidebar(); }));
 
@@ -226,6 +228,7 @@ function onConnected() {
   ($("lockBtn") as HTMLButtonElement).disabled = false;
   walletToks = null; walletToksFor = "";
   refreshToken(); renderMine(); updateSummary(); loadWalletTokens();
+  syncAdminNav(); attributeRef();
   notify(`Wallet connected — ${short(account)}`);
 }
 function disconnect() {
@@ -235,7 +238,7 @@ function disconnect() {
   ($("lockBtn") as HTMLButtonElement).disabled = false;
   $("balHint").textContent = "";
   $("yourLocksSub").textContent = "CONNECT WALLET TO MANAGE";
-  renderMine(); updateSummary(); closeWalletModal();
+  renderMine(); updateSummary(); closeWalletModal(); syncAdminNav();
 }
 function openWalletModal() {
   $("walletModal").classList.add("show");
@@ -1174,8 +1177,155 @@ window.addEventListener("popstate", () => {
   go(v && TITLES[v] ? v : "dashboard", false);
 });
 
+/* ---------- ADMIN CONSOLE (gated to the collector wallet) ---------- */
+const isAdmin = () => account.toLowerCase() === ADMIN_WALLET;
+function syncAdminNav() {
+  $("adminNav").style.display = isAdmin() ? "" : "none";
+  if (!isAdmin() && location.pathname.startsWith("/app/admin")) go("dashboard");
+  if ($("view-admin").classList.contains("active")) loadAdmin();
+}
+// first-touch referral: if arrived via /r/<code>, tell the backend which wallet connected
+function attributeRef() {
+  let ref = "";
+  try { ref = localStorage.getItem("hl_ref") || ""; } catch { /* */ }
+  if (!ref || !account) return;
+  fetch("/api/ref/visit", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ wallet: account, ref }) }).catch(() => { /* analytics only */ });
+}
+
+async function loadAdmin() {
+  if (!isAdmin()) {
+    $("adminBody").style.display = "none";
+    $("adminGate").innerHTML = `<div class="card"><div class="empty"><div class="big">Admin access only</div><div class="small">Connect the HoodLock collector wallet to view this console.${account ? "" : " No wallet connected."}</div></div></div>`;
+    return;
+  }
+  $("adminGate").innerHTML = "";
+  $("adminBody").style.display = "";
+
+  try {
+    const [total, burnTotal] = await Promise.all([
+      pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }).then(Number),
+      BURNER ? pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "totalBurns" }).then(Number).catch(() => 0) : Promise.resolve(0),
+    ]);
+    const feeEth = Number(formatUnits(lockFee, 18)) || 0;
+    const burnFeeEth = Number(formatUnits(burnFee, 18)) || 0;
+    const revEth = total * feeEth + burnTotal * burnFeeEth;
+    const ethUsd = Number((typeof localStorage !== "undefined" && localStorage.getItem("hl_ethusd")) || 0);
+    $("adRevenue").textContent = revEth.toFixed(4) + " ETH";
+    $("adRevenueSub").textContent = ethUsd > 0 ? `≈ ${fmtUsd(revEth * ethUsd)} · ${feeEth} ETH/action` : `${feeEth} ETH per action`;
+    $("adLocks").textContent = total.toLocaleString("en-US");
+    $("adBurns").textContent = burnTotal.toLocaleString("en-US");
+
+    // pull every lock once for users / active / recent
+    const ids = Array.from({ length: total }, (_, i) => i);
+    const rows = (await Promise.all(ids.map((i) => readLock(i).catch(() => null)))).filter((r): r is LockRow => !!r);
+    const now = Math.floor(Date.now() / 1000);
+    const users = new Set(rows.map((r) => r.owner.toLowerCase()));
+    $("adUsers").textContent = users.size.toLocaleString("en-US");
+    $("adActive").textContent = rows.filter((r) => !r.withdrawn && r.unlockTime > now).length.toLocaleString("en-US");
+
+    const tvl = await computeTvl(pub as any, rows);
+    $("adTvl").textContent = tvl.ethUsd > 0 ? fmtUsd(tvl.usd) : `${tvl.eth.toFixed(3)} ETH`;
+
+    // recent users table (latest locks, newest first)
+    const logs = await loadLockedLogs();
+    const recent = [...logs].reverse().slice(0, 12);
+    const seen = new Set<string>();
+    const uniqueRecent = recent.filter((l) => { const k = l.owner.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+    const body = (await Promise.all(uniqueRecent.map(async (l) => {
+      const ts = await blockTs(l.block);
+      const m2 = await tokMeta(l.token);
+      const cnt = rows.filter((r) => r.owner.toLowerCase() === l.owner.toLowerCase()).length;
+      return `<tr><td class="addr">${short(l.owner)}</td><td>${cnt} lock${cnt === 1 ? "" : "s"}</td><td>$${escape(m2.symbol)}</td><td>${ts ? dateLabel(ts) : "—"}</td>
+        <td style="text-align:right"><a class="btn btn-line btn-sm" href="${EXP}/address/${l.owner}" target="_blank" rel="noopener">Explorer</a></td></tr>`;
+    }))).join("");
+    $("adUsersBox").innerHTML = uniqueRecent.length
+      ? `<table><thead><tr><th>Wallet</th><th>Locks</th><th>Latest token</th><th>First seen</th><th></th></tr></thead><tbody>${body}</tbody></table>`
+      : `<div class="empty"><div class="small">No locks yet.</div></div>`;
+  } catch {
+    $("adRevenue").textContent = "—";
+  }
+
+  loadAffiliates();
+}
+
+/* ---------- affiliates (needs the backend; degrades to a notice) ---------- */
+function cachedToken(): string | null {
+  try {
+    const t = localStorage.getItem("hl_admtok"), e = Number(localStorage.getItem("hl_admexp"));
+    return t && e > Date.now() + 5000 ? t : null;
+  } catch { return null; }
+}
+async function adminSignIn(): Promise<string> {
+  const ts = Math.floor(Date.now() / 1000);
+  const signature = await provider!.request({ method: "personal_sign", params: [`HoodLock admin ${ts}`, account] });
+  const r = await fetch("/api/admin/session", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address: account, ts, signature }) });
+  if (!r.ok) throw new Error(await r.text());
+  const { token, exp } = await r.json();
+  try { localStorage.setItem("hl_admtok", token); localStorage.setItem("hl_admexp", String(exp)); } catch { /* */ }
+  return token;
+}
+async function loadAffiliates() {
+  const box = $("afBox");
+  const token = cachedToken();
+  if (!token) {
+    box.innerHTML = `<div class="empty"><div class="small">Affiliate data is protected.</div><button class="btn btn-neon btn-sm" id="afUnlock" style="margin-top:10px">Sign in to view</button></div>`;
+    const u = document.getElementById("afUnlock");
+    if (u) u.addEventListener("click", async () => {
+      try { await adminSignIn(); loadAffiliates(); } catch (e: any) { alert("Sign-in failed: " + (e?.message || e)); }
+    });
+    return;
+  }
+  try {
+    const r = await fetch("/api/admin/affiliates", { headers: { Authorization: "Bearer " + token } });
+    if (r.status === 401) { try { localStorage.removeItem("hl_admtok"); } catch { /* */ } return loadAffiliates(); }
+    if (!r.ok) throw new Error(String(r.status));
+    const data: any = await r.json();
+    const rows = (data.affiliates || []) as { code: string; label: string; clicks: number; signups: number; lockers: number; locks: number; revenueEth: number }[];
+    if (!rows.length) { box.innerHTML = `<div class="empty"><div class="small">No affiliate links yet — create your first above.</div></div>`; return; }
+    box.innerHTML = `<table><thead><tr><th>Campaign</th><th>Link</th><th>Clicks</th><th>Signups</th><th>Lockers</th><th>Locks</th><th style="text-align:right">Revenue</th></tr></thead><tbody>${
+      rows.map((a) => `<tr>
+        <td><b>${escape(a.label || a.code)}</b></td>
+        <td><a href="/r/${escape(a.code)}" target="_blank" rel="noopener" class="mono" style="font-size:11px">hoodlock.tech/r/${escape(a.code)}</a>
+          <button class="btn btn-line btn-sm" style="margin-left:6px" data-copyref="${escape(a.code)}">Copy</button></td>
+        <td>${a.clicks.toLocaleString("en-US")}</td>
+        <td>${a.signups.toLocaleString("en-US")}</td>
+        <td>${a.lockers.toLocaleString("en-US")}</td>
+        <td>${a.locks.toLocaleString("en-US")}</td>
+        <td style="text-align:right">${a.revenueEth.toFixed(4)} ETH</td></tr>`).join("")
+    }</tbody></table>`;
+    box.querySelectorAll<HTMLButtonElement>("[data-copyref]").forEach((b) => b.addEventListener("click", async () => {
+      const url = `${location.origin}/r/${b.dataset.copyref}`;
+      try { await navigator.clipboard.writeText(url); notify("Affiliate link copied"); } catch { prompt("Copy this link:", url); }
+    }));
+  } catch {
+    box.innerHTML = `<div class="empty"><div class="small">Affiliate tracking isn't reachable right now.</div></div>`;
+  }
+}
+$("afCreate").addEventListener("click", async () => {
+  if (!isAdmin()) return;
+  const label = ($("afLabel") as HTMLInputElement).value.trim();
+  const btn = $("afCreate") as HTMLButtonElement;
+  btn.disabled = true;
+  try {
+    let token = cachedToken();
+    if (!token) { btn.textContent = "Signing…"; token = await adminSignIn(); }
+    btn.textContent = "Creating…";
+    const r = await fetch("/api/admin/affiliates", { method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ label }) });
+    if (!r.ok) throw new Error(await r.text());
+    ($("afLabel") as HTMLInputElement).value = "";
+    notify("Affiliate link created");
+    loadAffiliates();
+  } catch (e: any) { alert("Couldn't create link: " + (e?.message || e)); }
+  finally { btn.disabled = false; btn.textContent = "Create link"; }
+});
+
 /* ---------- boot ---------- */
 loadDashboard();
+const _refParam = new URLSearchParams(location.search).get("ref");
+if (_refParam && /^[A-Za-z0-9_-]{3,32}$/.test(_refParam)) { try { localStorage.setItem("hl_ref", _refParam); } catch { /* */ } }
 const _lockParam = new URLSearchParams(location.search).get("lock");
 const _burnParam = new URLSearchParams(location.search).get("burn");
 const _pathView = location.pathname.match(/^\/app\/([a-z]+)/)?.[1];

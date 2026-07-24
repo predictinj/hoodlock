@@ -6,3 +6,8 @@ web/dist
 .env.*
 .DS_Store
 scripts/build
+server/node_modules
+server/public
+server/data
+server/config.json
+data
