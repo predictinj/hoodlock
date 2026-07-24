@@ -157,11 +157,9 @@ function injectedProviders(): { name: string; icon?: string; provider: Eip1193 }
 }
 type Choice = { name: string; icon?: string; installed: boolean; connect: () => Promise<void> };
 const WC_ICON = "data:image/svg+xml;base64," + btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect width='48' height='48' rx='11' fill='#3B99FC'/><path d='M15 21.5c5-4.8 13-4.8 18 0l.7.7c.25.24.25.63 0 .87l-2.2 2.1a.33.33 0 01-.45 0l-.95-.9c-3.5-3.36-9.2-3.36-12.7 0l-1 .97a.33.33 0 01-.46 0l-2.2-2.1a.6.6 0 010-.88l.75-.73zm22.3 4.1l1.95 1.9c.25.24.25.63 0 .87l-8.8 8.5a.66.66 0 01-.92 0l-6.25-6a.17.17 0 00-.23 0l-6.24 6a.66.66 0 01-.92 0l-8.8-8.5a.6.6 0 010-.88l1.95-1.88a.66.66 0 01.92 0l6.24 6.02c.07.06.17.06.23 0l6.25-6.02a.66.66 0 01.92 0l6.24 6.02c.07.06.17.06.23 0l6.25-6.02a.66.66 0 01.92 0z' fill='#fff'/></svg>`);
-// OBS: Phantom & Keplr har FASTA kedjelistor utan Robinhood Chain — de kan
-// inte användas här och kurateras därför inte (auto-detektering visar dem ändå
-// om de injicerar, t.ex. för användare som vill se varför det inte går).
 const CURATED: { name: string; keys: string[]; url: string; icon?: string }[] = [
   { name: "MetaMask", keys: ["metamask"], url: "https://metamask.io/download" },
+  { name: "Phantom", keys: ["phantom"], url: "https://phantom.com/download" },
   { name: "Rabby", keys: ["rabby"], url: "https://rabby.io/" },
   { name: "Trust Wallet", keys: ["trust"], url: "https://trustwallet.com/download" },
 ];
@@ -174,7 +172,7 @@ function walletChoices(): Choice[] {
     // Mobil: appar kan inte injicera i Safari/Chrome — anslut via WalletConnect,
     // som öppnar/deep-linkar den wallet användaren väljer (Phantom, MetaMask …).
     choices.push({ name: "Robinhood Wallet", icon: RH_ICON, installed: true, connect: connectWC });
-    choices.push({ name: "MetaMask, Trust & other wallets", icon: WC_ICON, installed: true, connect: connectWC });
+    choices.push({ name: "Phantom, MetaMask & other wallets", icon: WC_ICON, installed: true, connect: connectWC });
     return choices;
   }
   // Desktop: kuraterade favoriter som saknas får installationslänk
@@ -213,6 +211,7 @@ async function connectWC() {
         "4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0", // Trust
         "1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369", // Rainbow
         "18388be9ac2d02726dbac9777c96efaac06d744b2f6d580fccdd4127a6d01fd1", // Rabby
+        "a797aa35c0fadbfc1a53e7f675162ed5226968b44a19ee3d24385c64d1d3c393", // Phantom (Robinhood Chain integrated)
       ],
     },
   } as any);
