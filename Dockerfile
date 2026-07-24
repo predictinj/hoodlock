@@ -12,6 +12,10 @@ ARG CACHEBUST=4
 # WalletConnect/Reown project id — Vite inlines VITE_ vars AT BUILD TIME.
 ARG VITE_WALLETCONNECT_PROJECT_ID
 ENV VITE_WALLETCONNECT_PROJECT_ID=$VITE_WALLETCONNECT_PROJECT_ID
+# Optional dedicated RPC (e.g. Alchemy/QuickNode/Chainstack) tried before the
+# rate-limited public RPC. Unset → app just uses the public endpoint.
+ARG VITE_RPC_URL
+ENV VITE_RPC_URL=$VITE_RPC_URL
 COPY . .
 RUN npx vite build web
 

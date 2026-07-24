@@ -3,7 +3,7 @@
    contract read or an event log. Wallet layer: EIP-6963 injected providers +
    WalletConnect for Robinhood Wallet mobile. */
 import {
-  createPublicClient, http, custom, defineChain, getAddress, isAddress,
+  createPublicClient, http, fallback, custom, defineChain, getAddress, isAddress,
   parseUnits, formatUnits, encodeFunctionData, numberToHex, type Hex,
 } from "viem";
 import cfg from "./config.json";
@@ -11,13 +11,29 @@ import LOCKER_ABI from "./locker-abi.json";
 import BURNER_ABI from "./burner-abi.json";
 import { amountValueUsd, computeTvl, fmtUsd, tokenPriceUsd, tokenDepthCapUsd } from "./tvl";
 
-/* ---------- chain + clients ---------- */
+/* ---------- chain + clients ----------
+   Robinhood's public RPC is free but rate-limited, so a read-heavy session can
+   intermittently get "HTTP request failed". We (a) retry with backoff + a longer
+   timeout, and (b) allow a dedicated RPC (VITE_RPC_URL) or extra endpoints
+   (config.rpcs[]) to be tried first via a fallback transport. */
+const RPC_URLS: string[] = [
+  (import.meta as any).env?.VITE_RPC_URL,
+  ...(Array.isArray((cfg as any).rpcs) ? (cfg as any).rpcs : []),
+  cfg.rpc,
+].filter((u, i, a) => typeof u === "string" && u && a.indexOf(u) === i);
+// Modest per-endpoint retry (transient blips) — NOT aggressive, since hammering a
+// rate-limited RPC makes it worse. Real reliability comes from a dedicated RPC via
+// VITE_RPC_URL, tried first here; the public endpoint is the last-resort fallback.
+const rpcTransport = fallback(
+  RPC_URLS.map((u) => http(u, { timeout: 15_000, retryCount: 2, retryDelay: 400 })),
+  { retryCount: 0 },
+);
 const CHAIN = defineChain({
   id: cfg.chainId, name: "Robinhood Chain",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: [cfg.rpc] } },
+  rpcUrls: { default: { http: RPC_URLS } },
 });
-const pub = createPublicClient({ chain: CHAIN, transport: http(cfg.rpc) });
+const pub = createPublicClient({ chain: CHAIN, transport: rpcTransport });
 const LOCKER = getAddress(cfg.locker) as `0x${string}`;
 // The burner is optional — without config.burner the whole burn UI stays hidden.
 const BURNER = (cfg as any).burner && isAddress((cfg as any).burner) ? (getAddress((cfg as any).burner) as `0x${string}`) : null;
@@ -325,7 +341,16 @@ $("walletModal").addEventListener("click", (e) => { if (e.target === $("walletMo
 async function send(to: `0x${string}`, data: Hex, value = 0n): Promise<string> {
   return await provider!.request({ method: "eth_sendTransaction", params: [{ from: account, to, data, value: numberToHex(value) as any }] });
 }
-async function waitTx(hash: string) { return pub.waitForTransactionReceipt({ hash: hash as `0x${string}`, timeout: 120000 }); }
+async function waitTx(hash: string) { return pub.waitForTransactionReceipt({ hash: hash as `0x${string}`, timeout: 120000, retryCount: 12, retryDelay: 2000 }); }
+// Turn raw viem/wallet errors into something a user can act on.
+function friendlyErr(e: any): string {
+  const m = String(e?.shortMessage || e?.details || e?.message || "");
+  if (e?.code === 4001 || /user rejected|user denied|rejected the request/i.test(m)) return "Transaction rejected in wallet.";
+  if (/HTTP request failed|fetch failed|Failed to fetch|timed out|timeout|network error|load failed/i.test(m))
+    return "Couldn't reach Robinhood Chain — the network may be busy. Please try again in a moment.";
+  if (/insufficient funds/i.test(m)) return "Insufficient ETH for the fee + gas.";
+  return m || "Something went wrong. Please try again.";
+}
 
 /* ---------- fee (live from contract) ---------- */
 let lockFee = 0n, burnFee = 0n;
@@ -566,14 +591,21 @@ $("lockBtn").addEventListener("click", async () => {
     msg.textContent = "Locking… confirm in wallet";
     const lh = await send(LOCKER, encodeFunctionData({ abi: LOCKER_ABI as any, functionName: "lock", args: [tokenMeta.addr, amount, unlockTime] }), lockFee);
     msg.innerHTML = `Locking… <span class="spin"></span>`;
-    await waitTx(lh);
-    msg.className = "msg ok";
-    msg.innerHTML = `🔒 Locked! <a href="${EXP}/tx/${lh}" target="_blank" rel="noopener">view tx</a> — see it under <b>My locks</b> and share the proof.`;
+    try {
+      await waitTx(lh);
+      msg.className = "msg ok";
+      msg.innerHTML = `🔒 Locked! <a href="${EXP}/tx/${lh}" target="_blank" rel="noopener">view tx</a> — see it under <b>My locks</b> and share the proof.`;
+      ($("amount") as HTMLInputElement).value = "";
+    } catch {
+      // The lock tx was submitted; we just couldn't confirm the receipt (RPC blip).
+      // Don't present it as a failure — it very likely landed.
+      msg.className = "msg";
+      msg.innerHTML = `Transaction submitted — <a href="${EXP}/tx/${lh}" target="_blank" rel="noopener">view tx</a>. It should appear under <b>My locks</b> shortly.`;
+    }
     btn.disabled = false;
-    ($("amount") as HTMLInputElement).value = "";
     invalidateEvents();      // refresh events so the new lock's tx + stats resolve
     renderMine(); loadDashboard(); exploreLoaded = false;
-  } catch (e: any) { msg.className = "msg bad"; msg.textContent = e?.shortMessage || e?.message || "Failed."; ($("lockBtn") as HTMLButtonElement).disabled = false; }
+  } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); ($("lockBtn") as HTMLButtonElement).disabled = false; }
 });
 
 /* ---------- lock reads + event cache ---------- */
