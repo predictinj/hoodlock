@@ -229,6 +229,7 @@ function onConnected() {
   walletToks = null; walletToksFor = "";
   refreshToken(); renderMine(); updateSummary(); loadWalletTokens();
   syncAdminNav(); attributeRef();
+  fetch("/api/track/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wallet: account }) }).catch(() => { /* analytics only */ });
   notify(`Wallet connected — ${short(account)}`);
 }
 function disconnect() {
@@ -1256,6 +1257,19 @@ async function loadAdmin() {
   } catch {
     $("adRevenue").textContent = "—";
   }
+
+  // server-only stats (wallet connections, clicks) — token already present here
+  try {
+    const token = cachedToken();
+    const r = await fetch("/api/admin/stats", { headers: { Authorization: "Bearer " + token } });
+    if (r.ok) {
+      const st: any = await r.json();
+      $("adConnected").textContent = Number(st.connectedWallets || 0).toLocaleString("en-US");
+      $("adConnectedSub").textContent = `${Number(st.connected7d || 0).toLocaleString("en-US")} in last 7 days`;
+      $("adClicks").textContent = Number(st.totalClicks || 0).toLocaleString("en-US");
+      $("adClicksSub").textContent = `${Number(st.attributed || 0).toLocaleString("en-US")} attributed signups`;
+    }
+  } catch { /* leave placeholders */ }
 
   loadAffiliates();
 }

@@ -53,6 +53,7 @@ try {
   db.exec(`
     CREATE TABLE IF NOT EXISTS affiliates (code TEXT PRIMARY KEY, label TEXT, clicks INTEGER DEFAULT 0, created_at INTEGER);
     CREATE TABLE IF NOT EXISTS attributions (wallet TEXT PRIMARY KEY, code TEXT, ts INTEGER);
+    CREATE TABLE IF NOT EXISTS connections (wallet TEXT PRIMARY KEY, first_ts INTEGER, last_ts INTEGER, hits INTEGER DEFAULT 0);
   `);
   console.log("[hoodlock] db ready at", dir);
 } catch (e) {
@@ -93,6 +94,19 @@ app.post("/api/ref/visit", (req, res) => {
   res.json({ ok: true });
 });
 
+/* track a wallet connecting to the platform (open — the owner's own analytics) */
+app.post("/api/track/connect", (req, res) => {
+  if (!db) return res.json({ ok: false });
+  const wallet = String(req.body?.wallet || "").toLowerCase();
+  if (!isAddress(wallet)) return res.status(400).json({ ok: false });
+  const now = Math.floor(Date.now() / 1000);
+  try {
+    db.prepare(`INSERT INTO connections (wallet, first_ts, last_ts, hits) VALUES (?,?,?,1)
+      ON CONFLICT(wallet) DO UPDATE SET last_ts = ?, hits = hits + 1`).run(wallet, now, now, now);
+  } catch { /* */ }
+  res.json({ ok: true });
+});
+
 /* admin session: verify a signed message recovers to the admin wallet */
 app.post("/api/admin/session", async (req, res) => {
   try {
@@ -105,6 +119,20 @@ app.post("/api/admin/session", async (req, res) => {
     sessions.set(token, Date.now() + 30 * 60_000);
     res.json({ token, exp: Date.now() + 30 * 60_000 });
   } catch (e) { res.status(400).json({ error: String(e?.message || e) }); }
+});
+
+/* platform stats not derivable purely on-chain (wallet connections, clicks) */
+app.get("/api/admin/stats", (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  if (!validToken(req)) return res.status(401).json({ error: "unauthorized" });
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const connectedWallets = db.prepare("SELECT COUNT(*) n FROM connections").get().n;
+    const connected7d = db.prepare("SELECT COUNT(*) n FROM connections WHERE last_ts > ?").get(now - 7 * 86400).n;
+    const totalClicks = db.prepare("SELECT COALESCE(SUM(clicks),0) n FROM affiliates").get().n;
+    const attributed = db.prepare("SELECT COUNT(*) n FROM attributions").get().n;
+    res.json({ connectedWallets, connected7d, totalClicks, attributed });
+  } catch (e) { res.status(500).json({ error: String(e?.message || e) }); }
 });
 
 /* list affiliates with computed stats — requires a valid admin session token */
