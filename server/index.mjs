@@ -5,7 +5,7 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { createPublicClient, createWalletClient, http, defineChain, getAddress, verifyMessage, isAddress, parseEther } from "viem";
+import { createPublicClient, createWalletClient, http, defineChain, getAddress, verifyMessage, isAddress, parseEther, encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -26,10 +26,14 @@ const LOCKED_EVENT = { type: "event", name: "Locked", inputs: [
   { name: "token", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false },
   { name: "unlockTime", type: "uint256", indexed: false } ] };
 const FEE_ABI = [{ type: "function", name: "fee", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] }];
+// lock(token, amount, unlockTime) — for the developer lock-intent (prepared tx)
+const LOCK_ABI = [{ type: "function", name: "lock", stateMutability: "payable", inputs: [
+  { name: "token", type: "address" }, { name: "amount", type: "uint256" }, { name: "unlockTime", type: "uint256" } ], outputs: [{ type: "uint256" }] }];
 
 let FEE_ETH = 0.005; // sane default; refreshed from chain at boot
+let FEE_WEI = 5000000000000000n; // 0.005 ETH default
 pub.readContract({ address: LOCKER, abi: FEE_ABI, functionName: "fee" })
-  .then((f) => { FEE_ETH = Number(f) / 1e18; })
+  .then((f) => { FEE_WEI = BigInt(f); FEE_ETH = Number(f) / 1e18; })
   .catch(() => { /* keep default */ });
 
 // owner -> number of locks, cached 60s (drives affiliate revenue attribution)
@@ -62,6 +66,9 @@ try {
   if (!cols.includes("owner_wallet")) db.exec("ALTER TABLE affiliates ADD COLUMN owner_wallet TEXT");
   // per-affiliate commission rate (NULL = platform default). Admin can raise it (e.g. 0.30 -> 0.50).
   if (!cols.includes("commission")) db.exec("ALTER TABLE affiliates ADD COLUMN commission REAL");
+  // developer program: kind='developer' rows earn 50% and carry a public api_key (pk_…)
+  if (!cols.includes("kind")) db.exec("ALTER TABLE affiliates ADD COLUMN kind TEXT");
+  if (!cols.includes("api_key")) db.exec("ALTER TABLE affiliates ADD COLUMN api_key TEXT");
   console.log("[hoodlock] db ready at", dir);
 } catch (e) {
   console.error("[hoodlock] DB unavailable — affiliate features disabled, site still serves:", e?.message || e);
@@ -90,8 +97,9 @@ function validToken(req) {
 /* ---------- public affiliate program ---------- */
 const nowSec = () => Math.floor(Date.now() / 1000);
 const COMMISSION = 0.30;
+const DEV_COMMISSION = 0.50;  // developer program default
 const CODE_RE = /^[a-z0-9_-]{3,20}$/;
-const RESERVED = new Set(["hoodlock", "admin", "app", "api", "r", "blog", "official", "support", "www", "help", "docs", "test"]);
+const RESERVED = new Set(["hoodlock", "admin", "app", "api", "r", "blog", "official", "support", "www", "help", "docs", "test", "dev", "developers", "embed"]);
 const normCode = (c) => String(c || "").toLowerCase();
 const codeValid = (c) => CODE_RE.test(c) && !RESERVED.has(c);
 
@@ -214,10 +222,15 @@ const app = express();
 // req.ip is the real client (trust:true would let clients forge X-Forwarded-For).
 app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 1));
 app.use(express.json({ limit: "16kb" }));
-// security headers: block framing (clickjacking on the wallet-sign prompt), sniffing, referrer leakage
-app.use((_req, res, next) => {
-  res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+// security headers: block framing (clickjacking on the wallet-sign prompt), sniffing, referrer leakage.
+// EXCEPTION: the developer embed (/embed, /embed.js, /embed-*) is MEANT to be framed by
+// partner sites, so it must not send frame-blocking headers.
+const EMBEDDABLE = (p) => p === "/embed" || p === "/embed.js" || p.startsWith("/embed?") || p.startsWith("/embed/") || p.startsWith("/assets/embed");
+app.use((req, res, next) => {
+  if (!EMBEDDABLE(req.path)) {
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+  }
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "no-referrer");
   next();
@@ -264,22 +277,27 @@ app.get("/r/:code", (req, res) => {
  * Residual (documented): an attacker can still attribute brand-new addresses they control,
  * but self-referral via fresh wallets nets a loss (they pay the full fee to recover ≤ it). */
 const ATTR_GRACE_SEC = Number(process.env.ATTR_GRACE_SEC || 900); // 15 min
+// Shared fresh-wallet first-touch attribution, used by both referral links (/api/ref/visit)
+// and the developer program (/api/dev/attribute). `code` must already exist in affiliates.
+async function attributeWallet(code, wallet) {
+  wallet = String(wallet || "").toLowerCase();
+  if (!isAddress(wallet)) return { ok: false, reason: "bad-wallet" };
+  const row = db.prepare("SELECT code FROM affiliates WHERE LOWER(code) = LOWER(?)").get(code);
+  if (!row) return { ok: false, reason: "unknown-code" };
+  if (db.prepare("SELECT 1 FROM attributions WHERE wallet = ?").get(wallet)) return { ok: false, reason: "already-attributed" };
+  const conn = db.prepare("SELECT first_ts FROM connections WHERE wallet = ?").get(wallet);
+  if (conn && conn.first_ts < nowSec() - ATTR_GRACE_SEC) return { ok: false, reason: "established-wallet" };
+  try { const recs = await lockRecords(); if ((recs.get(wallet) || []).length > 0) return { ok: false, reason: "already-locked" }; } catch { /* chain read failed → allow */ }
+  try { db.prepare("INSERT OR IGNORE INTO attributions (wallet, code, ts) VALUES (?,?,?)").run(wallet, row.code, nowSec()); } catch { /* */ }
+  return { ok: true };
+}
 app.post("/api/ref/visit", async (req, res) => {
   if (!db) return res.json({ ok: false });
   if (limited(req, res, 30)) return;
   const wallet = String(req.body?.wallet || "").toLowerCase();
   const ref = String(req.body?.ref || "");
   if (!isAddress(wallet) || !REF_RE.test(ref)) return res.status(400).json({ ok: false });
-  const row = db.prepare("SELECT code FROM affiliates WHERE LOWER(code) = LOWER(?)").get(ref);
-  if (!row) return res.json({ ok: false });
-  if (db.prepare("SELECT 1 FROM attributions WHERE wallet = ?").get(wallet)) return res.json({ ok: false, reason: "already-attributed" });
-  // established wallet? (connected before the grace window) → not a fresh referral
-  const conn = db.prepare("SELECT first_ts FROM connections WHERE wallet = ?").get(wallet);
-  if (conn && conn.first_ts < nowSec() - ATTR_GRACE_SEC) return res.json({ ok: false, reason: "established-wallet" });
-  // already locked on-chain? → nothing to attribute
-  try { const recs = await lockRecords(); if ((recs.get(wallet) || []).length > 0) return res.json({ ok: false, reason: "already-locked" }); } catch { /* if chain read fails, fall through */ }
-  try { db.prepare("INSERT OR IGNORE INTO attributions (wallet, code, ts) VALUES (?,?,?)").run(wallet, row.code, nowSec()); } catch { /* */ }
-  res.json({ ok: true });
+  res.json(await attributeWallet(ref, wallet));
 });
 
 /* track a wallet connecting to the platform (open — the owner's own analytics) */
@@ -397,7 +415,7 @@ app.get("/api/aff/me", async (req, res) => {
   if (!db) return res.status(503).json({ error: "db unavailable" });
   const wallet = affWallet(req);
   if (!wallet) return res.status(401).json({ error: "unauthorized" });
-  const aff = db.prepare("SELECT code, clicks, created_at FROM affiliates WHERE owner_wallet = ?").get(wallet);
+  const aff = db.prepare("SELECT code, clicks, created_at, kind, api_key FROM affiliates WHERE owner_wallet = ?").get(wallet);
   if (!aff) return res.json({ hasCode: false });
   const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE LOWER(code) = ?").all(aff.code.toLowerCase());
   const rate = commissionFor(aff.code); // pure DB read — must NOT depend on the chain fetch below
@@ -407,6 +425,7 @@ app.get("/api/aff/me", async (req, res) => {
   const claims = db.prepare("SELECT amount_eth, status, tx_hash, requested_at, paid_at FROM claims WHERE LOWER(code) = ? ORDER BY id DESC LIMIT 20").all(aff.code.toLowerCase());
   res.json({
     hasCode: true, code: aff.code, clicks: aff.clicks,
+    kind: aff.kind || "affiliate", apiKey: aff.api_key || null,
     signups: attrs.length, lockers, qualifyingLocks,
     lifetimeEarnedEth, claimedEth: claimed, claimableEth: claimable,
     ethUsd: await ethUsd(), minClaimUsd: 10, commission: rate, feeEth: FEE_ETH,
@@ -473,6 +492,64 @@ app.post("/api/aff/claim", async (req, res) => {
   res.json({ ok: true, ...result });
 });
 
+/* ---------- developer program ----------
+ * A developer is an affiliate row with kind='developer', a 50% commission, and a PUBLIC
+ * api_key (pk_…) embedded in partner sites. The key only ATTRIBUTES locks to its owner —
+ * it can never move money (claims need the owner's wallet signature) or reach admin. */
+const CODE_RE_DEV = /^[a-z0-9_-]{3,20}$/;
+const devByKey = (key) => db.prepare("SELECT code, owner_wallet FROM affiliates WHERE api_key = ? AND kind = 'developer'").get(String(key || ""));
+
+/* register the signed-in wallet as a developer (mint api_key, set 50% commission) */
+app.post("/api/dev/register", (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  const wallet = affWallet(req);
+  if (!wallet) return res.status(401).json({ error: "unauthorized" });
+  const code = normCode(req.body?.code);
+  if (!codeValid(code) || !CODE_RE_DEV.test(code)) return res.status(400).json({ error: "invalid code" });
+  if (db.prepare("SELECT code FROM affiliates WHERE owner_wallet = ?").get(wallet)) return res.status(400).json({ error: "this wallet already has a link or developer account" });
+  if (db.prepare("SELECT 1 FROM affiliates WHERE LOWER(code) = ?").get(code)) return res.status(409).json({ error: "code taken" });
+  const apiKey = "pk_" + newToken();
+  try {
+    db.prepare("INSERT INTO affiliates (code, label, clicks, created_at, owner_wallet, kind, commission, api_key) VALUES (?,?,0,?,?,?,?,?)")
+      .run(code, "", nowSec(), wallet, "developer", DEV_COMMISSION, apiKey);
+    res.json({ ok: true, code, apiKey, commission: DEV_COMMISSION });
+  } catch (e) { console.error("[hoodlock] dev register error:", e?.message || e); res.status(500).json({ error: "server error" }); }
+});
+
+/* public config for a key — lets partners build their own UI */
+app.get("/api/dev/config", (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  const dev = devByKey(req.query.key);
+  if (!dev) return res.status(404).json({ error: "unknown key" });
+  res.json({ chainId: cfg.chainId, locker: LOCKER, feeWei: FEE_WEI.toString(), feeEth: FEE_ETH, commission: commissionFor(dev.code), code: dev.code });
+});
+
+/* attribute a connecting wallet to the developer (fresh-wallet first-touch, shared guards) */
+app.post("/api/dev/attribute", async (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  if (limited(req, res, 30)) return;
+  const dev = devByKey(req.body?.key);
+  if (!dev) return res.status(404).json({ ok: false, reason: "unknown-key" });
+  res.json(await attributeWallet(dev.code, req.body?.wallet));
+});
+
+/* prepared lock tx for partners who submit via the user's wallet themselves */
+app.post("/api/dev/lock-intent", (req, res) => {
+  if (!db) return res.status(503).json({ error: "db unavailable" });
+  if (limited(req, res, 60)) return;
+  const dev = devByKey(req.body?.key);
+  if (!dev) return res.status(404).json({ error: "unknown key" });
+  const { token } = req.body || {};
+  if (!isAddress(String(token || ""))) return res.status(400).json({ error: "bad token address" });
+  let amount, unlockTime;
+  try { amount = BigInt(req.body.amount); unlockTime = BigInt(req.body.unlockTime); }
+  catch { return res.status(400).json({ error: "amount and unlockTime must be integer strings (wei / unix seconds)" }); }
+  if (amount <= 0n) return res.status(400).json({ error: "amount must be > 0" });
+  if (unlockTime <= BigInt(nowSec())) return res.status(400).json({ error: "unlockTime must be in the future" });
+  const data = encodeFunctionData({ abi: LOCK_ABI, functionName: "lock", args: [getAddress(token), amount, unlockTime] });
+  res.json({ to: LOCKER, data, value: FEE_WEI.toString(), chainId: cfg.chainId, note: "Submit from the user's wallet, then POST /api/dev/attribute with their address." });
+});
+
 /* admin: review + manually pay claims */
 app.get("/api/admin/claims", (req, res) => {
   if (!db) return res.status(503).json({ error: "db unavailable" });
@@ -496,7 +573,7 @@ app.get("/api/admin/public-affiliates", async (req, res) => {
   if (!db) return res.status(503).json({ error: "db unavailable" });
   if (!validToken(req)) return res.status(401).json({ error: "unauthorized" });
   try {
-    const affs = db.prepare("SELECT code, owner_wallet, clicks, created_at FROM affiliates WHERE owner_wallet IS NOT NULL ORDER BY created_at DESC").all();
+    const affs = db.prepare("SELECT code, owner_wallet, clicks, created_at, kind, api_key FROM affiliates WHERE owner_wallet IS NOT NULL ORDER BY created_at DESC").all();
     const out = [];
     let totalUnclaimedEth = 0, totalEarnedEth = 0, totalClaimedEth = 0;
     for (const a of affs) {
@@ -507,6 +584,7 @@ app.get("/api/admin/public-affiliates", async (req, res) => {
       const claimable = Math.max(0, lifetimeEarnedEth - claimed);
       totalUnclaimedEth += claimable; totalEarnedEth += lifetimeEarnedEth; totalClaimedEth += claimed;
       out.push({ code: a.code, owner: a.owner_wallet, clicks: a.clicks, signups, lockers, locks: qualifyingLocks,
+        kind: a.kind || "affiliate", apiKey: a.api_key || null,
         commission: rate, earnedEth: lifetimeEarnedEth, claimedEth: claimed, claimableEth: claimable, createdAt: a.created_at });
     }
     let payoutWallet = null, payoutBalanceEth = 0;
@@ -541,6 +619,7 @@ const send = (res, file) => res.sendFile(join(PUBLIC, file));
 app.get("/", (_req, res) => send(res, "index.html"));
 app.get("/app", (_req, res) => send(res, "app.html"));
 app.get("/app/*", (_req, res) => send(res, "app.html"));
+app.get("/embed", (_req, res) => send(res, "embed.html")); // framable (headers exempted above)
 app.get("/blog", (_req, res) => send(res, "blog/index.html"));
 app.get("/blog/:slug", (req, res) => {
   const slug = req.params.slug;

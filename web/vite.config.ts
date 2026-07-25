@@ -9,6 +9,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         app: resolve(__dirname, "app.html"),
+        embed: resolve(__dirname, "embed.html"),
       },
     },
   },

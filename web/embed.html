@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lock with HoodLock</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{
+    --bg:#0b0f14;--card:#121822;--line:#1e2632;--line-2:#28323f;
+    --ink:#e7ecf3;--ink-2:#aab4c2;--ink-3:#7b8797;--neon:#22e07a;--neon-ink:#03130a;--bad:#ff6b6b;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:transparent}
+  body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+  #emRoot{max-width:420px;margin:0 auto;background:var(--card);border:1px solid var(--line-2);border-radius:16px;overflow:hidden}
+  .em-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .em-brand{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .em-brand b{font-weight:700}
+  .em-dot{width:8px;height:8px;border-radius:50%;background:var(--neon);box-shadow:0 0 10px rgba(34,224,122,.6)}
+  .em-x{background:none;border:none;color:var(--ink-3);font-size:22px;line-height:1;cursor:pointer;padding:0 4px}
+  .em-x:hover{color:var(--ink)}
+  .em-body{padding:16px}
+  .em-center{text-align:center}
+  .em-title{font-size:15px;font-weight:600;margin-bottom:12px}
+  .em-acct{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-bottom:12px}
+  .em-l{display:block;font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-3);margin:12px 0 6px}
+  .em-l:first-child{margin-top:0}
+  .em-bal{cursor:pointer;color:var(--neon);text-transform:none;letter-spacing:0}
+  .em-in{width:100%;background:#0c1119;border:1px solid var(--line-2);border-radius:10px;color:var(--ink);
+    font-size:14px;padding:11px 12px;font-family:var(--mono)}
+  .em-in:focus{outline:none;border-color:var(--neon)}
+  .em-in[readonly]{color:var(--ink-2);opacity:.85}
+  .em-row{display:flex;justify-content:space-between;align-items:center}
+  .em-btn{display:block;width:100%;text-align:center;margin-top:14px;background:var(--neon);color:var(--neon-ink);
+    font-weight:700;font-size:14px;border:none;border-radius:10px;padding:12px;cursor:pointer;text-decoration:none}
+  .em-btn:hover{filter:brightness(1.05)}
+  .em-btn:disabled{opacity:.55;cursor:default}
+  .em-btn.em-line{background:transparent;color:var(--ink);border:1px solid var(--line-2)}
+  .em-fee{font-size:11px;color:var(--ink-3);text-align:center;margin-top:10px}
+  .em-msg{font-size:12.5px;margin-top:12px;min-height:1px;color:var(--ink-2)}
+  .em-msg.bad{color:var(--bad)}
+  .em-wallets{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .em-wallet{display:flex;align-items:center;gap:10px;background:#0c1119;border:1px solid var(--line-2);
+    border-radius:10px;color:var(--ink);font-size:14px;font-weight:500;padding:11px 12px;cursor:pointer;text-align:left}
+  .em-wallet:hover{border-color:var(--neon)}
+  .em-wallet img{width:22px;height:22px;border-radius:6px}
+  .em-wi{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#22e07a,#12b866)}
+  .em-wi.wc{background:linear-gradient(135deg,#3b99fc,#1a6fe0)}
+  .em-note{font-size:12.5px;color:var(--ink-3);line-height:1.5}
+  .em-note a,.em-foot a{color:var(--neon);text-decoration:none}
+  .em-acts{display:flex;flex-direction:column;gap:8px;margin:14px 0 4px}
+  .em-ok{font-size:34px;margin-bottom:6px}
+  .em-link{background:none;border:none;color:var(--ink-3);font-size:12.5px;cursor:pointer;margin-top:6px}
+  .em-link:hover{color:var(--ink)}
+  .em-foot{padding:11px 16px;border-top:1px solid var(--line);font-size:10.5px;color:var(--ink-3);text-align:center}
+  .em-spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--neon);
+    border-radius:50%;animation:emspin .7s linear infinite;vertical-align:-1px;margin-left:4px}
+  @keyframes emspin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+  <div id="emRoot"></div>
+  <script type="module" src="/src/embed.ts"></script>
+</body>
+</html>

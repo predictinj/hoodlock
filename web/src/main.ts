@@ -118,7 +118,7 @@ function notify(msg: string) {
 ($("ctLink") as HTMLAnchorElement).href = `${EXP}/address/${LOCKER}`;
 
 /* ---------- view routing ---------- */
-const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS", affiliate: "AFFILIATE", admin: "ADMIN CONSOLE" };
+const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS", affiliate: "AFFILIATE", developers: "DEVELOPERS", admin: "ADMIN CONSOLE" };
 const ADMIN_WALLET = "0x79c1230cab12d53d040f5fe1f5279e1a481ccea2";
 function go(view: string, writeHistory = true) {
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
@@ -130,6 +130,7 @@ function go(view: string, writeHistory = true) {
   if (view === "locks") renderMine();
   if (view === "admin") loadAdmin();
   if (view === "affiliate") loadAffiliatePage();
+  if (view === "developers") loadDevelopersPage();
 }
 document.querySelectorAll<HTMLElement>(".nav-item").forEach((n) => n.addEventListener("click", () => { go(n.dataset.view!); closeSidebar(); }));
 
@@ -250,6 +251,7 @@ function onConnected(silent = false) {
   refreshToken(); renderMine(); updateSummary(); loadWalletTokens();
   syncAdminNav(); attributeRef();
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
+  if ($("view-developers").classList.contains("active")) loadDevelopersPage();
   fetch("/api/track/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wallet: account }) }).catch(() => { /* analytics only */ });
   if (!silent) notify(`Wallet connected — ${short(account)}`);
 }
@@ -307,6 +309,7 @@ function disconnect() {
   renderMine(); updateSummary(); closeWalletModal(); syncAdminNav();
   try { localStorage.removeItem("hl_afftok"); localStorage.removeItem("hl_affexp"); localStorage.removeItem("hl_conn"); localStorage.removeItem("hl_acct"); } catch { /* */ }
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
+  if ($("view-developers").classList.contains("active")) loadDevelopersPage();
 }
 function openWalletModal() {
   $("walletModal").classList.add("show");
@@ -1488,6 +1491,135 @@ async function claimEarnings(me: any) {
     if (d.status === "paid") { msg.innerHTML = `<span style="color:var(--neon)">Paid ${d.amount.toFixed(4)} ETH — <a href="${EXP}/tx/${d.tx}" target="_blank" rel="noopener">view tx</a></span>`; notify("Paid 🎉"); }
     else { msg.innerHTML = `<span style="color:var(--amber)">Claim received (${d.amount.toFixed(4)} ETH) — queued for payout, you'll receive it shortly.</span>`; notify("Claim queued"); }
     setTimeout(loadAffiliatePage, 2500);
+  } catch (e: any) { msg.innerHTML = `<span class="badv">${escape(e?.message || String(e))}</span>`; btn.disabled = false; btn.textContent = `Claim ${me.claimableEth.toFixed(4)} ETH`; }
+}
+
+/* ---------- developers (embed + API, 50% revenue share) ---------- */
+function devSnippet(apiKey: string): string {
+  return `<script src="${location.origin}/embed.js" data-key="${apiKey}"></scr` + `ipt>\n` +
+    `<button data-hoodlock data-token="0xYourTokenAddress">Lock with HoodLock</button>`;
+}
+async function loadDevelopersPage() {
+  const box = $("devBody");
+  if (!account) {
+    box.innerHTML = `<div class="card"><div class="empty"><div class="big">Connect your wallet</div><div class="small">Connect to create your developer key and track earnings.</div><button class="btn btn-neon btn-sm" id="devConnect" style="margin-top:12px">Connect Wallet</button></div></div>`;
+    document.getElementById("devConnect")?.addEventListener("click", openWalletModal);
+    return;
+  }
+  const token = cachedAffToken();
+  if (!token) {
+    box.innerHTML = `<div class="card"><div class="empty"><div class="big">Your developer dashboard</div><div class="small">Sign a message to open your dashboard. No transaction, it just proves this wallet is yours.</div><button class="btn btn-neon btn-sm" id="devSign" style="margin-top:12px">Sign in</button></div></div>`;
+    document.getElementById("devSign")?.addEventListener("click", async () => { try { await affSignIn(); loadDevelopersPage(); } catch (e: any) { alert("Sign-in failed: " + (e?.message || e)); } });
+    return;
+  }
+  box.innerHTML = `<div class="card"><div class="empty"><div class="small">Loading your dashboard… <span class="spin"></span></div></div></div>`;
+  let me: any;
+  try {
+    const r = await fetch("/api/aff/me", { headers: { Authorization: "Bearer " + token } });
+    if (r.status === 401) { try { localStorage.removeItem("hl_afftok"); } catch { /* */ } return loadDevelopersPage(); }
+    me = await r.json();
+  } catch { box.innerHTML = `<div class="card"><div class="empty"><div class="small">Couldn't reach the developer service.</div></div></div>`; return; }
+  if (me.hasCode && me.kind === "developer") return renderDevDashboard(me);
+  if (me.hasCode) { box.innerHTML = `<div class="card"><div class="empty"><div class="big">This wallet is an affiliate</div><div class="small">Wallet ${short(account)} is registered as an affiliate (<b>${escape(me.code)}</b>). Developer accounts use a separate wallet — connect another wallet to register as a developer.</div></div></div>`; return; }
+  renderDevRegister();
+}
+function renderDevRegister() {
+  const box = $("devBody");
+  box.innerHTML = `<div class="card">
+    <div class="card-head"><div><h3>Become a HoodLock developer</h3><div class="sub">EARN 50% OF EVERY LOCK FEE YOUR APP GENERATES</div></div></div>
+    <p class="hintline">Pick a developer handle, 3–20 characters (letters, numbers, - or _). You'll get a public API key and an embed snippet.</p>
+    <div class="explore-bar">
+      <div class="input-wrap"><input type="text" id="devCode" placeholder="your-app" spellcheck="false" maxlength="20" /></div>
+      <button class="btn btn-neon" id="devCreateBtn" style="padding:11px 22px" disabled>Create developer key</button>
+    </div>
+    <div class="hintline" id="devCodeHint"></div>
+  </div>`;
+  const input = $("devCode") as HTMLInputElement, btn = $("devCreateBtn") as HTMLButtonElement, hint = $("devCodeHint");
+  const check = debounce(async () => {
+    const code = input.value.trim().toLowerCase();
+    if (!/^[a-z0-9_-]{3,20}$/.test(code)) { hint.innerHTML = code ? `<span class="badv">Use 3–20 letters, numbers, - or _.</span>` : ""; btn.disabled = true; return; }
+    try {
+      const r = await (await fetch("/api/aff/available?code=" + encodeURIComponent(code))).json();
+      hint.innerHTML = r.available ? `<span style="color:var(--neon)">✓ ${escape(code)} is available</span>` : `<span class="badv">${r.reason === "invalid" ? "That handle isn't allowed." : "Already taken — try another."}</span>`;
+      btn.disabled = !r.available;
+    } catch { hint.textContent = ""; }
+  }, 300);
+  input.addEventListener("input", check);
+  btn.addEventListener("click", async () => {
+    const code = input.value.trim().toLowerCase();
+    btn.disabled = true; btn.textContent = "Creating…";
+    try {
+      let token = cachedAffToken(); if (!token) token = await affSignIn();
+      const r = await fetch("/api/dev/register", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ code }) });
+      if (!r.ok) throw new Error((await r.json()).error || "failed");
+      notify("Developer key created"); loadDevelopersPage();
+    } catch (e: any) { alert("Couldn't register: " + (e?.message || e)); btn.disabled = false; btn.textContent = "Create developer key"; }
+  });
+}
+async function renderDevDashboard(me: any) {
+  const box = $("devBody");
+  const usd = (e: number) => me.ethUsd > 0 ? fmtUsd(e * me.ethUsd) : `${e.toFixed(4)} ETH`;
+  const claimableUsd = me.claimableEth * (me.ethUsd || 0);
+  const canClaim = me.ethUsd > 0 && claimableUsd >= me.minClaimUsd;
+  const snippet = devSnippet(me.apiKey);
+  box.innerHTML = `
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-head"><div><h3>Your API key</h3><div class="sub">PUBLIC KEY — SAFE TO EMBED IN YOUR FRONTEND</div></div></div>
+      <div class="explore-bar"><div class="input-wrap"><input type="text" readonly value="${escape(me.apiKey)}" /></div>
+        <button class="btn btn-neon" id="devKeyCopy" style="padding:11px 22px">Copy</button></div>
+      <div class="hintline">This key only credits locks to you. It cannot move funds or access admin — payouts require your wallet signature.</div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-head"><div><h3>Add the button to your site</h3><div class="sub">DROP-IN EMBED · OPENS THE LOCK UI ON YOUR PAGE</div></div></div>
+      <pre class="code-block" id="devSnippet">${escape(snippet)}</pre>
+      <button class="btn btn-line btn-sm" id="devSnippetCopy" style="margin-top:10px">Copy snippet</button>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k">Lifetime earnings</div><div class="v g">${me.lifetimeEarnedEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(me.lifetimeEarnedEth * me.ethUsd) : "50% of generated fees"}</div></div>
+      <div class="tile"><div class="k">Claimable now</div><div class="v">${me.claimableEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(claimableUsd) : ""} · min $${me.minClaimUsd}</div></div>
+      <div class="tile"><div class="k">Locks generated</div><div class="v">${me.qualifyingLocks.toLocaleString("en-US")}</div><div class="d">from ${me.lockers.toLocaleString("en-US")} users</div></div>
+      <div class="tile"><div class="k">Commission rate</div><div class="v g">${Math.round((me.commission || 0) * 100)}%</div><div class="d">your share per lock</div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-head"><div><h3>Claim earnings</h3><div class="sub">PAID IN ETH TO ${short(account).toUpperCase()}</div></div>
+        <button class="btn btn-neon" id="affClaimBtn" ${canClaim ? "" : "disabled"}>Claim ${me.claimableEth.toFixed(4)} ETH</button></div>
+      <div class="hintline" id="affClaimMsg">${canClaim ? "" : (me.claimableEth > 0 ? `You can claim once your balance reaches $${me.minClaimUsd}.` : "Earn from locks your app generates to unlock claiming.")}</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h3>Integration docs</h3><div class="sub">EMBED · JS API · REST</div></div></div>
+      <div class="dev-docs">
+        <h4>1 · Embed button (recommended)</h4>
+        <p>Include the script once and add a button with <code>data-hoodlock</code>. Clicking it opens HoodLock's lock UI in a modal on your page.</p>
+        <pre class="code-block">${escape(snippet)}</pre>
+        <h4>2 · JavaScript API</h4>
+        <p>Open programmatically and react to results:</p>
+        <pre class="code-block">HoodLock.open({ token: "0x…", unlockTime: 1790000000 });
+HoodLock.on("locked", ({ txHash, lockId }) =&gt; {
+  console.log("Locked!", lockId, txHash);
+});</pre>
+        <h4>3 · REST API (build your own UI)</h4>
+        <p><code>GET /api/dev/config?key=${escape(me.apiKey)}</code> → chain id, locker address, fee (wei), your commission.<br>
+        <code>POST /api/dev/lock-intent</code> <code>{ key, token, amount, unlockTime }</code> → a prepared <code>{ to, data, value }</code> tx to submit from the user's wallet.<br>
+        <code>POST /api/dev/attribute</code> <code>{ key, wallet }</code> → credit the connecting wallet to you (call it when the user connects).</p>
+        <h4>How you get paid</h4>
+        <p>You earn <b>50%</b> of the 0.005 ETH fee on every lock created by a wallet you brought in. Only genuinely new wallets count (first-touch), and only locks made after they're attributed. Claim to your wallet here once you've earned ≥ $10.</p>
+      </div>
+    </div>`;
+  ($("devKeyCopy") as HTMLButtonElement).addEventListener("click", async () => { try { await navigator.clipboard.writeText(me.apiKey); notify("API key copied"); } catch { prompt("Copy your API key:", me.apiKey); } });
+  ($("devSnippetCopy") as HTMLButtonElement).addEventListener("click", async () => { try { await navigator.clipboard.writeText(snippet); notify("Snippet copied"); } catch { prompt("Copy the snippet:", snippet); } });
+  ($("affClaimBtn") as HTMLButtonElement).addEventListener("click", () => claimDev(me));
+}
+async function claimDev(me: any) {
+  const btn = $("affClaimBtn") as HTMLButtonElement, msg = $("affClaimMsg");
+  btn.disabled = true; btn.textContent = "Claiming…";
+  try {
+    let token = cachedAffToken(); if (!token) token = await affSignIn();
+    const r = await fetch("/api/aff/claim", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({}) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "claim failed");
+    if (d.status === "paid") { msg.innerHTML = `<span style="color:var(--neon)">Paid ${d.amount.toFixed(4)} ETH — <a href="${EXP}/tx/${d.tx}" target="_blank" rel="noopener">view tx</a></span>`; notify("Paid 🎉"); }
+    else { msg.innerHTML = `<span style="color:var(--amber)">Claim received (${d.amount.toFixed(4)} ETH) — queued for payout, you'll receive it shortly.</span>`; notify("Claim queued"); }
+    setTimeout(loadDevelopersPage, 2500);
   } catch (e: any) { msg.innerHTML = `<span class="badv">${escape(e?.message || String(e))}</span>`; btn.disabled = false; btn.textContent = `Claim ${me.claimableEth.toFixed(4)} ETH`; }
 }
 
