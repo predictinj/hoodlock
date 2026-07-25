@@ -1526,7 +1526,7 @@ async function loadDevelopersPage() {
 function renderDevRegister() {
   const box = $("devBody");
   box.innerHTML = `<div class="card">
-    <div class="card-head"><div><h3>Become a HoodLock developer</h3><div class="sub">EARN 50% OF EVERY LOCK FEE YOUR APP GENERATES</div></div></div>
+    <div class="card-head"><div><h3>Become a HoodLock Partner</h3><div class="sub">EARN 50% OF EVERY LOCK FEE YOUR APP GENERATES</div></div></div>
     <p class="hintline">Pick a developer handle, 3–20 characters (letters, numbers, - or _). You'll get a public API key and an embed snippet.</p>
     <div class="explore-bar">
       <div class="input-wrap"><input type="text" id="devCode" placeholder="your-app" spellcheck="false" maxlength="20" /></div>
