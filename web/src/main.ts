@@ -1360,6 +1360,20 @@ window.addEventListener("popstate", () => {
 function cachedAffToken(): string | null {
   try { const t = localStorage.getItem("hl_afftok"), e = Number(localStorage.getItem("hl_affexp")); return t && e > Date.now() + 5000 ? t : null; } catch { return null; }
 }
+// Authed affiliate/developer call that self-heals if the server session is gone
+// (e.g. after a server restart wiped the in-memory session map): on 401 it clears the
+// stale token, re-signs once, and retries — so users never see a dead "unauthorized".
+async function affFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  let token = cachedAffToken(); if (!token) token = await affSignIn();
+  const withAuth = (t: string): RequestInit => ({ ...init, headers: { ...(init.headers || {}), Authorization: "Bearer " + t } });
+  let r = await fetch(url, withAuth(token));
+  if (r.status === 401) {
+    try { localStorage.removeItem("hl_afftok"); localStorage.removeItem("hl_affexp"); } catch { /* */ }
+    token = await affSignIn();
+    r = await fetch(url, withAuth(token));
+  }
+  return r;
+}
 async function affSignIn(): Promise<string> {
   const ts = Math.floor(Date.now() / 1000);
   const signature = await walletSign(`HoodLock affiliate ${ts}`);
@@ -1420,8 +1434,7 @@ function renderAffCreate() {
     const code = input.value.trim().toLowerCase();
     btn.disabled = true; btn.textContent = "Creating…";
     try {
-      let token = cachedAffToken(); if (!token) token = await affSignIn();
-      const r = await fetch("/api/aff/create", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ code }) });
+      const r = await affFetch("/api/aff/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
       if (!r.ok) throw new Error((await r.json()).error || "failed");
       notify("Affiliate link created"); loadAffiliatePage();
     } catch (e: any) { alert("Couldn't create: " + (e?.message || e)); btn.disabled = false; btn.textContent = "Create link"; }
@@ -1484,8 +1497,7 @@ async function claimEarnings(me: any) {
   const btn = $("affClaimBtn") as HTMLButtonElement, msg = $("affClaimMsg");
   btn.disabled = true; btn.textContent = "Claiming…";
   try {
-    let token = cachedAffToken(); if (!token) token = await affSignIn();
-    const r = await fetch("/api/aff/claim", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({}) });
+    const r = await affFetch("/api/aff/claim", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || "claim failed");
     if (d.status === "paid") { msg.innerHTML = `<span style="color:var(--neon)">Paid ${d.amount.toFixed(4)} ETH — <a href="${EXP}/tx/${d.tx}" target="_blank" rel="noopener">view tx</a></span>`; notify("Paid 🎉"); }
@@ -1549,8 +1561,7 @@ function renderDevRegister() {
     const code = input.value.trim().toLowerCase();
     btn.disabled = true; btn.textContent = "Creating…";
     try {
-      let token = cachedAffToken(); if (!token) token = await affSignIn();
-      const r = await fetch("/api/dev/register", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ code }) });
+      const r = await affFetch("/api/dev/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
       if (!r.ok) throw new Error((await r.json()).error || "failed");
       notify("Developer key created"); loadDevelopersPage();
     } catch (e: any) { alert("Couldn't register: " + (e?.message || e)); btn.disabled = false; btn.textContent = "Create developer key"; }
@@ -1613,8 +1624,7 @@ async function claimDev(me: any) {
   const btn = $("affClaimBtn") as HTMLButtonElement, msg = $("affClaimMsg");
   btn.disabled = true; btn.textContent = "Claiming…";
   try {
-    let token = cachedAffToken(); if (!token) token = await affSignIn();
-    const r = await fetch("/api/aff/claim", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({}) });
+    const r = await affFetch("/api/aff/claim", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || "claim failed");
     if (d.status === "paid") { msg.innerHTML = `<span style="color:var(--neon)">Paid ${d.amount.toFixed(4)} ETH — <a href="${EXP}/tx/${d.tx}" target="_blank" rel="noopener">view tx</a></span>`; notify("Paid 🎉"); }
