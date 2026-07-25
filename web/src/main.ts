@@ -1283,38 +1283,43 @@ document.querySelectorAll<HTMLElement>(".range-btn").forEach((b) => b.addEventLi
 async function renderActivity(lockedLogs: LockedLog[], sampledRows: LockRow[]) {
   const feed = $("activityFeed");
   try {
-    const [extLogs, wdLogs] = await Promise.all([
+    const [extLogs, wdLogs, burnLogs] = await Promise.all([
       pub.getLogs({ address: LOCKER, event: EXTENDED_EVENT as any, fromBlock: 0n, toBlock: "latest" }).catch(() => []),
       pub.getLogs({ address: LOCKER, event: WITHDRAWN_EVENT as any, fromBlock: 0n, toBlock: "latest" }).catch(() => []),
+      BURNER ? pub.getLogs({ address: BURNER, event: BURNED_EVENT as any, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : Promise.resolve([]),
     ]);
-    type Ev = { kind: "lock" | "ext" | "wd"; id: number; block: bigint; token?: string; amount?: bigint; unlockTime?: number };
+    type Ev = { kind: "lock" | "ext" | "wd" | "burn"; id: number; block: bigint; token?: string; amount?: bigint; unlockTime?: number };
     const evs: Ev[] = [
       ...lockedLogs.map((l) => ({ kind: "lock" as const, id: l.id, block: l.block, token: l.token, amount: l.amount, unlockTime: l.unlockTime })),
       ...(extLogs as any[]).map((lg) => ({ kind: "ext" as const, id: Number(lg.args.id), block: lg.blockNumber as bigint, unlockTime: Number(lg.args.newUnlockTime) })),
       ...(wdLogs as any[]).map((lg) => ({ kind: "wd" as const, id: Number(lg.args.id), block: lg.blockNumber as bigint, amount: lg.args.amount as bigint })),
+      ...(burnLogs as any[]).map((lg) => ({ kind: "burn" as const, id: Number(lg.args.id), block: lg.blockNumber as bigint, token: String(lg.args.token), amount: lg.args.amount as bigint })),
     ].sort((a, b) => (a.block > b.block ? -1 : 1)).slice(0, 7);
     if (!evs.length) { feed.innerHTML = `<div class="empty"><div class="small">No activity yet — the feed starts with the first lock.</div></div>`; return; }
     const tokenOf = (id: number) => lockedLogs.find((l) => l.id === id)?.token || sampledRows.find((r) => r.id === id)?.token;
     const items = await Promise.all(evs.map(async (ev) => {
       const ts = await blockTs(ev.block);
-      const tok = tokenOf(ev.id);
+      const tok = ev.token || tokenOf(ev.id);   // burns carry their own token from the event
       const m = tok ? await tokMeta(tok) : { symbol: `#${ev.id}`, decimals: 18 };
       const sym = escape(m.symbol);
       let ico = "lock", txt = "";
       if (ev.kind === "lock") txt = `<b>${fmtNum(ev.amount!, m.decimals)} $${sym}</b> locked until ${dateLabel(ev.unlockTime!)}`;
       else if (ev.kind === "ext") { ico = "ext"; txt = `Lock <b>#${ev.id}</b> extended to ${dateLabel(ev.unlockTime!)}`; }
+      else if (ev.kind === "burn") { ico = "burn"; txt = `<b>${fmtNum(ev.amount!, m.decimals)} $${sym}</b> burned forever`; }
       else { ico = "wd"; txt = `<b>${fmtNum(ev.amount!, m.decimals)} $${sym}</b> withdrawn`; }
-      return { ico, txt, sub: `LOCK #${ev.id}${tok ? " · " + short(tok).toUpperCase() : ""}`, t: ts ? relTime(ts) : "", id: ev.id };
+      return { ico, kind: ev.kind, txt, sub: `${ev.kind === "burn" ? "BURN" : "LOCK"} #${ev.id}${tok ? " · " + short(tok).toUpperCase() : ""}`, t: ts ? relTime(ts) : "", id: ev.id };
     }));
     feed.innerHTML = items.map((a) => `
-      <div class="feed-item" style="cursor:pointer" data-proof-feed="${a.id}">
-        <span class="feed-ico ${a.ico === "ext" ? "ext" : a.ico === "wd" ? "wd" : ""}">${
+      <div class="feed-item" style="cursor:pointer" ${a.kind === "burn" ? `data-burn-feed="${a.id}"` : `data-proof-feed="${a.id}"`}>
+        <span class="feed-ico ${a.ico === "ext" ? "ext" : a.ico === "wd" ? "wd" : a.ico === "burn" ? "burn" : ""}">${
           a.ico === "ext" ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f5b731" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="8.5"/></svg>'
           : a.ico === "wd" ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8fa396" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 20h16"/></svg>'
+          : a.ico === "burn" ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" stroke-width="2"><path d="M12 3c1 3-1 4-1 6a3 3 0 006 0c0-3-2-4-2-6 3 2 5 5 5 9a8 8 0 01-16 0c0-3 2-6 4-7 0 2 1 3 2 3 0-2-2-4-2-6z"/></svg>'
           : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e05a" stroke-width="2.2"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>'}</span>
         <div class="fm">${a.txt}<div class="sub">${a.sub}</div></div><span class="t">${a.t}${a.t ? " AGO" : ""}</span>
       </div>`).join("");
     feed.querySelectorAll<HTMLElement>("[data-proof-feed]").forEach((el) => el.addEventListener("click", () => showLockProof(Number(el.dataset.proofFeed))));
+    feed.querySelectorAll<HTMLElement>("[data-burn-feed]").forEach((el) => el.addEventListener("click", () => showBurnProof(Number(el.dataset.burnFeed))));
   } catch {
     feed.innerHTML = `<div class="empty"><div class="small">Couldn't load activity.</div></div>`;
   }
