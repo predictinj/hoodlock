@@ -1051,7 +1051,6 @@ async function showBurnProof(id: number, push = true) {
   const m2 = await tokMeta(b.token);
   const tx = await txForBurn(id);
   const pct = await supplyPct(b.token, b.amount);
-  const dead = await deadAddress();
   box.innerHTML = `
     <div class="proof-card">
       <span class="stamp burn">🔥 BURNED FOREVER</span>
@@ -1062,10 +1061,9 @@ async function showBurnProof(id: number, push = true) {
       <div class="p-row"><span class="k">Token</span><span class="v mono">${b.token}</span></div>
       <div class="p-row"><span class="k">Burned by</span><span class="v mono">${b.burner}</span></div>
       <div class="p-row"><span class="k">Burned at</span><span class="v">${dateTimeUTC(b.timestamp)}</span></div>
-      <div class="p-row"><span class="k">Sent to</span><span class="v"><a class="mono" href="${EXP}/address/${dead}?tab=token_transfers" target="_blank" rel="noopener">${dead}</a> · dead address</span></div>
+      <div class="p-row"><span class="k">Guarantee</span><span class="v" style="color:#ff6b6b">burned forever</span></div>
       <div class="p-acts">
         ${tx ? `<a class="btn btn-neon" href="${EXP}/tx/${tx}" target="_blank" rel="noopener">✔ Confirm the burn transaction on Blockscout</a>` : ""}
-        <a class="btn btn-line" href="${EXP}/token/${b.token}?tab=holders" target="_blank" rel="noopener">See it in the dead address on Blockscout</a>
         <a class="btn btn-line" href="${EXP}/address/${BURNER}?tab=contract" target="_blank" rel="noopener">Read the verified burner contract</a>
         <button class="btn btn-line" id="proofCopy">Copy proof link</button>
       </div>
