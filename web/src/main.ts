@@ -1875,9 +1875,9 @@ async function loadAffiliates() {
     if (r.status === 401) { try { localStorage.removeItem("hl_admtok"); } catch { /* */ } return loadAffiliates(); }
     if (!r.ok) throw new Error(String(r.status));
     const data: any = await r.json();
-    const rows = (data.affiliates || []) as { code: string; label: string; clicks: number; signups: number; lockers: number; locks: number; revenueEth: number }[];
+    const rows = (data.affiliates || []) as { code: string; label: string; clicks: number; signups: number; lockers: number; locks: number; commission: number; revenueEth: number }[];
     if (!rows.length) { box.innerHTML = `<div class="empty"><div class="small">No affiliate links yet — create your first above.</div></div>`; return; }
-    box.innerHTML = `<table><thead><tr><th>Campaign</th><th>Link</th><th>Clicks</th><th>Signups</th><th>Lockers</th><th>Locks</th><th style="text-align:right">Revenue</th></tr></thead><tbody>${
+    box.innerHTML = `<table><thead><tr><th>Campaign</th><th>Link</th><th>Clicks</th><th>Signups</th><th>Lockers</th><th>Locks</th><th style="text-align:right">Commission</th><th style="text-align:right">Revenue</th></tr></thead><tbody>${
       rows.map((a) => `<tr>
         <td><b>${escape(a.label || a.code)}</b></td>
         <td><a href="/r/${escape(a.code)}" target="_blank" rel="noopener" class="mono" style="font-size:11px">hoodlock.tech/r/${escape(a.code)}</a>
@@ -1886,6 +1886,7 @@ async function loadAffiliates() {
         <td>${a.signups.toLocaleString("en-US")}</td>
         <td>${a.lockers.toLocaleString("en-US")}</td>
         <td>${a.locks.toLocaleString("en-US")}</td>
+        <td style="text-align:right">${Math.round((a.commission || 0) * 100)}%</td>
         <td style="text-align:right">${a.revenueEth.toFixed(4)} ETH</td></tr>`).join("")
     }</tbody></table>`;
     box.querySelectorAll<HTMLButtonElement>("[data-copyref]").forEach((b) => b.addEventListener("click", async () => {

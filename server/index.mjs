@@ -353,7 +353,7 @@ app.get("/api/admin/affiliates", async (req, res) => {
       const wallets = db.prepare("SELECT wallet FROM attributions WHERE code = ?").all(a.code).map((r) => r.wallet);
       let lockers = 0, locks = 0;
       for (const w of wallets) { const c = byOwner.get(w) || 0; if (c > 0) { lockers++; locks += c; } }
-      return { code: a.code, label: a.label || "", clicks: a.clicks, signups: wallets.length, lockers, locks, revenueEth: locks * FEE_ETH };
+      return { code: a.code, label: a.label || "", clicks: a.clicks, signups: wallets.length, lockers, locks, commission: commissionFor(a.code), revenueEth: locks * FEE_ETH };
     });
     res.json({ affiliates: out });
   } catch (e) { console.error("[hoodlock] server error:", e?.message || e); res.status(500).json({ error: "server error" }); }
