@@ -258,7 +258,7 @@ function attachProviderEvents(p: Eip1193) {
   try {
     (p as any).on?.("accountsChanged", (accs: string[]) => {
       if (!accs || !accs.length) return disconnect();
-      account = getAddress(accs[0]); onConnected(true);
+      provider = p; account = getAddress(accs[0]); onConnected(true);   // keep provider in sync with account
     });
     (p as any).on?.("disconnect", () => disconnect());
   } catch { /* */ }
@@ -340,6 +340,23 @@ $("walletModal").addEventListener("click", (e) => { if (e.target === $("walletMo
 
 async function send(to: `0x${string}`, data: Hex, value = 0n): Promise<string> {
   return await provider!.request({ method: "eth_sendTransaction", params: [{ from: account, to, data, value: numberToHex(value) as any }] });
+}
+// personal_sign that recovers a provider if the reference was lost (e.g. after a
+// stale accountsChanged event) so sign-in never dies on a null provider.
+async function walletSign(message: string): Promise<string> {
+  let p = provider;
+  if (!p && account) {
+    const cands: Eip1193[] = [...announced.values()].map((d) => d.provider);
+    const eth = (window as any).ethereum; if (eth) cands.push(eth);
+    for (const c of cands) {
+      try {
+        const accs: string[] = await c.request({ method: "eth_accounts" });
+        if (accs?.some((a) => a.toLowerCase() === account.toLowerCase())) { provider = c; p = c; break; }
+      } catch { /* try next */ }
+    }
+  }
+  if (!p) throw new Error("Wallet not connected — please reconnect and try again.");
+  return await p.request({ method: "personal_sign", params: [message, account] }) as string;
 }
 async function waitTx(hash: string) { return pub.waitForTransactionReceipt({ hash: hash as `0x${string}`, timeout: 120000, retryCount: 12, retryDelay: 2000 }); }
 // Turn raw viem/wallet errors into something a user can act on.
@@ -653,6 +670,22 @@ async function readBurn(id: number): Promise<BurnRow> {
   const b: any = await pub.readContract({ address: BURNER!, abi: BURNER_ABI as any, functionName: "getBurn", args: [BigInt(id)] });
   return { id, burner: getAddress(b.burner), token: getAddress(b.token), amount: b.amount as bigint, timestamp: Number(b.timestamp) };
 }
+// the dead address the burner sends tokens to (read once from the contract)
+let deadAddrCache: string | null = null;
+async function deadAddress(): Promise<string> {
+  if (deadAddrCache) return deadAddrCache;
+  try { deadAddrCache = getAddress(await pub.readContract({ address: BURNER!, abi: BURNER_ABI as any, functionName: "DEAD" }) as string); }
+  catch { deadAddrCache = "0x000000000000000000000000000000000000dEaD"; }
+  return deadAddrCache;
+}
+// % of a token's total supply that a given amount represents (for lock/burn proofs)
+async function supplyPct(token: string, amount: bigint): Promise<string> {
+  try {
+    const supply = await pub.readContract({ address: token as `0x${string}`, abi: ERC20, functionName: "totalSupply" }) as bigint;
+    if (supply > 0n) return (Number((amount * 10n ** 10n) / supply) / 1e8).toLocaleString("en-US", { maximumFractionDigits: 4 }) + "% of total supply";
+  } catch { /* optional */ }
+  return "";
+}
 
 // One atomic promise per event type — concurrent renders await the SAME fetch.
 type LockedLog = { id: number; owner: string; token: string; amount: bigint; unlockTime: number; tx: string; block: bigint };
@@ -896,15 +929,35 @@ $("extendConfirm").addEventListener("click", async () => {
 
 /* ---------- explore ---------- */
 let exploreLoaded = false;
+// Merge locks + burns into ONE explore table, newest first (burns show exactly like
+// locks — same columns, sorted by creation time alongside them).
+async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], limit = 25): Promise<string> {
+  const lockItems = await Promise.all(lockRows.map(async (l) => {
+    const lb = await lockedAtBlock(l.id);
+    const ts = lb !== null ? (await blockTs(lb)) ?? 0 : 0;
+    return { ts, render: () => lockRowHTML(l, false, "explore") };
+  }));
+  const burnItems = burnRows.map((b) => ({ ts: b.timestamp, render: () => burnRowHTML(b, "explore") }));
+  const items = [...lockItems, ...burnItems].sort((a, b) => b.ts - a.ts).slice(0, limit);
+  return (await Promise.all(items.map((it) => it.render()))).join("");
+}
 async function loadExplore() {
   const box = $("exploreBox");
-  box.innerHTML = `<div class="empty"><div class="small">Loading latest locks… <span class="spin"></span></div></div>`;
+  box.innerHTML = `<div class="empty"><div class="small">Loading latest activity… <span class="spin"></span></div></div>`;
   try {
-    const total = Number(await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }));
-    if (!total) { box.innerHTML = `<div class="empty"><div class="big">No locks yet</div><div class="small">Be the first to lock on Robinhood Chain.</div></div>`; exploreLoaded = true; return; }
-    const ids: number[] = []; for (let i = total - 1; i >= 0 && ids.length < 25; i--) ids.push(i);
-    const rows = await Promise.all(ids.map(readLock));
-    await renderTable(box, rows, false, "No locks yet", "Be the first to lock on Robinhood Chain.", "explore");
+    const [totalLocks, totalBurns] = await Promise.all([
+      pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }).then(Number),
+      BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "totalBurns" }).then(Number).catch(() => 0)) : Promise.resolve(0),
+    ]);
+    if (!totalLocks && !totalBurns) { box.innerHTML = `<div class="empty"><div class="big">Nothing yet</div><div class="small">Be the first to lock or burn on Robinhood Chain.</div></div>`; exploreLoaded = true; return; }
+    const lockIds: number[] = []; for (let i = totalLocks - 1; i >= 0 && lockIds.length < 25; i--) lockIds.push(i);
+    const burnIds: number[] = []; for (let i = totalBurns - 1; i >= 0 && burnIds.length < 25; i--) burnIds.push(i);
+    const [lockRows, burnRows] = await Promise.all([
+      Promise.all(lockIds.map(readLock)),
+      Promise.all(burnIds.map(readBurn)),
+    ]);
+    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${await buildExploreRows(lockRows, burnRows)}</tbody></table>`;
+    wireActions(box);
     exploreLoaded = true;
   } catch {
     box.innerHTML = `<div class="empty"><div class="big">Couldn't reach Robinhood Chain</div><div class="small">Check your connection and try again.</div></div>`;
@@ -928,11 +981,10 @@ async function runSearch() {
     const ids = [...new Set([...byToken, ...byOwner].map(Number))];
     const burnIds = [...new Set([...burnsTok, ...burnsBy].map(Number))];
     if (!ids.length && !burnIds.length) { box.innerHTML = `<div class="empty"><div class="big">No locks found</div><div class="small">Nothing locked or burned for this token or wallet yet.</div></div>`; return; }
-    const rows = (await Promise.all(ids.map(readLock))).sort((a, b) => b.id - a.id);
-    const burns = (await Promise.all(burnIds.map(readBurn))).sort((a, b) => b.id - a.id);
-    const lockHTML = rows.length ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${(await Promise.all(rows.map((r) => lockRowHTML(r, false, "explore")))).join("")}</tbody></table>` : "";
-    box.innerHTML = lockHTML + (await burnsTableHTML(burns, "Burns — destroyed forever", "explore"));
-    if (!lockHTML && !burns.length) box.innerHTML = `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
+    const rows = await Promise.all(ids.map(readLock));
+    const burns = await Promise.all(burnIds.map(readBurn));
+    const merged = await buildExploreRows(rows, burns, 100);
+    box.innerHTML = merged ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${merged}</tbody></table>` : `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
     wireActions(box);
   } catch {
     box.innerHTML = `<div class="empty"><div class="big">Search failed</div><div class="small">Couldn't reach Robinhood Chain — try again.</div></div>`;
@@ -958,12 +1010,14 @@ async function showLockProof(id: number, push = true) {
     ? `<span class="status withdrawn"><i></i>WITHDRAWN</span>`
     : unlocked ? `<span class="status unlockable"><i></i>UNLOCKED</span>`
     : `<span class="status locked"><i></i>LOCKED · ${remainingLabel(l.unlockTime - now).toUpperCase()} LEFT</span>`;
+  const pct = await supplyPct(l.token, l.amount);
   box.innerHTML = `
     <div class="proof-card">
       <span class="stamp">✓ ON-CHAIN PROOF</span>
       <div class="proof-amt">${fmtNum(l.amount, m.decimals)} $${escape(m.symbol)}</div>
       <div class="proof-sub">HOODLOCK · LOCK #${id} · ROBINHOOD CHAIN 4663</div>
       <div class="p-row"><span class="k">Status</span><span class="v">${statusHTML}</span></div>
+      ${pct ? `<div class="p-row"><span class="k">Share of supply</span><span class="v g">${pct} locked</span></div>` : ""}
       <div class="p-row"><span class="k">Token</span><span class="v mono">${l.token}</span></div>
       <div class="p-row"><span class="k">Owner</span><span class="v mono">${l.owner}</span></div>
       <div class="p-row"><span class="k">Unlocks</span><span class="v">${dateTimeUTC(l.unlockTime)}</span></div>
@@ -996,11 +1050,8 @@ async function showBurnProof(id: number, push = true) {
   } catch { box.innerHTML = `<div class="empty"><div class="big">Burn #${id} not found</div><div class="small">Nothing at this id on Robinhood Chain.</div></div>`; return; }
   const m2 = await tokMeta(b.token);
   const tx = await txForBurn(id);
-  let pct = "";
-  try {
-    const supply = await pub.readContract({ address: b.token as `0x${string}`, abi: ERC20, functionName: "totalSupply" }) as bigint;
-    if (supply > 0n) pct = (Number((b.amount * 10n ** 10n) / supply) / 1e8).toLocaleString("en-US", { maximumFractionDigits: 4 }) + "% of total supply";
-  } catch { /* supply row is optional */ }
+  const pct = await supplyPct(b.token, b.amount);
+  const dead = await deadAddress();
   box.innerHTML = `
     <div class="proof-card">
       <span class="stamp burn">🔥 BURNED FOREVER</span>
@@ -1011,9 +1062,10 @@ async function showBurnProof(id: number, push = true) {
       <div class="p-row"><span class="k">Token</span><span class="v mono">${b.token}</span></div>
       <div class="p-row"><span class="k">Burned by</span><span class="v mono">${b.burner}</span></div>
       <div class="p-row"><span class="k">Burned at</span><span class="v">${dateTimeUTC(b.timestamp)}</span></div>
-      <div class="p-row"><span class="k">Sent to</span><span class="v">the dead address — irrecoverable</span></div>
+      <div class="p-row"><span class="k">Sent to</span><span class="v"><a class="mono" href="${EXP}/address/${dead}?tab=token_transfers" target="_blank" rel="noopener">${dead}</a> · dead address, irrecoverable</span></div>
       <div class="p-acts">
         ${tx ? `<a class="btn btn-neon" href="${EXP}/tx/${tx}" target="_blank" rel="noopener">✔ Confirm the burn transaction on Blockscout</a>` : ""}
+        <a class="btn btn-line" href="${EXP}/token/${b.token}?tab=holders" target="_blank" rel="noopener">See it in the dead address on Blockscout</a>
         <a class="btn btn-line" href="${EXP}/address/${BURNER}?tab=contract" target="_blank" rel="noopener">Read the verified burner contract</a>
         <button class="btn btn-line" id="proofCopy">Copy proof link</button>
       </div>
@@ -1236,12 +1288,20 @@ async function renderActivity(lockedLogs: LockedLog[], sampledRows: LockRow[]) {
 /* ---------- TVL (klientside, djup-kapad — se tvl.ts) ---------- */
 async function loadTvl() {
   try {
-    const total = Number(await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }));
-    if (!total) { $("statTvl").textContent = "$0"; return; }
-    const ids = Array.from({ length: total }, (_, i) => i);
-    const rows = await Promise.all(ids.map((i) => readLock(i).catch(() => null)));
+    const [total, totalBurns] = await Promise.all([
+      pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }).then(Number),
+      BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "totalBurns" }).then(Number).catch(() => 0)) : Promise.resolve(0),
+    ]);
+    if (!total && !totalBurns) { $("statTvl").textContent = "$0"; return; }
+    const rows = await Promise.all(Array.from({ length: total }, (_, i) => i).map((i) => readLock(i).catch(() => null)));
     const locks = rows.filter((r): r is LockRow => !!r);
-    const t = await computeTvl(pub as any, locks);
+    // burned tokens count toward TVL too — value permanently removed from circulation
+    const burns = (await Promise.all(Array.from({ length: totalBurns }, (_, i) => i).map((i) => readBurn(i).catch(() => null)))).filter((b): b is BurnRow => !!b);
+    const items = [
+      ...locks.map((l) => ({ token: l.token, amount: l.amount, withdrawn: l.withdrawn })),
+      ...burns.map((b) => ({ token: b.token, amount: b.amount, withdrawn: false })),
+    ];
+    const t = await computeTvl(pub as any, items);
     $("statTvl").textContent = t.ethUsd > 0 ? fmtUsd(t.usd) : `${t.eth.toFixed(3)} ETH`;
     $("statTvlSub").textContent = t.unpricedTokens > 0
       ? `depth-capped · ${t.unpricedTokens} token${t.unpricedTokens === 1 ? "" : "s"} unpriced`
@@ -1267,7 +1327,7 @@ function cachedAffToken(): string | null {
 }
 async function affSignIn(): Promise<string> {
   const ts = Math.floor(Date.now() / 1000);
-  const signature = await provider!.request({ method: "personal_sign", params: [`HoodLock affiliate ${ts}`, account] });
+  const signature = await walletSign(`HoodLock affiliate ${ts}`);
   const r = await fetch("/api/aff/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: account, ts, signature }) });
   if (!r.ok) throw new Error(await r.text());
   const { token, exp } = await r.json();
@@ -1612,7 +1672,7 @@ function cachedToken(): string | null {
 }
 async function adminSignIn(): Promise<string> {
   const ts = Math.floor(Date.now() / 1000);
-  const signature = await provider!.request({ method: "personal_sign", params: [`HoodLock admin ${ts}`, account] });
+  const signature = await walletSign(`HoodLock admin ${ts}`);
   const r = await fetch("/api/admin/session", { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ address: account, ts, signature }) });
   if (!r.ok) throw new Error(await r.text());
