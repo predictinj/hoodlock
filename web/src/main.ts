@@ -640,10 +640,12 @@ const EXTENDED_EVENT = { type: "event", name: "Extended", inputs: [
 const WITHDRAWN_EVENT = { type: "event", name: "Withdrawn", inputs: [
   { name: "id", type: "uint256", indexed: true }, { name: "owner", type: "address", indexed: true },
   { name: "amount", type: "uint256", indexed: false } ] } as const;
+// MUST match the deployed contract exactly — the real Burned event has NO timestamp
+// (that lives in the getBurn struct). A mismatched signature makes viem compute the
+// wrong topic0 and getLogs returns nothing → the tx is never found.
 const BURNED_EVENT = { type: "event", name: "Burned", inputs: [
   { name: "id", type: "uint256", indexed: true }, { name: "burner", type: "address", indexed: true },
-  { name: "token", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false },
-  { name: "timestamp", type: "uint256", indexed: false } ] } as const;
+  { name: "token", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false } ] } as const;
 
 /* burns: id → tx via Burned-eventet (samma atomiska promise-mönster) */
 type BurnedLog = { id: number; tx: string };
