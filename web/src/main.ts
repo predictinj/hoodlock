@@ -660,9 +660,27 @@ function loadBurnedLogs(): Promise<BurnedLog[]> {
   }
   return burnedLogsPromise;
 }
+// Resolve a burn's tx hash reliably. The hash only exists in the Burned event, so a
+// flaky RPC read must NOT hide the confirm button. Strategy: permanent cache → shared
+// logs → targeted, retried lookup filtered to this one indexed id (cheap + robust).
+// Returns null ONLY if the burn genuinely has no event (then the button is hidden).
+const burnTxCache = new Map<number, string>();
 async function txForBurn(id: number): Promise<string | null> {
-  const logs = await loadBurnedLogs();
-  return logs.find((l) => l.id === id)?.tx || null;
+  if (burnTxCache.has(id)) return burnTxCache.get(id)!;
+  if (!BURNER) return null;
+  try {
+    const logs = await loadBurnedLogs();
+    const hit = logs.find((l) => l.id === id);
+    if (hit) { burnTxCache.set(id, hit.tx); return hit.tx; }
+  } catch { /* fall through to the targeted lookup */ }
+  for (let a = 0; a < 5; a++) {
+    try {
+      const ev = await pub.getLogs({ address: BURNER, event: BURNED_EVENT as any, args: { id: BigInt(id) } as any, fromBlock: 0n, toBlock: "latest" });
+      if (ev.length) { const tx = ev[0].transactionHash as string; burnTxCache.set(id, tx); return tx; }
+      return null; // query succeeded, no such burn → genuinely none
+    } catch { await new Promise((r) => setTimeout(r, 500 * (a + 1))); } // RPC blip → retry
+  }
+  return null;
 }
 
 type BurnRow = { id: number; burner: string; token: string; amount: bigint; timestamp: number };
@@ -706,9 +724,23 @@ function loadLockedLogs(): Promise<LockedLog[]> {
   return lockedLogsPromise;
 }
 function invalidateEvents() { lockedLogsPromise = null; blockTsCache.clear(); }
+// Same reliability contract as txForBurn: never hide the confirm button on a flaky read.
+const lockTxCache = new Map<number, string>();
 async function txForLock(id: number): Promise<string | null> {
-  const logs = await loadLockedLogs();
-  return logs.find((l) => l.id === id)?.tx || null;
+  if (lockTxCache.has(id)) return lockTxCache.get(id)!;
+  try {
+    const logs = await loadLockedLogs();
+    const hit = logs.find((l) => l.id === id);
+    if (hit) { lockTxCache.set(id, hit.tx); return hit.tx; }
+  } catch { /* fall through to the targeted lookup */ }
+  for (let a = 0; a < 5; a++) {
+    try {
+      const ev = await pub.getLogs({ address: LOCKER, event: LOCKED_EVENT as any, args: { id: BigInt(id) } as any, fromBlock: 0n, toBlock: "latest" });
+      if (ev.length) { const tx = ev[0].transactionHash as string; lockTxCache.set(id, tx); return tx; }
+      return null;
+    } catch { await new Promise((r) => setTimeout(r, 500 * (a + 1))); }
+  }
+  return null;
 }
 async function lockedAtBlock(id: number): Promise<bigint | null> {
   const logs = await loadLockedLogs();
