@@ -1613,7 +1613,7 @@ HoodLock.on("locked", ({ txHash, lockId }) =&gt; {
         <code>POST /api/dev/lock-intent</code> <code>{ key, token, amount, unlockTime }</code> → a prepared <code>{ to, data, value }</code> tx to submit from the user's wallet.<br>
         <code>POST /api/dev/attribute</code> <code>{ key, wallet }</code> → credit the connecting wallet to you (call it when the user connects).</p>
         <h4>How you get paid</h4>
-        <p>You earn <b>50%</b> of the 0.005 ETH fee on every lock created by a wallet you brought in. Only genuinely new wallets count (first-touch), and only locks made after they're attributed. Claim to your wallet here once you've earned ≥ $10.</p>
+        <p>You earn <b>${Math.round((me.commission || 0) * 100)}%</b> of the ${me.feeEth} ETH fee on every lock created by a wallet you brought in. Only genuinely new wallets count (first-touch), and only locks made after they're attributed. Claim to your wallet here once your balance reaches $${me.minClaimUsd}.</p>
       </div>
     </div>`;
   ($("devKeyCopy") as HTMLButtonElement).addEventListener("click", async () => { try { await navigator.clipboard.writeText(me.apiKey); notify("API key copied"); } catch { prompt("Copy your API key:", me.apiKey); } });
