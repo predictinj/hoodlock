@@ -340,7 +340,7 @@
             <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>Explore</div>
             <div class="ws-label" style="margin-top:16px">Products</div>
             <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>Locks</div>
-            <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 17l5-5 4 3 6-7"/></svg>Vesting<span class="sn">SOON</span></div>
+            <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 17l5-5 4 3 6-7"/></svg>Vesting<span class="sn" style="color:var(--neon);border-color:var(--neon)">LIVE</span></div>
             <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3v13M7 11l5 5 5-5"/></svg>Airdrops<span class="sn">SOON</span></div>
             <div class="ws-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 12h6M14 12h6"/><circle cx="12" cy="12" r="2.5"/></svg>Streams<span class="sn">SOON</span></div>
           </div>
@@ -416,14 +416,14 @@
           </div>
         </div>
       </a>
-      <div class="cell c-vest reveal d1">
-        <h3>Vesting <span class="b-tag soon">Soon</span></h3>
+      <a class="cell c-vest reveal d1" href="/app/vesting">
+        <h3>Vesting <span class="b-tag live">Live</span></h3>
         <p>Cliffs and linear release, enforced by contract.</p>
         <div class="viz vestviz"><svg viewBox="0 0 260 90" preserveAspectRatio="none">
           <path class="vest-path" d="M8,82 L78,82 L78,58 C120,58 150,40 252,10"/>
           <circle cx="78" cy="82" r="3" fill="#00e05a" opacity=".55"/>
           <text x="66" y="76" font-family="JetBrains Mono" font-size="7.5" fill="#59695e">CLIFF</text></svg></div>
-      </div>
+      </a>
       <div class="cell c-drop reveal d2">
         <h3>Airdrops <span class="b-tag soon">Soon</span></h3>
         <p>Thousands of wallets, one transaction.</p>
@@ -532,7 +532,7 @@
         <a class="logo" href="/"><img src="/hoodlock-logo.png" alt="HoodLock" style="width:22px;height:22px" /><span>Hood<b>Lock</b></span></a>
         <p class="foot-desc">The token infrastructure of Robinhood Chain. Trustless, verified, extend-only. Locked tokens can only be withdrawn by their owner after the unlock time.</p>
       </div>
-      <div><h5>Products</h5><a class="fl" href="/app/locks">Token Locks</a><a class="fl" href="#suite">Vesting</a><a class="fl" href="#suite">Airdrops</a><a class="fl" href="#suite">Streams</a></div>
+      <div><h5>Products</h5><a class="fl" href="/app/locks">Token Locks</a><a class="fl" href="/app/vesting">Vesting</a><a class="fl" href="#suite">Airdrops</a><a class="fl" href="#suite">Streams</a></div>
       <div><h5>Protocol</h5><a class="fl" href="/app/explore">Explore locks</a><a class="fl" href="/blog">Learn</a><a class="fl" id="footContract" target="_blank" rel="noopener">Contract ↗</a><a class="fl" href="#security">Security</a></div>
       <div><h5>Community</h5><a class="fl" href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener">X / Twitter ↗</a><a class="fl" href="/app">Launch App ↗</a></div>
     </div>
