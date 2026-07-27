@@ -2303,7 +2303,7 @@ async function vCreate() {
 }
 
 /* ---------- my schedules ---------- */
-const VEST_HEAD = `<thead><tr><th>Token</th><th>Total</th><th>Vested</th><th>Claimable</th><th>Fully vested</th><th style="text-align:right">Actions</th></tr></thead>`;
+const VEST_HEAD = `<thead><tr><th>Token</th><th>Total</th><th>Vested</th><th>Claimed</th><th>Claimable</th><th>Fully vested</th><th style="text-align:right">Actions</th></tr></thead>`;
 async function vestRowHTML(v: VestRow, role: "recipient" | "creator"): Promise<string> {
   const m = await tokMeta(v.token);
   const now = Math.floor(Date.now() / 1000);
@@ -2320,6 +2320,7 @@ async function vestRowHTML(v: VestRow, role: "recipient" | "creator"): Promise<s
     <td><b>$${escape(m.symbol)}</b><div class="mono" style="font-size:10px;color:var(--ink-3)">#${v.id} · ${short(role === "recipient" ? v.creator : v.beneficiary)}</div></td>
     <td>${fmtNum(v.total, m.decimals)}</td>
     <td>${done ? "100%" : pct.toFixed(1) + "%"}<div style="height:3px;background:var(--line);border-radius:2px;margin-top:4px;max-width:80px"><div style="height:100%;width:${Math.min(100, pct)}%;background:var(--neon,#00e05a);border-radius:2px"></div></div></td>
+    <td>${v.claimed > 0n ? fmtNum(v.claimed, m.decimals) : `<span style="color:var(--ink-3)">0</span>`}</td>
     <td>${claimable > 0n ? `<b style="color:var(--neon)">${fmtNum(claimable, m.decimals)}</b>` : now < v.cliff ? `<span style="color:var(--ink-3)">cliff ${dateTimeUTC(v.cliff).slice(0, 10)}</span>` : "0"}</td>
     <td>${dateTimeUTC(v.end).slice(0, 16)}</td>
     <td style="text-align:right;white-space:nowrap">${acts}</td>
