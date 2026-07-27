@@ -1821,6 +1821,23 @@ async function loadAdmin() {
   $("adminGate").innerHTML = "";
   $("adminBody").style.display = "";
 
+  // Nothing below depends on these, so start them now and let them land on
+  // their own — the console used to sit blank until the slowest read returned.
+  loadAffiliates();
+  loadAdminClaims();
+  loadAdminPublicAffiliates();
+  const logsP = loadLockedLogs().catch(() => [] as Awaited<ReturnType<typeof loadLockedLogs>>);
+  fetch("/api/admin/stats", { headers: { Authorization: "Bearer " + cachedToken() } })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((st: any) => {
+      if (!st) return;
+      $("adConnected").textContent = Number(st.connectedWallets || 0).toLocaleString("en-US");
+      $("adConnectedSub").textContent = `${Number(st.connected7d || 0).toLocaleString("en-US")} in last 7 days`;
+      $("adClicks").textContent = Number(st.totalClicks || 0).toLocaleString("en-US");
+      $("adClicksSub").textContent = `${Number(st.attributed || 0).toLocaleString("en-US")} attributed signups`;
+    })
+    .catch(() => { /* leave placeholders */ });
+
   try {
     const [total, burnTotal, vestTotal] = await Promise.all([
       pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }).then(Number),
@@ -1834,11 +1851,35 @@ async function loadAdmin() {
     const now = Math.floor(Date.now() / 1000);
 
     // pull everything once — per-product stats, chart and recent activity all reuse these
-    const rows = (await Promise.all(Array.from({ length: total }, (_, i) => i).map((i) => readLock(i).catch(() => null)))).filter((r): r is LockRow => !!r);
-    const burnRows = (await Promise.all(Array.from({ length: burnTotal }, (_, i) => i).map((i) => readBurn(i).catch(() => null)))).filter((b): b is BurnRow => !!b);
-    const vestRows = (await Promise.all(Array.from({ length: vestTotal }, (_, i) => i).map((i) => readVest(i).catch(() => null)))).filter((v): v is VestRow => !!v);
+    const ids = (n: number) => Array.from({ length: n }, (_, i) => i);
+    const [rows, burnRows, vestRows] = await Promise.all([
+      Promise.all(ids(total).map((i) => readLock(i).catch(() => null))).then((a) => a.filter((r): r is LockRow => !!r)),
+      Promise.all(ids(burnTotal).map((i) => readBurn(i).catch(() => null))).then((a) => a.filter((b): b is BurnRow => !!b)),
+      Promise.all(ids(vestTotal).map((i) => readVest(i).catch(() => null))).then((a) => a.filter((v): v is VestRow => !!v)),
+    ]);
     const vestTs = new Map<number, number>();
     await Promise.all(vestRows.map(async (v) => { const inf = await vestCreationInfo(v.id).catch(() => null); if (inf) vestTs.set(v.id, inf.ts); }));
+
+    // KPI cards need only the rows above, so paint them before the log reads.
+    const revEth0 = rows.length * feeEth + burnRows.length * burnFeeEth + vestRows.length * vestFeeEth;
+    const allUsers0 = new Set([
+      ...rows.map((r) => r.owner.toLowerCase()),
+      ...burnRows.map((b) => b.burner.toLowerCase()),
+      ...vestRows.map((v) => v.creator.toLowerCase()),
+    ]);
+    $("adRevenue").textContent = revEth0.toFixed(4) + " ETH";
+    $("adRevenueSub").textContent = ethUsd > 0 ? `≈ ${fmtUsd(revEth0 * ethUsd)} · at current fees` : "at current fees";
+    $("adActions").textContent = (rows.length + burnRows.length + vestRows.length).toLocaleString("en-US");
+    $("adUsers").textContent = allUsers0.size.toLocaleString("en-US");
+
+    // TVL prices every distinct token, so let it fill in on its own.
+    computeTvl(pub as any, [
+      ...rows.map((l) => ({ token: l.token, amount: l.amount, withdrawn: l.withdrawn })),
+      ...burnRows.map((b) => ({ token: b.token, amount: b.amount, withdrawn: false })),
+      ...vestRows.filter((v) => v.total > v.claimed).map((v) => ({ token: v.token, amount: v.total - v.claimed, withdrawn: false })),
+    ] as any)
+      .then((tvl) => { $("adTvl").textContent = tvl.ethUsd > 0 ? fmtUsd(tvl.usd) : `${tvl.eth.toFixed(3)} ETH`; })
+      .catch(() => { $("adTvl").textContent = "—"; });
 
     // ── per-product breakdown + TOTAL (range-filterable) ──
     prodData = {
@@ -1850,31 +1891,13 @@ async function loadAdmin() {
       ethUsd,
     };
     // lock timestamps come from the Locked logs (same source the chart uses)
-    const lockLogs = await loadLockedLogs();
-    prodData.locks = (await Promise.all(lockLogs.map(async (l) => ({
-      ts: l.ts || (await blockTs(l.block)) || 0,
+    const lockLogs = await logsP;
+    prodData.locks = lockLogs.map((l) => ({
+      ts: l.ts || 0,
       wallet: l.owner.toLowerCase(),
       active: rows.some((r) => r.id === l.id && !r.withdrawn && r.unlockTime > now),
-    }))));
+    }));
     renderProducts();
-
-    const revEth = rows.length * feeEth + burnRows.length * burnFeeEth + vestRows.length * vestFeeEth;
-    const allUsers = new Set([
-      ...rows.map((r) => r.owner.toLowerCase()),
-      ...burnRows.map((b) => b.burner.toLowerCase()),
-      ...vestRows.map((v) => v.creator.toLowerCase()),
-    ]);
-    $("adRevenue").textContent = revEth.toFixed(4) + " ETH";
-    $("adRevenueSub").textContent = ethUsd > 0 ? `≈ ${fmtUsd(revEth * ethUsd)} · at current fees` : "at current fees";
-    $("adActions").textContent = (rows.length + burnRows.length + vestRows.length).toLocaleString("en-US");
-    $("adUsers").textContent = allUsers.size.toLocaleString("en-US");
-
-    const tvl = await computeTvl(pub as any, [
-      ...rows.map((l) => ({ token: l.token, amount: l.amount, withdrawn: l.withdrawn })),
-      ...burnRows.map((b) => ({ token: b.token, amount: b.amount, withdrawn: false })),
-      ...vestRows.filter((v) => v.total > v.claimed).map((v) => ({ token: v.token, amount: v.total - v.claimed, withdrawn: false })),
-    ] as any);
-    $("adTvl").textContent = tvl.ethUsd > 0 ? fmtUsd(tvl.usd) : `${tvl.eth.toFixed(3)} ETH`;
 
     // ── accrued vesting fees + withdraw (collector-gated on-chain) ──
     if (VESTING) {
@@ -1900,10 +1923,9 @@ async function loadAdmin() {
     }
 
     // ── recent activity: locks + burns + vesting interleaved, newest first ──
-    const logs = await loadLockedLogs();
     type Act = { wallet: string; token: string; ts: number; kind: string; color: string; fee: number };
     const acts: Act[] = [];
-    for (const l of logs) { const ts = l.ts || await blockTs(l.block); if (ts) acts.push({ wallet: l.owner, token: l.token, ts, kind: "LOCK", color: "var(--neon)", fee: feeEth }); }
+    for (const l of lockLogs) { if (l.ts) acts.push({ wallet: l.owner, token: l.token, ts: l.ts, kind: "LOCK", color: "var(--neon)", fee: feeEth }); }
     burnRows.forEach((b) => acts.push({ wallet: b.burner, token: b.token, ts: b.timestamp, kind: "BURN", color: "#ff6b6b", fee: burnFeeEth }));
     vestRows.forEach((v) => { const ts = vestTs.get(v.id); if (ts) acts.push({ wallet: v.creator, token: v.token, ts, kind: "VESTING", color: "#f5b731", fee: vestFeeEth }); });
     acts.sort((a, b) => b.ts - a.ts);
@@ -1924,23 +1946,6 @@ async function loadAdmin() {
   } catch {
     $("adRevenue").textContent = "—";
   }
-
-  // server-only stats (wallet connections, clicks) — token already present here
-  try {
-    const token = cachedToken();
-    const r = await fetch("/api/admin/stats", { headers: { Authorization: "Bearer " + token } });
-    if (r.ok) {
-      const st: any = await r.json();
-      $("adConnected").textContent = Number(st.connectedWallets || 0).toLocaleString("en-US");
-      $("adConnectedSub").textContent = `${Number(st.connected7d || 0).toLocaleString("en-US")} in last 7 days`;
-      $("adClicks").textContent = Number(st.totalClicks || 0).toLocaleString("en-US");
-      $("adClicksSub").textContent = `${Number(st.attributed || 0).toLocaleString("en-US")} attributed signups`;
-    }
-  } catch { /* leave placeholders */ }
-
-  loadAffiliates();
-  loadAdminClaims();
-  loadAdminPublicAffiliates();
 }
 
 /* ---------- affiliates (needs the backend; degrades to a notice) ---------- */
@@ -2342,7 +2347,7 @@ async function vCreate() {
       msg.innerHTML = `Transaction submitted — <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a>. Schedules should appear below shortly.`;
     }
     btn.disabled = false;
-    renderVestMine(); loadTvl();
+    renderVestMine();
   } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); ($("vCreateBtn") as HTMLButtonElement).disabled = false; }
 }
 
@@ -2431,7 +2436,7 @@ function wireVestActions(root: HTMLElement) {
       (b as HTMLButtonElement).setAttribute("disabled", "");
       const h = await send(VESTING!, encodeFunctionData({ abi: VESTING_ABI as any, functionName: "claim", args: [BigInt(b.dataset.vclaim!)] }));
       notify("Claiming — confirm in wallet, then wait for the tx…");
-      await waitTx(h); notify("Claimed ✓"); renderVestMine(); loadTvl();
+      await waitTx(h); notify("Claimed ✓"); renderVestMine();
     } catch (e: any) { alert(friendlyErr(e)); b.removeAttribute("disabled"); }
   }));
   root.querySelectorAll<HTMLElement>("[data-vmove]").forEach((b) => b.addEventListener("click", () => openVMoveModal(Number(b.dataset.vmove))));
