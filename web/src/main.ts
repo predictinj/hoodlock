@@ -2333,13 +2333,12 @@ const VEST_TABLE_OPEN = `<table style="table-layout:fixed;width:100%">`;
 async function vestExploreRowHTML(v: VestRow): Promise<string> {
   const m = await tokMeta(v.token);
   const now = Math.floor(Date.now() / 1000);
-  const vested = vestedAt(v, now);
-  const pct = v.total > 0n ? Number((vested * 1000n) / v.total) / 10 : 0;
   const fully = now >= v.end;
   const daysLeft = Math.max(1, Math.ceil((v.end - now) / 86400));
   const status = fully
     ? `<span class="status unlockable"><i></i>FULLY VESTED</span>`
     : `<span class="status locked"><i></i>VESTED · ${daysLeft}D</span>`;
+  const claimedPct = v.total > 0n ? Number((v.claimed * 1000n) / v.total) / 10 : 0;
   const unclaimed = v.total - v.claimed;
   const usd = unclaimed > 0n ? await amountValueUsd(pub as any, v.token as `0x${string}`, unclaimed, m.decimals).catch(() => null) : null;
   const tvl = usd !== null && usd > 0 ? fmtUsd(usd) : "—";
@@ -2347,7 +2346,7 @@ async function vestExploreRowHTML(v: VestRow): Promise<string> {
     <td><div class="tk-cell">${await tokenIcoHTML(v.token, m.symbol)}
       <div><div class="n">$${escape(m.symbol)} <span class="tag">VEST #${v.id}</span></div><div class="a">${short(v.token)}</div></div></div></td>
     <td>${fmtNum(v.total, m.decimals)}</td>
-    <td>${fully ? "100%" : pct.toFixed(1) + "%"} vested</td>
+    <td>${v.claimed >= v.total ? "100%" : claimedPct.toFixed(1) + "%"} claimed</td>
     <td>${tvl}</td>
     <td>${status}</td>
     <td><div class="row-actions"><button class="btn btn-line btn-sm" data-vproof="${v.id}">Proof</button></div></td></tr>`;
