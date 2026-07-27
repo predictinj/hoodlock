@@ -613,7 +613,7 @@ async function doBurn(amount: bigint, amtStr: string, msg: HTMLElement) {
   let proof = "";
   try {
     const ids = await pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [account as `0x${string}`] }) as bigint[];
-    if (ids.length) proof = ` · <a href="?burn=${Number(ids[ids.length - 1])}">Open the burn proof</a>`;
+    if (ids.length) proof = ` · <a href="/proof/burn/${Number(ids[ids.length - 1])}">Open the burn proof</a>`;
   } catch { /* proof link is optional */ }
   msg.className = "msg ok";
   msg.innerHTML = `🔥 Burned forever! <a href="${EXP}/tx/${bh}" target="_blank" rel="noopener">view tx</a>${proof}`;
@@ -887,14 +887,14 @@ function wireActions(container: HTMLElement) {
   container.querySelectorAll<HTMLButtonElement>("[data-extend]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); extend(Number(b.dataset.extend)); }));
   container.querySelectorAll<HTMLButtonElement>("[data-share]").forEach((b) => b.addEventListener("click", async (e) => {
     e.stopPropagation();
-    const url = `${location.origin}/app?lock=${b.dataset.share}`;
+    const url = `${location.origin}/proof/lock/${b.dataset.share}`;
     try { await navigator.clipboard.writeText(url); notify("Proof link copied — share it anywhere"); }
     catch { prompt("Copy this proof link:", url); }
   }));
   container.querySelectorAll<HTMLElement>("[data-proofburn]").forEach((tr) => tr.addEventListener("click", () => showBurnProof(Number(tr.dataset.proofburn))));
   container.querySelectorAll<HTMLButtonElement>("[data-shareburn]").forEach((b) => b.addEventListener("click", async (e) => {
     e.stopPropagation();
-    const url = `${location.origin}/app?burn=${b.dataset.shareburn}`;
+    const url = `${location.origin}/proof/burn/${b.dataset.shareburn}`;
     try { await navigator.clipboard.writeText(url); notify("Burn proof link copied — share it anywhere"); }
     catch { prompt("Copy this proof link:", url); }
   }));
@@ -1098,11 +1098,11 @@ async function runSearch() {
 $("searchBtn").addEventListener("click", runSearch);
 $("searchAddr").addEventListener("keydown", (e) => { if ((e as KeyboardEvent).key === "Enter") runSearch(); });
 
-/* ---------- shareable proof (?lock=<id>) — works without a wallet ---------- */
+/* ---------- shareable proof (/proof/lock/<id>) — works without a wallet ---------- */
 async function showLockProof(id: number, push = true) {
   go("proof");
-  if (push) history.pushState(null, "", `/app?lock=${id}`);
-  else history.replaceState(null, "", `/app?lock=${id}`);
+  if (push) history.pushState(null, "", `/proof/lock/${id}`);
+  else history.replaceState(null, "", `/proof/lock/${id}`);
   const box = $("proofBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading lock #${id}… <span class="spin"></span></div></div>`;
   let l: LockRow;
@@ -1135,17 +1135,17 @@ async function showLockProof(id: number, push = true) {
     </div>
     <a class="p-back" href="/app">← Open HoodLock</a>`;
   $("proofCopy").addEventListener("click", async () => {
-    const url = `${location.origin}/app?lock=${id}`;
+    const url = `${location.origin}/proof/lock/${id}`;
     try { await navigator.clipboard.writeText(url); notify("Proof link copied"); } catch { prompt("Copy this proof link:", url); }
   });
 }
 
-/* ---------- shareable burn proof (?burn=<id>) — works without a wallet ---------- */
+/* ---------- shareable burn proof (/proof/burn/<id>) — works without a wallet ---------- */
 async function showBurnProof(id: number, push = true) {
   go("proof");
   $("viewTitle").textContent = "BURN PROOF";
-  if (push) history.pushState(null, "", `/app?burn=${id}`);
-  else history.replaceState(null, "", `/app?burn=${id}`);
+  if (push) history.pushState(null, "", `/proof/burn/${id}`);
+  else history.replaceState(null, "", `/proof/burn/${id}`);
   const box = $("proofBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading burn #${id}… <span class="spin"></span></div></div>`;
   let b: BurnRow;
@@ -1175,7 +1175,7 @@ async function showBurnProof(id: number, push = true) {
     </div>
     <a class="p-back" href="/app">← Open HoodLock</a>`;
   $("proofCopy").addEventListener("click", async () => {
-    const url = `${location.origin}/app?burn=${id}`;
+    const url = `${location.origin}/proof/burn/${id}`;
     try { await navigator.clipboard.writeText(url); notify("Burn proof link copied"); } catch { prompt("Copy this proof link:", url); }
   });
 }
@@ -2675,12 +2675,12 @@ function loadVestingView() {
   renderVestMine();
 }
 
-/* ---------- shareable vesting proof (?vesting=<id>) — works without a wallet ---------- */
+/* ---------- shareable vesting proof (/proof/vesting/<id>) — works without a wallet ---------- */
 async function showVestingProof(id: number, push = true) {
   go("proof");
   $("viewTitle").textContent = "VESTING PROOF";
-  if (push) history.pushState(null, "", `/app?vesting=${id}`);
-  else history.replaceState(null, "", `/app?vesting=${id}`);
+  if (push) history.pushState(null, "", `/proof/vesting/${id}`);
+  else history.replaceState(null, "", `/proof/vesting/${id}`);
   const box = $("proofBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading vesting #${id}… <span class="spin"></span></div></div>`;
   let v: VestRow;
@@ -2733,7 +2733,7 @@ async function showVestingProof(id: number, push = true) {
     </div>
     <a class="p-back" href="/app/vesting">← Open HoodLock Vesting</a>`;
   $("vProofCopy").addEventListener("click", async () => {
-    const url = `${location.origin}/app?vesting=${id}`;
+    const url = `${location.origin}/proof/vesting/${id}`;
     try { await navigator.clipboard.writeText(url); notify("Proof link copied"); } catch { prompt("Copy this proof link:", url); }
   });
 }
@@ -2801,9 +2801,13 @@ restoreConnection();
 loadDashboard();
 const _refParam = new URLSearchParams(location.search).get("ref");
 if (_refParam && /^[A-Za-z0-9_-]{3,32}$/.test(_refParam)) { try { localStorage.setItem("hl_ref", _refParam); } catch { /* */ } }
-const _lockParam = new URLSearchParams(location.search).get("lock");
-const _burnParam = new URLSearchParams(location.search).get("burn");
-const _vestParam = new URLSearchParams(location.search).get("vesting");
+// Clean proof paths (/proof/<kind>/<id>). The ?lock=/?burn=/?vesting= form is
+// still read here as a fallback: the server 301s them, but a bookmark opened
+// offline or a client-side link should still resolve.
+const _proofPath = location.pathname.match(/^\/proof\/(lock|burn|vesting)\/(\d+)/);
+const _lockParam = _proofPath?.[1] === "lock" ? _proofPath[2] : new URLSearchParams(location.search).get("lock");
+const _burnParam = _proofPath?.[1] === "burn" ? _proofPath[2] : new URLSearchParams(location.search).get("burn");
+const _vestParam = _proofPath?.[1] === "vesting" ? _proofPath[2] : new URLSearchParams(location.search).get("vesting");
 const _pathView = location.pathname.match(/^\/app\/([a-z]+)/)?.[1];
 if (_lockParam && /^\d+$/.test(_lockParam)) showLockProof(Number(_lockParam), false);
 else if (_burnParam && /^\d+$/.test(_burnParam) && BURNER) showBurnProof(Number(_burnParam), false);

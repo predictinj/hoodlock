@@ -210,7 +210,7 @@ function renderDone(tx: string, lockId: number | null) {
     <div class="em-note">Your tokens are locked on-chain with a shareable proof.</div>
     <div class="em-acts">
       <a class="em-btn" href="${EXP}/tx/${tx}" target="_blank" rel="noopener">View transaction</a>
-      ${lockId != null ? `<a class="em-btn em-line" href="https://hoodlock.tech/app?lock=${lockId}" target="_blank" rel="noopener">Open proof page</a>` : ""}
+      ${lockId != null ? `<a class="em-btn em-line" href="https://hoodlock.tech/proof/lock/${lockId}" target="_blank" rel="noopener">Open proof page</a>` : ""}
     </div>
     <button class="em-link" id="emDone">Done</button>
   </div>`);

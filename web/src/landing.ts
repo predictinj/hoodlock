@@ -156,7 +156,7 @@ async function loadLive() {
         return { ...l, sym: m.symbol, amt: fmtAmt(l.amount, m.decimals) };
       }));
       const tapeHTML = items.map((t) =>
-        `<a class="tape-item" href="/app?lock=${t.id}"><span class="lk">🔒</span><span class="sym">$${esc(t.sym)}</span><span>${t.amt} locked</span><span class="dt">until ${dt(t.unlockTime)}</span></a>`).join("");
+        `<a class="tape-item" href="/proof/lock/${t.id}"><span class="lk">🔒</span><span class="sym">$${esc(t.sym)}</span><span>${t.amt} locked</span><span class="dt">until ${dt(t.unlockTime)}</span></a>`).join("");
       $("tape")!.innerHTML = tapeHTML + tapeHTML; // duplicated for the seamless -50% loop
       $("mockRows")!.innerHTML = (await Promise.all(items.slice(0, 3).map(async (t) => {
         const meta = await tokMeta(t.token);

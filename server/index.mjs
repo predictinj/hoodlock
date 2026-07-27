@@ -729,7 +729,7 @@ async function proofMeta(kind, id) {
       meta = {
         title: `${amt} $${t.symbol} locked until ${until} — on-chain proof | HoodLock`,
         desc: `${amt} $${t.symbol}${pct ? ` (${pct}% of supply)` : ""} is ${withdrawn ? "was locked" : "locked"} in a time-locked contract on Robinhood Chain until ${until}. Verify the lock yourself on-chain — HoodLock lock #${id}.`,
-        canonical: `https://hoodlock.tech/app?lock=${id}`,
+        canonical: `https://hoodlock.tech/proof/lock/${id}`,
         heading: `${amt} $${t.symbol} locked`,
       };
     } else if (kind === "burn" && BURNER) {
@@ -741,7 +741,7 @@ async function proofMeta(kind, id) {
       meta = {
         title: `${amt} $${t.symbol} burned forever — on-chain proof | HoodLock`,
         desc: `${amt} $${t.symbol}${pct ? ` (${pct}% of supply)` : ""} was permanently burned on Robinhood Chain on ${dayLabel(b.timestamp)}. The tokens went to the dead address and can never be recovered — HoodLock burn #${id}.`,
-        canonical: `https://hoodlock.tech/app?burn=${id}`,
+        canonical: `https://hoodlock.tech/proof/burn/${id}`,
         heading: `${amt} $${t.symbol} burned forever`,
       };
     } else if (kind === "vesting" && VESTING) {
@@ -754,7 +754,7 @@ async function proofMeta(kind, id) {
       meta = {
         title: `${amt} $${t.symbol} vesting until ${end} — on-chain proof | HoodLock`,
         desc: `${amt} $${t.symbol} is vesting on Robinhood Chain${hasCliff ? ` with a cliff on ${dayLabel(v.cliff)}` : ""}, fully released ${end}. Irrevocable and verifiable on-chain — HoodLock vesting #${id}.`,
-        canonical: `https://hoodlock.tech/app?vesting=${id}`,
+        canonical: `https://hoodlock.tech/proof/vesting/${id}`,
         heading: `${amt} $${t.symbol} vesting`,
       };
     }
@@ -798,13 +798,20 @@ function sendProof(res, meta) {
 /* ---------- static site with the same rewrites as serve.json ---------- */
 const send = (res, file) => res.sendFile(join(PUBLIC, file));
 app.get("/", (_req, res) => send(res, "index.html"));
-app.get("/app", async (req, res) => {
+/* Clean proof URLs. The legacy ?lock=/?burn=/?vesting= links are already out
+   in the wild (shared by projects, embedded by partners), so they 301 here
+   rather than break — one canonical URL per proof, permanently. */
+app.get("/proof/:kind/:id", async (req, res) => {
+  const { kind, id } = req.params;
+  if (!["lock", "burn", "vesting"].includes(kind) || !/^\d{1,9}$/.test(id)) return send(res, "app.html");
+  const meta = await proofMeta(kind, Number(id)).catch(() => null);
+  return meta ? sendProof(res, meta) : send(res, "app.html");
+});
+app.get("/app", (req, res) => {
   for (const kind of ["lock", "burn", "vesting"]) {
     const raw = req.query[kind];
     if (typeof raw === "string" && /^\d{1,9}$/.test(raw)) {
-      const meta = await proofMeta(kind, Number(raw)).catch(() => null);
-      if (meta) return sendProof(res, meta);
-      break;
+      return res.redirect(301, `/proof/${kind}/${raw}`);
     }
   }
   send(res, "app.html");
@@ -838,7 +845,7 @@ app.get("/sitemap.xml", async (_req, res) => {
       `  <url><loc>https://hoodlock.tech${p}</loc><lastmod>${today}</lastmod><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`);
     const proof = (kind, n, pr) => {
       for (let i = 0; i < n; i++) {
-        parts.push(`  <url><loc>https://hoodlock.tech/app?${kind}=${i}</loc><changefreq>weekly</changefreq><priority>${pr}</priority></url>`);
+        parts.push(`  <url><loc>https://hoodlock.tech/proof/${kind}/${i}</loc><changefreq>weekly</changefreq><priority>${pr}</priority></url>`);
       }
     };
     proof("lock", nLocks, "0.8");
