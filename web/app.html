@@ -337,7 +337,7 @@
     <div class="nav-label">Products</div>
     <button class="nav-item" data-view="locks"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>Token Locks</button>
     <button class="nav-item" data-view="developers"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/><path d="M13 6l-2 12"/></svg>Developers</button>
-    <button class="nav-item" data-view="vesting"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 17l5-5 4 3 6-7"/><path d="M14 8h4v4"/></svg>Vesting<span class="soon">SOON</span></button>
+    <button class="nav-item" data-view="vesting"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 17l5-5 4 3 6-7"/><path d="M14 8h4v4"/></svg>Vesting<span class="soon" style="color:var(--neon);border-color:var(--neon)">NEW</span></button>
     <button class="nav-item" data-view="airdrops"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v13"/><path d="M7 11l5 5 5-5"/><path d="M4 21h16"/></svg>Airdrops<span class="soon">SOON</span></button>
     <button class="nav-item" data-view="streams"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 12h6M14 12h6"/><circle cx="12" cy="12" r="2.5"/></svg>Streams<span class="soon">SOON</span></button>
   </div>
@@ -501,14 +501,84 @@
       <div class="proof-page" id="proofBox"></div>
     </section>
 
-    <!-- COMING SOON -->
+    <!-- VESTING -->
     <section class="view" id="view-vesting">
-      <div class="soon-hero"><div class="glow"></div>
-        <div class="mono-tag">SHIPPING NEXT</div>
-        <h2>Vesting, <span class="serif">enforced.</span></h2>
-        <p>Team, investor and advisor schedules with cliffs and linear release — transparent to every holder.</p>
-        <svg class="soon-viz" viewBox="0 0 420 110"><path class="vest-path" d="M10,100 L120,100 L120,72 C190,72 240,48 410,12"/><circle cx="120" cy="100" r="3.5" fill="#00e05a" opacity=".6"/><text x="100" y="92" font-family="JetBrains Mono" font-size="9" fill="#59695e">CLIFF</text></svg>
-        <a class="btn btn-line" href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener">Follow @HoodLockRH for launch</a>
+      <div class="page-head">
+        <div><h1>Vesting, <span class="serif">enforced.</span></h1><p>Team, investor and advisor schedules with a cliff and linear release. Irrevocable — not even the creator can take the tokens back.</p></div>
+      </div>
+      <div class="lock-layout">
+        <div class="card">
+          <div class="field">
+            <label>Token contract <span class="hint">Robinhood Chain</span></label>
+            <div class="input-wrap"><input type="text" id="vTokenAddr" placeholder="0x…" spellcheck="false" autocomplete="off" /></div>
+            <div class="hintline" id="vTokenInfo"></div>
+            <div class="hintline" id="vBalHint"></div>
+          </div>
+          <div class="field">
+            <label>Recipients <span class="hint">one schedule per wallet</span></label>
+            <div id="vRows"></div>
+            <div class="chips" style="margin-top:8px">
+              <span class="chip-dur" id="vAddRow">+ Add recipient</span>
+              <span class="chip-dur" id="vCsvToggle">Paste CSV</span>
+            </div>
+            <div id="vCsvWrap" style="display:none;margin-top:8px">
+              <div class="input-wrap"><textarea id="vCsv" rows="4" placeholder="0xabc…, 100000&#10;0xdef…, 250000" spellcheck="false" style="width:100%;resize:vertical;background:transparent;border:0;color:inherit;font-family:var(--mono);font-size:12px;outline:none"></textarea></div>
+              <div class="hintline">One per line: <b>address, amount</b>. Applies on create.</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Vesting starts</label>
+            <div class="input-wrap"><input type="datetime-local" id="vStart" /></div>
+            <div class="hintline">May be in the past (e.g. your TGE date) — already-elapsed time becomes claimable immediately.</div>
+          </div>
+          <div class="field">
+            <label>Cliff <span class="hint">nothing claimable before this</span></label>
+            <div class="input-wrap"><input type="datetime-local" id="vCliff" /></div>
+            <div class="chips" id="vCliffPresets">
+              <span class="chip-dur" data-cliffdays="0">NO CLIFF</span>
+              <span class="chip-dur" data-cliffdays="30">1M</span>
+              <span class="chip-dur" data-cliffdays="90">3M</span>
+              <span class="chip-dur" data-cliffdays="180">6M</span>
+              <span class="chip-dur" data-cliffdays="365">1Y</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Fully vested</label>
+            <div class="input-wrap"><input type="datetime-local" id="vEnd" /></div>
+            <div class="chips" id="vEndPresets">
+              <span class="chip-dur" data-enddays="180">6M</span>
+              <span class="chip-dur" data-enddays="365">1Y</span>
+              <span class="chip-dur" data-enddays="730">2Y</span>
+              <span class="chip-dur" data-enddays="1460">4Y</span>
+            </div>
+          </div>
+          <div class="note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5b731" stroke-width="2"><path d="M12 9v4M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg>
+            <span><b>Irrevocable.</b> Once created, a schedule cannot be cancelled, shortened or clawed back — by anyone, including you. Recipients claim as tokens vest.</span>
+          </div>
+        </div>
+        <div class="card summary">
+          <div class="card-head"><div><h3>Vesting summary</h3><div class="sub">REVIEW BEFORE SIGNING</div></div></div>
+          <svg id="vCurve" viewBox="0 0 300 90" style="width:100%;margin:2px 0 10px"></svg>
+          <div class="s-row"><span class="k">Token</span><span class="v" id="vsToken">—</span></div>
+          <div class="s-row"><span class="k">Recipients</span><span class="v" id="vsCount">—</span></div>
+          <div class="s-row"><span class="k">Total amount</span><span class="v" id="vsTotal">—</span></div>
+          <div class="s-row"><span class="k">Cliff</span><span class="v" id="vsCliff">—</span></div>
+          <div class="s-row"><span class="k">Fully vested</span><span class="v" id="vsEnd">—</span></div>
+          <div class="s-row"><span class="k">Vested at creation</span><span class="v" id="vsPreVested">0%</span></div>
+          <div class="s-row"><span class="k">Fee</span><span class="v g" id="vsFee">—</span></div>
+          <button class="btn btn-neon" id="vCreateBtn">Connect wallet to vest</button>
+          <div class="fee-line">EVERY SCHEDULE GETS A SHAREABLE ON-CHAIN PROOF LINK</div>
+          <div class="msg" id="vMsg"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-head"><div><h3>Vesting to you</h3><div class="sub">SCHEDULES WHERE YOU ARE THE RECIPIENT</div></div></div>
+        <div class="tbl-scroll" id="vMineBox"><div class="empty"><div class="big">No wallet connected</div><div class="small">Connect your wallet to see and claim your vesting.</div></div></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-head"><div><h3>Created by you</h3><div class="sub">SCHEDULES YOU HAVE FUNDED</div></div></div>
+        <div class="tbl-scroll" id="vCreatedBox"><div class="empty"><div class="small">Connect your wallet to see schedules you created.</div></div></div>
       </div>
     </section>
     <section class="view" id="view-airdrops">

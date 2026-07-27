@@ -9,6 +9,7 @@ import {
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
 import BURNER_ABI from "./burner-abi.json";
+import VESTING_ABI from "./vesting-abi.json";
 import { amountValueUsd, computeTvl, fmtUsd, tokenPriceUsd, tokenDepthCapUsd } from "./tvl";
 
 /* ---------- chain + clients ----------
@@ -135,6 +136,7 @@ function go(view: string, writeHistory = true) {
   if (view !== "proof" && writeHistory) { history.replaceState(null, "", "/app/" + view); }
   if (view === "explore" && !exploreLoaded) loadExplore();
   if (view === "locks") renderMine();
+  if (view === "vesting") loadVestingView();
   if (view === "admin") loadAdmin();
   if (view === "affiliate") loadAffiliatePage();
   if (view === "developers") loadDevelopersPage();
@@ -257,6 +259,7 @@ function onConnected(silent = false) {
   walletToks = null; walletToksFor = "";
   refreshToken(); renderMine(); updateSummary(); loadWalletTokens();
   syncAdminNav(); attributeRef();
+  if ($("view-vesting").classList.contains("active")) { vRefreshToken(); renderVestMine(); updateVSummary(); }
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
   if ($("view-developers").classList.contains("active")) loadDevelopersPage();
   fetch("/api/track/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wallet: account }) }).catch(() => { /* analytics only */ });
@@ -386,10 +389,13 @@ function renderFee() {
   const el = document.getElementById("sFee");
   if (el) { const fee = burnMode ? burnFee : lockFee; el.textContent = fee > 0n ? `${formatUnits(fee, 18)} ETH` : "free"; }
 }
+let vestingFee = 0n;
 async function loadFee() {
   try { lockFee = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "fee" }) as bigint; } catch { /* leave 0 */ }
   if (BURNER) { try { burnFee = await pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "fee" }) as bigint; } catch { /* leave 0 */ } }
+  if (VESTING) { try { vestingFee = await pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "fee" }) as bigint; } catch { /* leave 0 */ } }
   renderFee();
+  if (document.getElementById("vsFee")) updateVSummary(); // vesting summary shows n × fee
 }
 loadFee();
 
@@ -1022,14 +1028,30 @@ async function runSearch() {
       BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByToken", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]) : Promise.resolve([] as bigint[]),
       BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]) : Promise.resolve([] as bigint[]),
     ]);
+    // …and vesting schedules for the token, the recipient, or the creator
+    const [vestTok, vestBen, vestCre] = VESTING
+      ? await Promise.all([
+          (pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByToken", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]),
+          (pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByBeneficiary", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]),
+          (pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByCreator", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]),
+        ])
+      : [[], [], []] as bigint[][];
     const ids = [...new Set([...byToken, ...byOwner].map(Number))];
     const burnIds = [...new Set([...burnsTok, ...burnsBy].map(Number))];
-    if (!ids.length && !burnIds.length) { box.innerHTML = `<div class="empty"><div class="big">No locks found</div><div class="small">Nothing locked or burned for this token or wallet yet.</div></div>`; return; }
+    const vestIds = [...new Set([...vestTok, ...vestBen, ...vestCre].map(Number))];
+    if (!ids.length && !burnIds.length && !vestIds.length) { box.innerHTML = `<div class="empty"><div class="big">No locks found</div><div class="small">Nothing locked, burned or vesting for this token or wallet yet.</div></div>`; return; }
     const rows = await Promise.all(ids.map(readLock));
     const burns = await Promise.all(burnIds.map(readBurn));
     const merged = await buildExploreRows(rows, burns, 100);
-    box.innerHTML = merged ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${merged}</tbody></table>` : `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
-    wireActions(box);
+    let vestHTML = "";
+    if (vestIds.length) {
+      const vrows = (await Promise.all(vestIds.map((i) => readVest(i).catch(() => null)))).filter((v): v is VestRow => !!v).reverse();
+      vestHTML = `<div style="margin:14px 4px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3)">VESTING SCHEDULES</div>
+        <table>${VEST_HEAD}<tbody>${(await Promise.all(vrows.slice(0, 50).map((v) => vestRowHTML(v, "creator")))).join("")}</tbody></table>`;
+    }
+    const lockTable = merged ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${merged}</tbody></table>` : "";
+    box.innerHTML = (lockTable + vestHTML) || `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
+    wireActions(box); wireVestActions(box);
   } catch {
     box.innerHTML = `<div class="empty"><div class="big">Search failed</div><div class="small">Couldn't reach Robinhood Chain — try again.</div></div>`;
   }
@@ -1344,9 +1366,20 @@ async function loadTvl() {
     const locks = rows.filter((r): r is LockRow => !!r);
     // burned tokens count toward TVL too — value permanently removed from circulation
     const burns = (await Promise.all(Array.from({ length: totalBurns }, (_, i) => i).map((i) => readBurn(i).catch(() => null)))).filter((b): b is BurnRow => !!b);
+    // vesting: the unclaimed remainder of every schedule is still held by the contract
+    let vests: { token: string; amount: bigint }[] = [];
+    if (VESTING) {
+      try {
+        const vTotal = await pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "totalSchedules" }).then(Number);
+        vests = (await Promise.all(Array.from({ length: vTotal }, (_, i) => i).map((i) => readVest(i).catch(() => null))))
+          .filter((v): v is VestRow => !!v && v.total > v.claimed)
+          .map((v) => ({ token: v.token, amount: v.total - v.claimed }));
+      } catch { /* vesting TVL is best-effort */ }
+    }
     const items = [
       ...locks.map((l) => ({ token: l.token, amount: l.amount, withdrawn: l.withdrawn })),
       ...burns.map((b) => ({ token: b.token, amount: b.amount, withdrawn: false })),
+      ...vests.map((v) => ({ token: v.token, amount: v.amount, withdrawn: false })),
     ];
     const t = await computeTvl(pub as any, items);
     $("statTvl").textContent = t.ethUsd > 0 ? fmtUsd(t.usd) : `${t.eth.toFixed(3)} ETH`;
@@ -1972,6 +2005,372 @@ $("afCreate").addEventListener("click", async () => {
   finally { btn.disabled = false; btn.textContent = "Create link"; }
 });
 
+/* ═══════════════════ VESTING (RobinhoodVesting) ═══════════════════ */
+type VestRow = { id: number; creator: string; beneficiary: string; token: string; total: bigint; claimed: bigint; start: number; cliff: number; end: number };
+
+async function readVest(id: number): Promise<VestRow> {
+  const s: any = await pub.readContract({ address: VESTING!, abi: VESTING_ABI as any, functionName: "getSchedule", args: [BigInt(id)] });
+  return { id, creator: getAddress(s.creator), beneficiary: getAddress(s.beneficiary), token: getAddress(s.token),
+    total: s.total as bigint, claimed: s.claimed as bigint, start: Number(s.start), cliff: Number(s.cliff), end: Number(s.end) };
+}
+/** Linear curve — mirrors the contract exactly (cliff-gated, exact sweep at end). */
+function vestedAt(v: { total: bigint; start: number; cliff: number; end: number }, t: number): bigint {
+  if (t < v.cliff) return 0n;
+  if (t >= v.end) return v.total;
+  return (v.total * BigInt(t - v.start)) / BigInt(v.end - v.start);
+}
+const VESTING_CREATED_EVENT = { type: "event", name: "VestingCreated", inputs: [
+  { name: "id", type: "uint256", indexed: true }, { name: "token", type: "address", indexed: true },
+  { name: "beneficiary", type: "address", indexed: true }, { name: "creator", type: "address", indexed: false },
+  { name: "total", type: "uint256", indexed: false }, { name: "start", type: "uint64", indexed: false },
+  { name: "cliff", type: "uint64", indexed: false }, { name: "end", type: "uint64", indexed: false } ] } as const;
+const vestTxCache = new Map<number, { tx: string; ts: number }>();
+async function vestCreationInfo(id: number): Promise<{ tx: string; ts: number } | null> {
+  if (vestTxCache.has(id)) return vestTxCache.get(id)!;
+  for (let a = 0; a < 4; a++) {
+    try {
+      const ev = await pub.getLogs({ address: VESTING!, event: VESTING_CREATED_EVENT as any, args: { id: BigInt(id) } as any, fromBlock: 0n, toBlock: "latest" });
+      if (!ev.length) return null;
+      const blk = await pub.getBlock({ blockNumber: ev[0].blockNumber! });
+      const info = { tx: ev[0].transactionHash as string, ts: Number(blk.timestamp) };
+      vestTxCache.set(id, info); return info;
+    } catch { await new Promise((r) => setTimeout(r, 500 * (a + 1))); }
+  }
+  return null;
+}
+
+/* ---------- create form state ---------- */
+let vTokenMeta: { addr: `0x${string}`; symbol: string; decimals: number; bal: bigint } | null = null;
+async function vRefreshToken() {
+  vTokenMeta = null; $("vTokenInfo").textContent = ""; $("vBalHint").textContent = "";
+  const raw = ($("vTokenAddr") as HTMLInputElement).value.trim();
+  updateVSummary();
+  if (!isAddress(raw)) return;
+  const addr = getAddress(raw) as `0x${string}`;
+  try {
+    const [symbol, decimals] = await Promise.all([
+      pub.readContract({ address: addr, abi: ERC20, functionName: "symbol" }).catch(() => "TOKEN"),
+      pub.readContract({ address: addr, abi: ERC20, functionName: "decimals" }).catch(() => 18),
+    ]);
+    let bal = 0n;
+    if (account) bal = await pub.readContract({ address: addr, abi: ERC20, functionName: "balanceOf", args: [account as `0x${string}`] }) as bigint;
+    vTokenMeta = { addr, symbol: String(symbol), decimals: Number(decimals), bal };
+    $("vTokenInfo").innerHTML = `<span style="color:var(--neon)">✓</span> <b>$${escape(String(symbol))}</b> · ${decimals} decimals`;
+    if (account) $("vBalHint").innerHTML = `You hold <b>${fmt(bal, Number(decimals))}</b> $${escape(String(symbol))}`;
+    updateVSummary();
+  } catch { $("vTokenInfo").innerHTML = `<span class="badv">Couldn't read this token on Robinhood Chain.</span>`; }
+}
+
+function vRowHTML(addr = "", amt = "") {
+  return `<div class="input-wrap v-row" style="display:flex;gap:8px;margin-bottom:6px">
+    <input type="text" class="vRowAddr" placeholder="0x… recipient" value="${escape(addr)}" spellcheck="false" style="flex:1" />
+    <input type="number" class="vRowAmt" placeholder="amount" value="${escape(amt)}" inputmode="decimal" min="0" style="width:130px" />
+    <button type="button" class="max-btn vRowDel" style="position:static">✕</button>
+  </div>`;
+}
+function vAddRow(addr = "", amt = "") { $("vRows").insertAdjacentHTML("beforeend", vRowHTML(addr, amt)); wireVRows(); updateVSummary(); }
+function wireVRows() {
+  document.querySelectorAll<HTMLElement>("#vRows .vRowDel").forEach((b) => { b.onclick = () => { if (document.querySelectorAll("#vRows .v-row").length > 1) { b.closest(".v-row")!.remove(); updateVSummary(); } }; });
+  document.querySelectorAll<HTMLInputElement>("#vRows input").forEach((i) => { i.oninput = debounce(updateVSummary, 300); });
+}
+function vReadRows(): { addr: `0x${string}`; amt: string }[] {
+  const out: { addr: `0x${string}`; amt: string }[] = [];
+  document.querySelectorAll<HTMLElement>("#vRows .v-row").forEach((r) => {
+    const a = (r.querySelector(".vRowAddr") as HTMLInputElement).value.trim();
+    const m = (r.querySelector(".vRowAmt") as HTMLInputElement).value.trim();
+    if (isAddress(a) && Number(m) > 0) out.push({ addr: getAddress(a) as `0x${string}`, amt: m });
+  });
+  return out;
+}
+function vApplyCsv() {
+  const lines = ($("vCsv") as HTMLTextAreaElement).value.split(/\n/).map((l) => l.trim()).filter(Boolean);
+  const rows: { a: string; m: string }[] = [];
+  for (const l of lines) {
+    const parts = l.split(/[,;\t]+/).map((p) => p.trim());
+    if (parts.length >= 2 && isAddress(parts[0]) && Number(parts[1]) > 0) rows.push({ a: parts[0], m: parts[1] });
+  }
+  if (!rows.length) { notify("No valid rows — expected: address, amount"); return; }
+  $("vRows").innerHTML = "";
+  rows.slice(0, 200).forEach((r) => $("vRows").insertAdjacentHTML("beforeend", vRowHTML(r.a, r.m)));
+  wireVRows(); updateVSummary();
+  notify(`${Math.min(rows.length, 200)} recipient${rows.length === 1 ? "" : "s"} loaded from CSV`);
+}
+
+const localDT = (d: Date) => { const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+function vDates(): { start: number; cliff: number; end: number } | null {
+  const s = ($("vStart") as HTMLInputElement).value, c = ($("vCliff") as HTMLInputElement).value, e = ($("vEnd") as HTMLInputElement).value;
+  if (!s || !e) return null;
+  const start = Math.floor(new Date(s).getTime() / 1000);
+  const end = Math.floor(new Date(e).getTime() / 1000);
+  const cliff = c ? Math.floor(new Date(c).getTime() / 1000) : start;
+  return { start, cliff, end };
+}
+
+function drawVCurve() {
+  const svg = document.getElementById("vCurve"); if (!svg) return;
+  const d = vDates();
+  const now = Math.floor(Date.now() / 1000);
+  if (!d || d.end <= d.start || d.cliff < d.start || d.cliff > d.end) { svg.innerHTML = ""; return; }
+  const W = 300, H = 90, PAD = 8;
+  const x = (t: number) => PAD + ((t - d.start) / (d.end - d.start)) * (W - 2 * PAD);
+  const y = (frac: number) => H - PAD - frac * (H - 2 * PAD);
+  const cliffFrac = (d.cliff - d.start) / (d.end - d.start);
+  const path = `M ${x(d.start)},${y(0)} L ${x(d.cliff)},${y(0)} L ${x(d.cliff)},${y(cliffFrac)} L ${x(d.end)},${y(1)}`;
+  const nowX = now > d.start && now < d.end ? x(now) : null;
+  svg.innerHTML = `
+    <path d="${path}" fill="none" stroke="var(--neon,#00e05a)" stroke-width="2" stroke-linejoin="round"/>
+    ${d.cliff > d.start ? `<text x="${x(d.cliff)}" y="${H - 1}" font-family="var(--mono)" font-size="8" fill="var(--ink-3,#59695e)" text-anchor="middle">CLIFF</text>` : ""}
+    ${nowX !== null ? `<line x1="${nowX}" y1="${PAD}" x2="${nowX}" y2="${H - PAD}" stroke="#f5b731" stroke-width="1" stroke-dasharray="3 3"/><text x="${nowX}" y="${PAD + 6}" font-family="var(--mono)" font-size="8" fill="#f5b731" text-anchor="middle">NOW</text>` : ""}`;
+}
+
+function updateVSummary() {
+  const rows = vReadRows();
+  const d = vDates();
+  const now = Math.floor(Date.now() / 1000);
+  $("vsToken").textContent = vTokenMeta ? `$${vTokenMeta.symbol}` : "—";
+  $("vsCount").textContent = rows.length ? String(rows.length) : "—";
+  const totalNum = rows.reduce((s, r) => s + Number(r.amt), 0);
+  $("vsTotal").textContent = rows.length && vTokenMeta ? `${totalNum.toLocaleString("en-US", { maximumFractionDigits: 4 })} $${vTokenMeta.symbol}` : "—";
+  $("vsCliff").textContent = d ? (d.cliff > d.start ? dateTimeUTC(d.cliff) : "no cliff") : "—";
+  $("vsEnd").textContent = d ? dateTimeUTC(d.end) : "—";
+  // F-6: surface how much of the schedule is already liquid at creation time.
+  let pre = "0%";
+  if (d && d.end > d.start) {
+    const frac = now <= d.cliff && now <= d.start ? 0 : Math.max(0, Math.min(1, now < d.cliff ? 0 : (now - d.start) / (d.end - d.start)));
+    pre = (frac * 100).toFixed(frac > 0 && frac < 0.01 ? 2 : 1) + "%";
+    ($("vsPreVested") as HTMLElement).style.color = frac > 0.5 ? "#f5b731" : "";
+  }
+  $("vsPreVested").textContent = pre;
+  const n = BigInt(Math.max(rows.length, 1));
+  $("vsFee").textContent = vestingFee > 0n ? `${formatUnits(vestingFee * n, 18)} ETH` : "free";
+  const btn = $("vCreateBtn") as HTMLButtonElement;
+  if (!account) btn.textContent = "Connect wallet to vest";
+  else btn.textContent = rows.length > 1 ? `Create ${rows.length} vesting schedules` : "Create vesting schedule";
+  drawVCurve();
+}
+
+/* ---------- create ---------- */
+async function vCreate() {
+  const msg = $("vMsg"); msg.className = "msg";
+  try {
+    if (!account) return openWalletModal();
+    if (!VESTING) throw new Error("Vesting is not configured.");
+    if (!vTokenMeta) throw new Error("Enter a valid token address.");
+    const rows = vReadRows();
+    if (!rows.length) throw new Error("Add at least one recipient (address + amount).");
+    const d = vDates();
+    if (!d) throw new Error("Pick start and fully-vested dates.");
+    if (d.cliff < d.start) throw new Error("The cliff cannot be before the start.");
+    if (d.cliff > d.end) throw new Error("The cliff cannot be after the fully-vested date.");
+    if (d.end <= d.start) throw new Error("Fully-vested must be after the start.");
+    if (d.end <= Math.floor(Date.now() / 1000) + 24 * 3600) throw new Error("The schedule must run at least 24 hours from now.");
+    const amounts = rows.map((r) => parseUnits(r.amt, vTokenMeta!.decimals));
+    const sum = amounts.reduce((s, a) => s + a, 0n);
+    if (sum > vTokenMeta.bal) throw new Error("Total amount exceeds your balance.");
+    const n = BigInt(rows.length);
+    const btn = $("vCreateBtn") as HTMLButtonElement; btn.disabled = true;
+
+    const allow = await pub.readContract({ address: vTokenMeta.addr, abi: ERC20, functionName: "allowance", args: [account as `0x${string}`, VESTING] }) as bigint;
+    if (allow < sum) {
+      msg.textContent = "Approving… confirm in wallet";
+      const ah = await send(vTokenMeta.addr, encodeFunctionData({ abi: ERC20, functionName: "approve", args: [VESTING, sum] }));
+      msg.innerHTML = `Approving… <span class="spin"></span>`; await waitTx(ah);
+    }
+    msg.textContent = "Creating… confirm in wallet";
+    const data = rows.length === 1
+      ? encodeFunctionData({ abi: VESTING_ABI as any, functionName: "create", args: [vTokenMeta.addr, rows[0].addr, amounts[0], BigInt(d.start), BigInt(d.cliff), BigInt(d.end)] })
+      : encodeFunctionData({ abi: VESTING_ABI as any, functionName: "createMany", args: [vTokenMeta.addr, rows.map((r) => r.addr), amounts, BigInt(d.start), BigInt(d.cliff), BigInt(d.end)] });
+    const h = await send(VESTING, data, vestingFee * n);
+    msg.innerHTML = `Creating… <span class="spin"></span>`;
+    try {
+      await waitTx(h);
+      msg.className = "msg ok";
+      msg.innerHTML = `📈 Vesting created! <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a> — every schedule has a shareable proof under <b>Created by you</b>.`;
+    } catch {
+      msg.className = "msg";
+      msg.innerHTML = `Transaction submitted — <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a>. Schedules should appear below shortly.`;
+    }
+    btn.disabled = false;
+    renderVestMine(); loadTvl();
+  } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); ($("vCreateBtn") as HTMLButtonElement).disabled = false; }
+}
+
+/* ---------- my schedules ---------- */
+const VEST_HEAD = `<thead><tr><th>Token</th><th>Total</th><th>Vested</th><th>Claimable</th><th>Fully vested</th><th style="text-align:right">Actions</th></tr></thead>`;
+async function vestRowHTML(v: VestRow, role: "recipient" | "creator"): Promise<string> {
+  const m = await tokMeta(v.token);
+  const now = Math.floor(Date.now() / 1000);
+  const vested = vestedAt(v, now);
+  const claimable = vested - v.claimed;
+  const pct = v.total > 0n ? Number((vested * 1000n) / v.total) / 10 : 0;
+  const done = v.claimed >= v.total;
+  const acts = role === "recipient"
+    ? `${claimable > 0n ? `<button class="btn btn-neon btn-sm" data-vclaim="${v.id}">Claim</button>` : ""}
+       <button class="btn btn-line btn-sm" data-vmove="${v.id}">Move</button>
+       <button class="btn btn-line btn-sm" data-vproof="${v.id}">Proof</button>`
+    : `<button class="btn btn-line btn-sm" data-vproof="${v.id}">Proof</button>`;
+  return `<tr>
+    <td><b>$${escape(m.symbol)}</b><div class="mono" style="font-size:10px;color:var(--ink-3)">#${v.id} · ${short(role === "recipient" ? v.creator : v.beneficiary)}</div></td>
+    <td>${fmtNum(v.total, m.decimals)}</td>
+    <td>${done ? "100%" : pct.toFixed(1) + "%"}<div style="height:3px;background:var(--line);border-radius:2px;margin-top:4px;max-width:80px"><div style="height:100%;width:${Math.min(100, pct)}%;background:var(--neon,#00e05a);border-radius:2px"></div></div></td>
+    <td>${claimable > 0n ? `<b style="color:var(--neon)">${fmtNum(claimable, m.decimals)}</b>` : now < v.cliff ? `<span style="color:var(--ink-3)">cliff ${dateTimeUTC(v.cliff).slice(0, 10)}</span>` : "0"}</td>
+    <td>${dateTimeUTC(v.end).slice(0, 16)}</td>
+    <td style="text-align:right;white-space:nowrap">${acts}</td>
+  </tr>`;
+}
+async function renderVestMine() {
+  const mineBox = document.getElementById("vMineBox"), createdBox = document.getElementById("vCreatedBox");
+  if (!mineBox || !createdBox || !VESTING) return;
+  if (!account) {
+    mineBox.innerHTML = `<div class="empty"><div class="big">No wallet connected</div><div class="small">Connect your wallet to see and claim your vesting.</div></div>`;
+    createdBox.innerHTML = `<div class="empty"><div class="small">Connect your wallet to see schedules you created.</div></div>`;
+    return;
+  }
+  try {
+    const [benIds, creIds] = await Promise.all([
+      pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByBeneficiary", args: [account as `0x${string}`] }) as Promise<bigint[]>,
+      pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByCreator", args: [account as `0x${string}`] }) as Promise<bigint[]>,
+    ]);
+    const uniq = (xs: bigint[]) => [...new Set(xs.map(Number))];
+    const mineRows = (await Promise.all(uniq(benIds).map((i) => readVest(i).catch(() => null))))
+      .filter((v): v is VestRow => !!v && v.beneficiary.toLowerCase() === account.toLowerCase()) // F-5: skip stale ids after Move
+      .reverse();
+    const createdRows = (await Promise.all(uniq(creIds).map((i) => readVest(i).catch(() => null))))
+      .filter((v): v is VestRow => !!v).reverse();
+    mineBox.innerHTML = mineRows.length
+      ? `<table>${VEST_HEAD}<tbody>${(await Promise.all(mineRows.map((v) => vestRowHTML(v, "recipient")))).join("")}</tbody></table>`
+      : `<div class="empty"><div class="big">Nothing vesting to you yet</div><div class="small">When a project vests tokens to this wallet, they appear here.</div></div>`;
+    createdBox.innerHTML = createdRows.length
+      ? `<table>${VEST_HEAD}<tbody>${(await Promise.all(createdRows.map((v) => vestRowHTML(v, "creator")))).join("")}</tbody></table>`
+      : `<div class="empty"><div class="small">No schedules created by this wallet yet.</div></div>`;
+    wireVestActions(mineBox); wireVestActions(createdBox);
+  } catch {
+    mineBox.innerHTML = `<div class="empty"><div class="big">Couldn't reach Robinhood Chain</div><div class="small">Check your connection and try again.</div></div>`;
+  }
+}
+function wireVestActions(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>("[data-vclaim]").forEach((b) => b.addEventListener("click", async () => {
+    try {
+      (b as HTMLButtonElement).setAttribute("disabled", "");
+      const h = await send(VESTING!, encodeFunctionData({ abi: VESTING_ABI as any, functionName: "claim", args: [BigInt(b.dataset.vclaim!)] }));
+      notify("Claiming — confirm in wallet, then wait for the tx…");
+      await waitTx(h); notify("Claimed ✓"); renderVestMine(); loadTvl();
+    } catch (e: any) { alert(friendlyErr(e)); b.removeAttribute("disabled"); }
+  }));
+  root.querySelectorAll<HTMLElement>("[data-vmove]").forEach((b) => b.addEventListener("click", async () => {
+    const to = prompt("Move this schedule to a new wallet.\n\nThe new address becomes the only one able to claim. This is public (an on-chain event) and cannot be undone by anyone else.\n\nNew wallet address:");
+    if (!to) return;
+    if (!isAddress(to.trim())) { alert("Not a valid address."); return; }
+    try {
+      const h = await send(VESTING!, encodeFunctionData({ abi: VESTING_ABI as any, functionName: "transferBeneficiary", args: [BigInt(b.dataset.vmove!), getAddress(to.trim())] }));
+      notify("Moving — confirm in wallet…"); await waitTx(h); notify("Schedule moved ✓"); renderVestMine();
+    } catch (e: any) { alert(friendlyErr(e)); }
+  }));
+  root.querySelectorAll<HTMLElement>("[data-vproof]").forEach((b) => b.addEventListener("click", () => showVestingProof(Number(b.dataset.vproof))));
+}
+
+function loadVestingView() {
+  if (!VESTING) return;
+  if (!document.querySelector("#vRows .v-row")) {
+    vAddRow();
+    const now = new Date();
+    ($("vStart") as HTMLInputElement).value = localDT(now);
+    ($("vEnd") as HTMLInputElement).value = localDT(new Date(now.getTime() + 365 * 86400_000));
+    ($("vCliff") as HTMLInputElement).value = "";
+    updateVSummary();
+  }
+  renderVestMine();
+}
+
+/* ---------- shareable vesting proof (?vesting=<id>) — works without a wallet ---------- */
+async function showVestingProof(id: number, push = true) {
+  go("proof");
+  $("viewTitle").textContent = "VESTING PROOF";
+  if (push) history.pushState(null, "", `/app?vesting=${id}`);
+  else history.replaceState(null, "", `/app?vesting=${id}`);
+  const box = $("proofBox");
+  box.innerHTML = `<div class="empty"><div class="small">Loading vesting #${id}… <span class="spin"></span></div></div>`;
+  let v: VestRow;
+  try {
+    v = await readVest(id);
+    if (v.total === 0n) throw new Error("empty");
+  } catch { box.innerHTML = `<div class="empty"><div class="big">Vesting #${id} not found</div><div class="small">Nothing at this id on Robinhood Chain.</div></div>`; return; }
+  const m = await tokMeta(v.token);
+  const info = await vestCreationInfo(id);
+  const now = Math.floor(Date.now() / 1000);
+  const vestedNow = vestedAt(v, now);
+  const pctNow = v.total > 0n ? Number((vestedNow * 1000n) / v.total) / 10 : 0;
+  // F-6 (MANDATORY): how much was already liquid the moment this schedule was created.
+  // A backdated start can make a "vesting" schedule near-fully claimable on day one —
+  // this row makes that visible instead of letting the badge mislead.
+  let preRow = "";
+  if (info) {
+    const preVested = vestedAt(v, info.ts);
+    const prePct = v.total > 0n ? Number((preVested * 1000n) / v.total) / 10 : 0;
+    preRow = `<div class="p-row"><span class="k">Vested at creation</span><span class="v" ${prePct > 50 ? 'style="color:#f5b731"' : ""}>${prePct.toFixed(1)}% ${prePct > 50 ? "⚠ most of this schedule was already claimable when it was created" : ""}</span></div>`;
+  }
+  const status = v.claimed >= v.total
+    ? `<span class="status withdrawn"><i></i>FULLY CLAIMED</span>`
+    : now < v.cliff ? `<span class="status locked"><i></i>CLIFF · ${remainingLabel(v.cliff - now).toUpperCase()} LEFT</span>`
+    : now >= v.end ? `<span class="status unlockable"><i></i>FULLY VESTED</span>`
+    : `<span class="status locked"><i></i>VESTING · ${pctNow.toFixed(1)}% VESTED</span>`;
+  box.innerHTML = `
+    <div class="proof-card">
+      <span class="stamp">✓ ON-CHAIN VESTING</span>
+      <div class="proof-amt">${fmtNum(v.total, m.decimals)} $${escape(m.symbol)}</div>
+      <div class="proof-sub">HOODLOCK · VESTING #${id} · ROBINHOOD CHAIN 4663</div>
+      <div class="p-row"><span class="k">Status</span><span class="v">${status}</span></div>
+      <div class="p-row"><span class="k">Vested so far</span><span class="v g">${fmtNum(vestedNow, m.decimals)} (${pctNow.toFixed(1)}%)</span></div>
+      <div class="p-row"><span class="k">Claimed</span><span class="v">${fmtNum(v.claimed, m.decimals)}</span></div>
+      ${preRow}
+      <div class="p-row"><span class="k">Token</span><span class="v mono">${v.token}</span></div>
+      <div class="p-row"><span class="k">Recipient</span><span class="v mono">${v.beneficiary}</span></div>
+      <div class="p-row"><span class="k">Starts</span><span class="v">${dateTimeUTC(v.start)}</span></div>
+      <div class="p-row"><span class="k">Cliff</span><span class="v">${v.cliff > v.start ? dateTimeUTC(v.cliff) : "none"}</span></div>
+      <div class="p-row"><span class="k">Fully vested</span><span class="v">${dateTimeUTC(v.end)}</span></div>
+      <div class="p-row"><span class="k">Guarantee</span><span class="v g">irrevocable · linear release · recipient-only claims</span></div>
+      <div class="p-acts">
+        ${info ? `<a class="btn btn-neon" href="${EXP}/tx/${info.tx}" target="_blank" rel="noopener">✔ Confirm the vesting transaction on Blockscout</a>` : ""}
+        <a class="btn btn-line" href="${EXP}/address/${VESTING}?tab=contract" target="_blank" rel="noopener">Read the verified vesting contract</a>
+        <button class="btn btn-line" id="vProofCopy">Copy proof link</button>
+      </div>
+    </div>
+    <a class="p-back" href="/app/vesting">← Open HoodLock Vesting</a>`;
+  $("vProofCopy").addEventListener("click", async () => {
+    const url = `${location.origin}/app?vesting=${id}`;
+    try { await navigator.clipboard.writeText(url); notify("Proof link copied"); } catch { prompt("Copy this proof link:", url); }
+  });
+}
+
+/* wire the create form (elements exist only if config.vesting is set) */
+if (VESTING && document.getElementById("vCreateBtn")) {
+  $("vCreateBtn").addEventListener("click", vCreate);
+  $("vAddRow").addEventListener("click", () => vAddRow());
+  $("vCsvToggle").addEventListener("click", () => {
+    const w = $("vCsvWrap"); const showing = w.style.display !== "none";
+    w.style.display = showing ? "none" : "";
+    $("vCsvToggle").textContent = showing ? "Paste CSV" : "Apply CSV";
+    if (showing) vApplyCsv();
+  });
+  $("vTokenAddr").addEventListener("input", debounce(vRefreshToken, 400));
+  ["vStart", "vCliff", "vEnd"].forEach((id) => $(id).addEventListener("input", updateVSummary));
+  document.querySelectorAll<HTMLElement>("#vCliffPresets .chip-dur").forEach((c) => c.addEventListener("click", () => {
+    document.querySelectorAll("#vCliffPresets .chip-dur").forEach((x) => x.classList.remove("on")); c.classList.add("on");
+    const days = Number(c.dataset.cliffdays || 0);
+    const startVal = ($("vStart") as HTMLInputElement).value;
+    const base = startVal ? new Date(startVal) : new Date();
+    ($("vCliff") as HTMLInputElement).value = days > 0 ? localDT(new Date(base.getTime() + days * 86400_000)) : "";
+    updateVSummary();
+  }));
+  document.querySelectorAll<HTMLElement>("#vEndPresets .chip-dur").forEach((c) => c.addEventListener("click", () => {
+    document.querySelectorAll("#vEndPresets .chip-dur").forEach((x) => x.classList.remove("on")); c.classList.add("on");
+    const startVal = ($("vStart") as HTMLInputElement).value;
+    const base = startVal ? new Date(startVal) : new Date();
+    ($("vEnd") as HTMLInputElement).value = localDT(new Date(base.getTime() + Number(c.dataset.enddays) * 86400_000));
+    updateVSummary();
+  }));
+}
+
 /* ---------- boot ---------- */
 restoreConnection();
 loadDashboard();
@@ -1979,8 +2378,10 @@ const _refParam = new URLSearchParams(location.search).get("ref");
 if (_refParam && /^[A-Za-z0-9_-]{3,32}$/.test(_refParam)) { try { localStorage.setItem("hl_ref", _refParam); } catch { /* */ } }
 const _lockParam = new URLSearchParams(location.search).get("lock");
 const _burnParam = new URLSearchParams(location.search).get("burn");
+const _vestParam = new URLSearchParams(location.search).get("vesting");
 const _pathView = location.pathname.match(/^\/app\/([a-z]+)/)?.[1];
 if (_lockParam && /^\d+$/.test(_lockParam)) showLockProof(Number(_lockParam), false);
 else if (_burnParam && /^\d+$/.test(_burnParam) && BURNER) showBurnProof(Number(_burnParam), false);
+else if (_vestParam && /^\d+$/.test(_vestParam) && VESTING) showVestingProof(Number(_vestParam), false);
 else if (_pathView && TITLES[_pathView]) go(_pathView);
 else if (location.hash && TITLES[location.hash.slice(1)]) go(location.hash.slice(1));   // gamla #-länkar
