@@ -33,8 +33,18 @@ const CHAIN = defineChain({
   id: cfg.chainId, name: "Robinhood Chain",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: { default: { http: RPC_URLS } },
+  // Multicall3 is deployed at the canonical address on this chain, which lets
+  // viem fold a screen's worth of reads into one eth_call — Explore alone was
+  // making ~115 separate round-trips to a rate-limited public RPC.
+  contracts: { multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" } },
 });
-const pub = createPublicClient({ chain: CHAIN, transport: rpcTransport });
+const pub = createPublicClient({
+  chain: CHAIN,
+  transport: rpcTransport,
+  // 16ms collects reads issued across a few microtask ticks (a row's token
+  // metadata, its price, its icon) without adding latency you can perceive.
+  batch: { multicall: { wait: 16 } },
+});
 const LOCKER = getAddress(cfg.locker) as `0x${string}`;
 // The burner is optional — without config.burner the whole burn UI stays hidden.
 const BURNER = (cfg as any).burner && isAddress((cfg as any).burner) ? (getAddress((cfg as any).burner) as `0x${string}`) : null;
@@ -709,6 +719,16 @@ function bsLogs(address: string): Promise<BsLog[]> {
   const key = address.toLowerCase();
   if (!bsCache.has(key)) {
     bsCache.set(key, (async () => {
+      // Our own server keeps these logs warm in a 60s cache; Blockscout itself
+      // takes 4–14s. Go via the server first and only fall back to the
+      // explorer if it's unreachable (or the app is served from elsewhere).
+      try {
+        const r = await fetch(`/api/logs/${key}`);
+        if (r.ok) {
+          const j: any = await r.json();
+          if (Array.isArray(j.logs)) return j.logs as BsLog[];
+        }
+      } catch { /* fall through to the explorer */ }
       try {
         const r = await fetch(`${EXP}/api/v2/addresses/${key}/logs`);
         if (!r.ok) throw new Error(String(r.status));
@@ -843,10 +863,26 @@ async function lockedAtBlock(id: number): Promise<bigint | null> {
   return hit ? hit.block : null;
 }
 /** When a lock was created. Comes with the log now, so no extra round-trip. */
+/* A lock's creation time never changes, so persist it. The Blockscout log read
+   it otherwise depends on takes ~3s, and Explore had to wait on that before it
+   could sort a single row — now only locks it has never seen do. */
+let lockTsMemo: Record<string, number> | null = null;
+function lockTsStore(): Record<string, number> {
+  if (!lockTsMemo) {
+    try { lockTsMemo = JSON.parse(localStorage.getItem("hl_lockts") || "{}"); } catch { lockTsMemo = {}; }
+  }
+  return lockTsMemo!;
+}
 async function lockedAtTs(id: number): Promise<number | null> {
+  const store = lockTsStore();
+  if (store[id]) return store[id];
   const hit = (await loadLockedLogs()).find((l) => l.id === id);
-  if (hit?.ts) return hit.ts;
-  return hit ? blockTs(hit.block) : null;   // pre-Blockscout logs carry ts 0
+  const ts = hit?.ts || (hit ? await blockTs(hit.block) : null);  // pre-Blockscout logs carry ts 0
+  if (ts) {
+    store[id] = ts;
+    try { localStorage.setItem("hl_lockts", JSON.stringify(store)); } catch { /* quota — memory cache still helps */ }
+  }
+  return ts;
 }
 // block → timestamp cache
 const blockTsCache = new Map<string, number>();
@@ -860,8 +896,19 @@ async function blockTs(bn: bigint): Promise<number | null> {
   } catch { return null; }
 }
 const metaCache = new Map<string, { symbol: string; decimals: number }>();
-async function tokMeta(addr: string) {
-  if (metaCache.has(addr)) return metaCache.get(addr)!;
+/* metaCache fylls först efter läsningen, så en tabell med samma token på flera
+   rader startade ett uppslag per rad. Dela det pågående i stället. */
+const metaInflight = new Map<string, Promise<{ symbol: string; decimals: number }>>();
+function tokMeta(addr: string) {
+  const cached = metaCache.get(addr);
+  if (cached) return Promise.resolve(cached);
+  const running = metaInflight.get(addr);
+  if (running) return running;
+  const p = readTokMeta(addr).finally(() => metaInflight.delete(addr));
+  metaInflight.set(addr, p);
+  return p;
+}
+async function readTokMeta(addr: string) {
   try {
     const [symbol, decimals] = await Promise.all([
       pub.readContract({ address: addr as `0x${string}`, abi: ERC20, functionName: "symbol" }),
@@ -1086,6 +1133,9 @@ async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], limit 
 async function loadExplore() {
   const box = $("exploreBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading latest activity… <span class="spin"></span></div></div>`;
+  // Lock timestamps come from Blockscout and that call alone takes ~3s, so
+  // start it now rather than partway through building the rows.
+  loadLockedLogs().catch(() => []);
   try {
     const [totalLocks, totalBurns, totalVests] = await Promise.all([
       pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }).then(Number),
@@ -1103,8 +1153,13 @@ async function loadExplore() {
     ]);
     const vests = vestRows.filter((v): v is VestRow => !!v);
     // One table, one look: vesting rows share the explore columns with locks/burns.
-    const vestRowsHTML = (await Promise.all(vests.map(vestExploreRowHTML))).join("");
-    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${vestRowsHTML}${await buildExploreRows(lockRows, burnRows)}</tbody></table>`;
+    // Both halves read token metadata and prices, so build them together —
+    // waiting for the vesting rows first doubled the time to first render.
+    const [vestRowsHTML, lockBurnHTML] = await Promise.all([
+      Promise.all(vests.map(vestExploreRowHTML)).then((r) => r.join("")),
+      buildExploreRows(lockRows, burnRows),
+    ]);
+    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${vestRowsHTML}${lockBurnHTML}</tbody></table>`;
     wireActions(box); wireVestActions(box);
     exploreLoaded = true;
   } catch {

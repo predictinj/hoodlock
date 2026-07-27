@@ -33,14 +33,28 @@ export interface TvlResult {
   ethUsd: number;
 }
 
+/* Varje rad på skärmen frågar efter ETH-priset. Utan avdubblering blev det ett
+   Coinbase-anrop per rad mot samma URL, som köade bakom webbläsarens gräns på
+   sex anslutningar per värd — sista svaret kom 1,5 s efter det första. */
+let ethUsdInflight: Promise<number> | null = null;
+let ethUsdVal = 0, ethUsdAt = 0;
 async function ethUsdPrice(): Promise<number> {
-  try {
-    const r = await fetch("https://api.coinbase.com/v2/prices/ETH-USD/spot");
-    const j: any = await r.json();
-    const p = Number(j?.data?.amount);
-    if (p > 0) { try { localStorage.setItem("hl_ethusd", String(p)); } catch { /* */ } return p; }
-  } catch { /* fall through */ }
-  try { return Number(localStorage.getItem("hl_ethusd")) || 0; } catch { return 0; }
+  if (ethUsdVal > 0 && Date.now() - ethUsdAt < 60_000) return ethUsdVal;
+  if (ethUsdInflight) return ethUsdInflight;
+  ethUsdInflight = (async () => {
+    try {
+      const r = await fetch("https://api.coinbase.com/v2/prices/ETH-USD/spot");
+      const j: any = await r.json();
+      const p = Number(j?.data?.amount);
+      if (p > 0) {
+        ethUsdVal = p; ethUsdAt = Date.now();
+        try { localStorage.setItem("hl_ethusd", String(p)); } catch { /* */ }
+        return p;
+      }
+    } catch { /* fall through */ }
+    try { return Number(localStorage.getItem("hl_ethusd")) || 0; } catch { return 0; }
+  })();
+  try { return await ethUsdInflight; } finally { ethUsdInflight = null; }
 }
 
 // pool-cache i localStorage — factoryn ändrar sig aldrig för ett givet par
@@ -55,18 +69,35 @@ function rememberPool(token: string, pool: string | null) {
   try { localStorage.setItem(`hl_pool_${token.toLowerCase()}`, pool ?? "none"); } catch { /* */ }
 }
 
-async function findPool(pub: PublicClient, token: `0x${string}`): Promise<`0x${string}` | null> {
+/* Pool-cachen ligger i localStorage och skrivs först efter uppslaget, så N rader
+   med samma token startade N identiska uppslag. Dela det pågående i stället. */
+const poolInflight = new Map<string, Promise<`0x${string}` | null>>();
+function findPool(pub: PublicClient, token: `0x${string}`): Promise<`0x${string}` | null> {
+  const key = token.toLowerCase();
   const hit = cachedPool(token);
-  if (hit !== undefined) return hit as `0x${string}` | null;
-  for (const fee of FEES) {
-    try {
-      const pool = await pub.readContract({ address: FACTORY, abi: FACTORY_ABI, functionName: "getPool", args: [token, WETH, fee] }) as string;
-      if (pool && pool !== ZERO) {
-        // kräver faktiskt WETH-djup — en tom pool är ingen priskälla
-        const bal = await pub.readContract({ address: WETH, abi: ERC20_MIN, functionName: "balanceOf", args: [pool as `0x${string}`] }) as bigint;
-        if (bal > 0n) { rememberPool(token, pool); return pool as `0x${string}`; }
-      }
-    } catch { /* prova nästa fee-tier */ }
+  if (hit !== undefined) return Promise.resolve(hit as `0x${string}` | null);
+  const running = poolInflight.get(key);
+  if (running) return running;
+  const p = lookupPool(pub, token).finally(() => poolInflight.delete(key));
+  poolInflight.set(key, p);
+  return p;
+}
+async function lookupPool(pub: PublicClient, token: `0x${string}`): Promise<`0x${string}` | null> {
+  // Alla fee-tiers samtidigt. Tidigare gick loopen ett varv i taget med två
+  // väntande anrop per varv, så en opoolad token kostade åtta rundturer i rad
+  // — gånger antalet tokens på skärmen.
+  const pools = await Promise.all(FEES.map((fee) =>
+    (pub.readContract({ address: FACTORY, abi: FACTORY_ABI, functionName: "getPool", args: [token, WETH, fee] }) as Promise<string>)
+      .then((p) => (p && p !== ZERO ? (p as `0x${string}`) : null))
+      .catch(() => null)));
+  const bals = await Promise.all(pools.map((p) => p
+    ? (pub.readContract({ address: WETH, abi: ERC20_MIN, functionName: "balanceOf", args: [p] }) as Promise<bigint>).catch(() => 0n)
+    : Promise.resolve(0n)));
+  // samma urvalsregel som förut: första tiern i FEES-ordning med faktiskt
+  // WETH-djup — en tom pool är ingen priskälla
+  for (let i = 0; i < pools.length; i++) {
+    const p = pools[i];
+    if (p && bals[i] > 0n) { rememberPool(token, p); return p; }
   }
   rememberPool(token, null);
   return null;

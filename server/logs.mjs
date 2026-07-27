@@ -70,17 +70,42 @@ async function fromRpcChunked(pub, address, fromBlock, head) {
  * timestamps), chunked RPC as fallback. Cached for `ttlMs`.
  */
 export function makeLogReader({ pub, explorer, ttlMs = 60_000, deployBlock = 0n, log = () => {} }) {
-  const cache = new Map(); // address -> { at, logs }
-  return async function readLogs(address) {
+  const cache = new Map();    // address -> { at, logs }
+  const inflight = new Map(); // address -> Promise, so N callers share one fetch
+
+  function readLogs(address) {
     const key = String(address).toLowerCase();
     const hit = cache.get(key);
-    if (hit && Date.now() - hit.at < ttlMs) return hit.logs;
+    if (hit && Date.now() - hit.at < ttlMs) return Promise.resolve(hit.logs);
+    // Blockscout answers in 4–14s. Once we have anything at all, serve it and
+    // refresh behind the response — slightly stale beats a ten-second wait.
+    if (hit) { refresh(key).catch(() => {}); return Promise.resolve(hit.logs); }
+    return refresh(key);
+  }
 
+  function refresh(key) {
+    const running = inflight.get(key);
+    if (running) return running;
+    const p = fetchLogs(key).finally(() => inflight.delete(key));
+    inflight.set(key, p);
+    return p;
+  }
+
+  readLogs.warm = (addresses) => Promise.all(
+    addresses.filter(Boolean).map((a) => refresh(String(a).toLowerCase()).catch(() => {})),
+  );
+
+  return readLogs;
+
+  async function fetchLogs(key) {
+    const hit = cache.get(key);
     let logs = null;
     if (explorer) {
       try {
         const ac = new AbortController();
-        const t = setTimeout(() => ac.abort(), 12_000);
+        // Blockscout has been measured at up to ~14s. Aborting sooner drops us
+        // to the chunked-RPC path, which is far slower — wait it out instead.
+        const t = setTimeout(() => ac.abort(), 25_000);
         try { logs = await fromBlockscout(explorer, key, ac.signal); }
         finally { clearTimeout(t); }
       } catch (e) { log(`blockscout logs failed for ${key}: ${e?.message || e}`); }
@@ -100,7 +125,7 @@ export function makeLogReader({ pub, explorer, ttlMs = 60_000, deployBlock = 0n,
     logs.sort((a, b) => (a.blockNumber === b.blockNumber ? 0 : a.blockNumber < b.blockNumber ? -1 : 1));
     cache.set(key, { at: Date.now(), logs });
     return logs;
-  };
+  }
 }
 
 /** Keep only logs whose topic0 matches, decoding nothing else. */

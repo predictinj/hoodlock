@@ -28,7 +28,10 @@ const RPC_URLS = [process.env.RPC_URL, ...(Array.isArray(cfg.rpcs) ? cfg.rpcs : 
   .filter((u) => typeof u === "string" && /^https?:\/\//.test(u))
   .filter((u, i, a) => a.indexOf(u) === i);
 const CHAIN = defineChain({ id: cfg.chainId, name: "Robinhood Chain",
-  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: RPC_URLS } } });
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: RPC_URLS } },
+  // Canonical Multicall3 — lets viem fold proof-page and sitemap reads into
+  // one eth_call instead of one round-trip per contract read.
+  contracts: { multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" } } });
 const rpcTransport = fallback(
   // A dead dedicated endpoint must fail fast, not sit on a long timeout while
   // a crawler waits — short timeout and one retry, then straight to the next.
@@ -37,7 +40,7 @@ const rpcTransport = fallback(
     : { timeout: 12_000, retryCount: 2, retryDelay: 400 })),
   { rank: false },
 );
-const pub = createPublicClient({ chain: CHAIN, transport: rpcTransport });
+const pub = createPublicClient({ chain: CHAIN, transport: rpcTransport, batch: { multicall: { wait: 16 } } });
 console.log(`[hoodlock] rpc: ${RPC_URLS.length} endpoint(s)${process.env.RPC_URL ? " (dedicated first)" : " (public only)"}`);
 const LOCKER = getAddress(cfg.locker);
 const LOCKED_EVENT = { type: "event", name: "Locked", inputs: [
@@ -834,6 +837,27 @@ function sendProof(res, meta) {
   });
 }
 
+/* Blockscout's logs endpoint answers in anywhere from 4 to 14 seconds, and the
+   app can't sort a single row without it. We already read and cache the same
+   logs here, so serve them from that cache instead of making every visitor
+   wait on the explorer. Restricted to our own contracts — this is a cache, not
+   an open proxy. */
+app.get("/api/logs/:address", async (req, res) => {
+  const want = String(req.params.address || "").toLowerCase();
+  const allowed = [LOCKER, BURNER, VESTING].filter(Boolean).map((a) => String(a).toLowerCase());
+  if (!allowed.includes(want)) return res.status(404).json({ error: "unknown contract" });
+  try {
+    const logs = await readLogs(want);
+    res.set("Cache-Control", "public, max-age=30");
+    res.json({
+      logs: logs.map((l) => ({
+        topics: l.topics, data: l.data,
+        block: Number(l.blockNumber), tx: l.transactionHash, ts: l.timestamp || 0,
+      })),
+    });
+  } catch { res.status(502).json({ error: "logs unavailable" }); }
+});
+
 /* ---------- static site with the same rewrites as serve.json ---------- */
 const send = (res, file) => res.sendFile(join(PUBLIC, file));
 app.get("/", (_req, res) => send(res, "index.html"));
@@ -975,4 +999,11 @@ app.get("/blog/:slug", (req, res) => {
 app.use(express.static(PUBLIC, { extensions: ["html"] }));
 app.use((_req, res) => send(res, "index.html"));
 
-app.listen(PORT, () => console.log(`[hoodlock] listening on ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`[hoodlock] listening on ${PORT}`);
+  // Pull the logs once at boot so the first visitor after a deploy doesn't pay
+  // Blockscout's cold latency. Failures are fine — the cache just stays empty.
+  readLogs.warm([LOCKER, BURNER, VESTING])
+    .then(() => console.log("[hoodlock] log cache warm"))
+    .catch(() => {});
+});
