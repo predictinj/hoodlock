@@ -1032,15 +1032,9 @@ async function loadExplore() {
       Promise.all(vestIds.map((i) => readVest(i).catch(() => null))),
     ]);
     const vests = vestRows.filter((v): v is VestRow => !!v);
-    const vestHTML = vests.length
-      ? `<div style="margin:4px 4px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3)">VESTING SCHEDULES</div>
-         <table>${VEST_HEAD}<tbody>${(await Promise.all(vests.map((v) => vestRowHTML(v, "creator")))).join("")}</tbody></table>`
-      : "";
-    const lockHTML = (totalLocks || totalBurns)
-      ? `${vests.length ? `<div style="margin:16px 4px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3)">LOCKS &amp; BURNS</div>` : ""}
-         <table>${TABLE_HEAD_EXPLORE}<tbody>${await buildExploreRows(lockRows, burnRows)}</tbody></table>`
-      : "";
-    box.innerHTML = vestHTML + lockHTML;
+    // One table, one look: vesting rows share the explore columns with locks/burns.
+    const vestRowsHTML = (await Promise.all(vests.map(vestExploreRowHTML))).join("");
+    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${vestRowsHTML}${await buildExploreRows(lockRows, burnRows)}</tbody></table>`;
     wireActions(box); wireVestActions(box);
     exploreLoaded = true;
   } catch {
@@ -1077,14 +1071,13 @@ async function runSearch() {
     const rows = await Promise.all(ids.map(readLock));
     const burns = await Promise.all(burnIds.map(readBurn));
     const merged = await buildExploreRows(rows, burns, 100);
-    let vestHTML = "";
+    let vestRowsHTML = "";
     if (vestIds.length) {
       const vrows = (await Promise.all(vestIds.map((i) => readVest(i).catch(() => null)))).filter((v): v is VestRow => !!v).reverse();
-      vestHTML = `<div style="margin:14px 4px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3)">VESTING SCHEDULES</div>
-        <table>${VEST_HEAD}<tbody>${(await Promise.all(vrows.slice(0, 50).map((v) => vestRowHTML(v, "creator")))).join("")}</tbody></table>`;
+      vestRowsHTML = (await Promise.all(vrows.slice(0, 50).map(vestExploreRowHTML))).join("");
     }
-    const lockTable = merged ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${merged}</tbody></table>` : "";
-    box.innerHTML = (lockTable + vestHTML) || `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
+    const combined = vestRowsHTML + (merged || "");
+    box.innerHTML = combined ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${combined}</tbody></table>` : `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
     wireActions(box); wireVestActions(box);
   } catch {
     box.innerHTML = `<div class="empty"><div class="big">Search failed</div><div class="small">Couldn't reach Robinhood Chain — try again.</div></div>`;
@@ -2322,6 +2315,29 @@ async function vCreate() {
 
 /* ---------- my schedules ---------- */
 const VEST_HEAD = `<thead><tr><th>Token</th><th>Total</th><th>Vested</th><th>Claimed</th><th>Claimable</th><th>Fully vested</th><th style="text-align:right">Actions</th></tr></thead>`;
+/** Vesting row shaped exactly like an explore lock row: Token | Amount | Unlocks(→vested %) | TVL(unclaimed) | Status | Actions. */
+async function vestExploreRowHTML(v: VestRow): Promise<string> {
+  const m = await tokMeta(v.token);
+  const now = Math.floor(Date.now() / 1000);
+  const vested = vestedAt(v, now);
+  const pct = v.total > 0n ? Number((vested * 1000n) / v.total) / 10 : 0;
+  const fully = now >= v.end;
+  const daysLeft = Math.max(1, Math.ceil((v.end - now) / 86400));
+  const status = fully
+    ? `<span class="status unlockable"><i></i>FULLY VESTED</span>`
+    : `<span class="status locked"><i></i>VESTED · ${daysLeft}D</span>`;
+  const unclaimed = v.total - v.claimed;
+  const usd = unclaimed > 0n ? await amountValueUsd(pub as any, v.token as `0x${string}`, unclaimed, m.decimals).catch(() => null) : null;
+  const tvl = usd !== null && usd > 0 ? fmtUsd(usd) : "—";
+  return `<tr>
+    <td><div class="tk-cell">${await tokenIcoHTML(v.token, m.symbol)}
+      <div><div class="n">$${escape(m.symbol)} <span class="tag">VEST #${v.id}</span></div><div class="a">${short(v.token)}</div></div></div></td>
+    <td>${fmtNum(v.total, m.decimals)}</td>
+    <td>${fully ? "100%" : pct.toFixed(1) + "%"} vested</td>
+    <td>${tvl}</td>
+    <td>${status}</td>
+    <td><div class="row-actions"><button class="btn btn-line btn-sm" data-vproof="${v.id}">Proof</button></div></td></tr>`;
+}
 async function vestRowHTML(v: VestRow, role: "recipient" | "creator"): Promise<string> {
   const m = await tokMeta(v.token);
   const now = Math.floor(Date.now() / 1000);
