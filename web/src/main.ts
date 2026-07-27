@@ -2154,12 +2154,16 @@ function updateVSummary() {
   $("vsCliff").textContent = d ? (d.cliff > d.start ? dateTimeUTC(d.cliff) : "no cliff") : "—";
   $("vsEnd").textContent = d ? dateTimeUTC(d.end) : "—";
   // F-6: surface how much of the schedule is already liquid at creation time.
+  // Deterministic format — 0%, <0.1%, or one decimal — so the label never
+  // flips between 0.00%/0.0% as fields change.
   let pre = "0%";
+  let preFrac = 0;
   if (d && d.end > d.start) {
-    const frac = now <= d.cliff && now <= d.start ? 0 : Math.max(0, Math.min(1, now < d.cliff ? 0 : (now - d.start) / (d.end - d.start)));
-    pre = (frac * 100).toFixed(frac > 0 && frac < 0.01 ? 2 : 1) + "%";
-    ($("vsPreVested") as HTMLElement).style.color = frac > 0.5 ? "#f5b731" : "";
+    preFrac = now < d.cliff ? 0 : Math.max(0, Math.min(1, (now - d.start) / (d.end - d.start)));
+    const pct = preFrac * 100;
+    pre = pct === 0 ? "0%" : pct < 0.1 ? "<0.1%" : pct.toFixed(1) + "%";
   }
+  ($("vsPreVested") as HTMLElement).style.color = preFrac > 0.5 ? "#f5b731" : "";
   $("vsPreVested").textContent = pre;
   const n = BigInt(Math.max(rows.length, 1));
   $("vsFee").textContent = vestingFee > 0n ? `${formatUnits(vestingFee * n, 18)} ETH` : "free";
