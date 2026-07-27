@@ -10,6 +10,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { keccak256, toHex } from "viem";
 import { makeLogReader, byTopic, addrArg, addrParam } from "./logs.mjs";
 import { makeOgRenderer, fontsReady } from "./og.mjs";
+import { tokenData, renderTokenPage } from "./token.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -917,6 +918,36 @@ app.get("/og/:kind/:id.png", async (req, res) => {
   res.set("Cache-Control", "public, max-age=86400");
   return res.end(png);
 });
+
+/* Token pages. Prototype: noindex and not in the sitemap until the quality
+   gate exists — the chain mints tens of thousands of tokens a day and almost
+   none of them deserve a page. */
+const tokenCache = new Map();
+app.get("/token/:slug", async (req, res) => {
+  const slug = String(req.params.slug || "");
+  const m = /(0x[0-9a-fA-F]{40})$/.exec(slug);
+  if (!m) return next404(res);
+  const addr = m[1].toLowerCase();
+  try {
+    const hit = tokenCache.get(addr);
+    let d = hit && Date.now() - hit.at < 60 * 60_000 ? hit.d : null;
+    if (!d) {
+      d = await tokenData({
+        address: addr, explorer: cfg.explorer, pub,
+        contracts: { LOCKER, BURNER, VESTING },
+        abis: { locker: LOCKER_READ_ABI, burner: BURNER_READ_ABI, vesting: VESTING_READ_ABI },
+      });
+      if (!d) return next404(res);
+      tokenCache.set(addr, { at: Date.now(), d });
+    }
+    res.set("Cache-Control", "public, max-age=300");
+    return res.type("html").send(renderTokenPage(d, { slug, noindex: true }));
+  } catch (e) {
+    console.log("[hoodlock] token page failed:", e?.message || e);
+    return next404(res);
+  }
+});
+function next404(res) { res.status(404); return send(res, "404.html"); }
 
 /* ---------- static site with the same rewrites as serve.json ---------- */
 const send = (res, file) => res.sendFile(join(PUBLIC, file));
