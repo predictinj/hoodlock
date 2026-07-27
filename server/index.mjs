@@ -990,6 +990,21 @@ app.get("/sitemap.xml", async (_req, res) => {
       ["/blog/how-to-set-up-token-vesting", "monthly", "0.7"],
       ["/blog/what-is-a-vesting-cliff", "monthly", "0.6"],
       ["/blog/how-long-should-you-lock-liquidity", "monthly", "0.6"],
+      ["/blog/how-to-check-if-liquidity-is-burned", "monthly", "0.7"],
+      ["/blog/how-to-read-token-holder-distribution", "monthly", "0.7"],
+      ["/blog/what-is-a-honeypot-token", "monthly", "0.7"],
+      ["/blog/how-to-verify-a-token-contract-on-blockscout", "monthly", "0.7"],
+      ["/blog/what-happens-when-a-token-lock-expires", "monthly", "0.7"],
+      ["/blog/token-launch-checklist-robinhood-chain", "monthly", "0.7"],
+      ["/blog/team-token-allocation-benchmarks", "monthly", "0.7"],
+      ["/blog/how-to-prove-your-project-wont-rug", "monthly", "0.7"],
+      ["/blog/locking-treasury-and-ecosystem-funds", "monthly", "0.7"],
+      ["/blog/how-to-choose-a-token-locker", "monthly", "0.7"],
+      ["/blog/what-are-lp-tokens", "monthly", "0.6"],
+      ["/blog/burning-vs-locking-liquidity", "monthly", "0.6"],
+      ["/blog/circulating-vs-total-supply", "monthly", "0.6"],
+      ["/blog/custodial-vs-non-custodial-locking", "monthly", "0.6"],
+      ["/blog/what-is-a-token-unlock-schedule", "monthly", "0.6"],
     ];
     const parts = statics.map(([p, cf, pr]) =>
       `  <url><loc>https://hoodlock.tech${p}</loc><lastmod>${today}</lastmod><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`);

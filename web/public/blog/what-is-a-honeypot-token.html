@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Is a Honeypot Token? Spotting One on Robinhood Chain | HoodLock</title>
+<meta name="description" content="A honeypot lets you buy but not sell. The contract mechanisms behind them, how to test a Robinhood Chain token before committing, and why locked liquidity doesn't protect you.">
+<link rel="canonical" href="https://hoodlock.tech/blog/what-is-a-honeypot-token">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="What Is a Honeypot Token? Spotting One on Robinhood Chain | HoodLock"><meta property="og:description" content="A honeypot lets you buy but not sell. The contract mechanisms behind them, how to test a Robinhood Chain token before committing, and why locked liquidity doesn't protect you.">
+<meta property="og:url" content="https://hoodlock.tech/blog/what-is-a-honeypot-token">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "What Is a Honeypot Token? Spotting One on Robinhood Chain | HoodLock", "description": "A honeypot lets you buy but not sell. The contract mechanisms behind them, how to test a Robinhood Chain token before committing, and why locked liquidity doesn't protect you.", "datePublished": "2026-07-27", "dateModified": "2026-07-27", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/what-is-a-honeypot-token"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What is a honeypot token?", "acceptedAnswer": {"@type": "Answer", "text": "A honeypot is a token whose contract lets you buy but prevents you from selling. The restriction is written into the transfer logic, usually through a blacklist, a whitelist, an adjustable sell tax or a pause switch that only the owner can flip."}}, {"@type": "Question", "name": "Does locked liquidity protect against honeypots?", "acceptedAnswer": {"@type": "Answer", "text": "No. A liquidity lock guarantees the liquidity stays in the pool, but it says nothing about whether the token contract allows you to reach that pool. A project can lock all of its LP and still ship a contract that blocks selling."}}, {"@type": "Question", "name": "How do I check if a token is a honeypot?", "acceptedAnswer": {"@type": "Answer", "text": "Read the verified contract source for conditions on transfers and owner-changeable fee or blacklist variables, check who can call privileged functions, run a sell simulation, and look at whether anyone has actually sold on the pair's transaction history."}}, {"@type": "Question", "name": "Can a token become a honeypot after I buy it?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, if the owner retains functions that can change fees, pause transfers or blacklist addresses. This is why checking who holds privileged powers matters more than confirming a sale works at one moment in time."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>Honeypot tokens on Robinhood Chain — and how to <span class="serif">avoid one.</span></h1>
+<div class="meta">Published 2026-07-27 · HoodLock Team</div>
+<p>A <b>honeypot</b> is a token you can buy and cannot sell. The chart looks healthy, buys go through, and the moment you try to exit the transaction fails. It's not a market problem — it's written into the contract, and Robinhood Chain is no more immune to it than any other chain.</p>
+
+<h2>How they work</h2>
+<p>The trap is always in code that treats buying and selling differently. The common mechanisms:</p>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>Blacklist mapping</b> — the owner can flag any address, and flagged addresses can't transfer. Buyers get added after they buy.</li>
+<li><b>Whitelist-only selling</b> — transfers to the pool are restricted to approved addresses, which in practice means the team.</li>
+<li><b>Adjustable sell tax</b> — a fee variable the owner can raise. Set to 100%, selling technically works and returns nothing.</li>
+<li><b>Max transaction limits</b> — a cap set so low that no meaningful sale can execute.</li>
+<li><b>Paused transfers</b> — a global switch the owner flips after enough buys.</li>
+</ul>
+</div>
+<p>What these share is an <i>owner-controlled</i> condition on transfers. That's the pattern to look for, more than any specific function name.</p>
+
+<h2>How to check before you buy</h2>
+<ol>
+<li><b>Read the verified source.</b> On Blockscout, open the contract's code tab and search for the transfer function. Look for any condition on the sender or recipient, and any variable an owner function can change.</li>
+<li><b>Check who owns it.</b> If privileged functions exist, find out which address can call them and whether ownership was renounced on-chain.</li>
+<li><b>Simulate a sell.</b> Honeypot detection tools run a buy and a sell against the current contract state and report whether the sell would succeed. Treat this as a snapshot — an owner can change the rules after you check.</li>
+<li><b>Look at whether anyone has sold.</b> On the pair's transaction history, a token with hundreds of buys and no sells is telling you something plainly.</li>
+</ol>
+
+<h2>Why unverified source is disqualifying</h2>
+<p>If the contract source isn't verified on the block explorer, none of the above is possible. You cannot check the transfer logic, cannot see who has privileges, and cannot confirm the deployed bytecode matches anything anyone published. A honeypot is exactly the kind of thing unverified source hides, which is why "source not verified" is worth treating as an answer rather than a missing data point.</p>
+
+<h2>What locked liquidity does and doesn't do</h2>
+<p>This is the part people get wrong. <b>Locked liquidity does not protect you from a honeypot.</b> A lock guarantees the liquidity stays in the pool — it says nothing about whether the token contract will let you reach that pool. A project can lock 100% of its LP for two years and still ship a contract that blocks selling.</p>
+<p>The two checks answer different questions. A lock tells you the exit exists; the contract tells you whether you're allowed to use it. <a href="/blog/how-to-check-if-liquidity-is-locked">Check the lock</a>, then read the transfer logic.</p>
+
+<h2>The honest limitation</h2>
+<p>Every check here describes the contract as it is right now. If an owner retains the ability to change fees, pause transfers or blacklist addresses, a token that passes today can become a honeypot tomorrow. That's why the meaningful question isn't "can I sell right now" but "does anyone hold the power to stop me later" — and that answer lives in the source code, not in a scanner's green tick.</p>
+<h2>Common questions</h2>
+<h3>What is a honeypot token?</h3>
+<p>A honeypot is a token whose contract lets you buy but prevents you from selling. The restriction is written into the transfer logic, usually through a blacklist, a whitelist, an adjustable sell tax or a pause switch that only the owner can flip.</p>
+<h3>Does locked liquidity protect against honeypots?</h3>
+<p>No. A liquidity lock guarantees the liquidity stays in the pool, but it says nothing about whether the token contract allows you to reach that pool. A project can lock all of its LP and still ship a contract that blocks selling.</p>
+<h3>How do I check if a token is a honeypot?</h3>
+<p>Read the verified contract source for conditions on transfers and owner-changeable fee or blacklist variables, check who can call privileged functions, run a sell simulation, and look at whether anyone has actually sold on the pair&#x27;s transaction history.</p>
+<h3>Can a token become a honeypot after I buy it?</h3>
+<p>Yes, if the owner retains functions that can change fees, pause transfers or blacklist addresses. This is why checking who holds privileged powers matters more than confirming a sale works at one moment in time.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/how-to-verify-a-token-contract-on-blockscout">How to read a token contract on Blockscout</a></li>
+<li><a href="/blog/rug-pull-red-flags-checklist">Rug pull red flags: a checklist</a></li>
+<li><a href="/blog/how-to-check-if-liquidity-is-locked">How to check if liquidity is locked</a></li>
+</ul>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Verify the lock, then read the contract</h2>
+  <p>HoodLock proof pages link straight to the verified contract on Blockscout.</p>
+  <a class="btn" href="/app/explore">Explore locks →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

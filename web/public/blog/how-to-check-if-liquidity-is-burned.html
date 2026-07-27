@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Check if Liquidity Is Burned on Robinhood Chain | HoodLock</title>
+<meta name="description" content="Burned and locked liquidity are different commitments with different risks. How to tell them apart on Robinhood Chain, and why a burn isn't automatically stronger.">
+<link rel="canonical" href="https://hoodlock.tech/blog/how-to-check-if-liquidity-is-burned">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="How to Check if Liquidity Is Burned on Robinhood Chain | HoodLock"><meta property="og:description" content="Burned and locked liquidity are different commitments with different risks. How to tell them apart on Robinhood Chain, and why a burn isn't automatically stronger.">
+<meta property="og:url" content="https://hoodlock.tech/blog/how-to-check-if-liquidity-is-burned">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "How to Check if Liquidity Is Burned on Robinhood Chain | HoodLock", "description": "Burned and locked liquidity are different commitments with different risks. How to tell them apart on Robinhood Chain, and why a burn isn't automatically stronger.", "datePublished": "2026-07-27", "dateModified": "2026-07-27", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/how-to-check-if-liquidity-is-burned"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What's the difference between burned and locked liquidity?", "acceptedAnswer": {"@type": "Answer", "text": "Burned LP tokens are sent to an address nobody controls, so the liquidity can never be withdrawn by anyone. Locked LP tokens sit in a time-locked contract and return to the owner on a set date. A burn is permanent; a lock is a deadline."}}, {"@type": "Question", "name": "How can I tell if LP tokens were burned?", "acceptedAnswer": {"@type": "Answer", "text": "Open the LP token contract on the block explorer and look at the holder list. If the top holder is a null address such as 0x000...000 or one ending in dEaD, those LP tokens were burned. Check what percentage of LP supply it covers, not just that a burn exists."}}, {"@type": "Question", "name": "Is burning liquidity better than locking it?", "acceptedAnswer": {"@type": "Answer", "text": "For the specific risk of a rug pull, burning is stronger because nothing can ever be withdrawn. But it also means the project can never migrate the pool to a different DEX or fix a misconfigured pool. A long lock that gets extended repeatedly can signal ongoing commitment in a way a one-time burn cannot."}}, {"@type": "Question", "name": "If a project burned tokens, does that mean liquidity is safe?", "acceptedAnswer": {"@type": "Answer", "text": "No. Burning project tokens and burning LP tokens are different actions. Teams often burn a share of token supply before launch, which does nothing to protect the liquidity pool. Check which contract the burn actually touched."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>How to check if liquidity is <span class="serif">burned.</span></h1>
+<div class="meta">Published 2026-07-27 · HoodLock Team</div>
+<p>On Robinhood Chain, as everywhere else, people use "burned" and "locked" as if they mean the same thing. They don't, and the difference changes what you're actually protected against. Burned liquidity is gone permanently. Locked liquidity comes back on a date. Both can be verified in about the same amount of time.</p>
+
+<h2>The difference in one line</h2>
+<p>Burning LP tokens sends them to an address nobody controls, so the liquidity can never be withdrawn by anyone, ever. Locking LP tokens puts them in a time-locked contract that releases them to the owner on a specific date. A burn is permanent; a lock is a deadline.</p>
+
+<h2>How to check for a burn</h2>
+<ol>
+<li><b>Find the LP token contract</b> for the trading pair, not the project token.</li>
+<li><b>Open its holder list</b> on Blockscout at <code>robinhoodchain.blockscout.com</code>.</li>
+<li><b>Look at the top holder.</b> If it's an address of the form <code>0x000…000</code> or <code>0x…dEaD</code>, those LP tokens were burned. Nobody holds the key to a null address.</li>
+<li><b>Read the percentage,</b> not just the presence. A burn covering 4% of LP supply while a wallet holds the rest tells you almost nothing.</li>
+</ol>
+<p>If the top holder is instead a contract, the liquidity is more likely locked than burned — open that contract and check what it is. A locker contract will show the lock terms; a random contract might be anything.</p>
+
+<h2>Why a burn isn't automatically better</h2>
+<p>Burning sounds like the stronger commitment, and for the specific risk of a rug pull it is. But it's worth understanding the trade-off before treating it as the gold standard:</p>
+<table>
+<tr><th></th><th>Burned LP</th><th>Locked LP</th></tr>
+<tr><td>Can be withdrawn</td><td>Never</td><td>After the unlock date</td></tr>
+<tr><td>Can be migrated to a new DEX</td><td>No</td><td>Yes, after unlock</td></tr>
+<tr><td>Signals ongoing commitment</td><td>One-time act</td><td>Extensions build a record</td></tr>
+<tr><td>Recoverable if the pool design changes</td><td>No</td><td>Yes</td></tr>
+</table>
+<p>A project that burns its liquidity can never move to a better pool, fix a misconfigured fee tier, or migrate after a DEX deprecates a version. Some teams accept that permanently; others prefer a long lock they keep extending. Neither choice is a red flag on its own — what matters is that one of them was made.</p>
+
+<h2>The trick to watch for</h2>
+<div class="box">
+<p style="margin-bottom:0"><b>Burning supply is not burning liquidity.</b> A team that burns a large share of the <i>token</i> supply before launch is not protecting the pool. It's a common move that makes a 20% holder look like a 10% holder, and it's frequently announced in a way that reads as "we burned liquidity" to anyone skimming. Check which contract the burn touched: the project token or the LP token.</p>
+</div>
+
+<h2>Verifying a burn on Robinhood Chain</h2>
+<p>Burns created through HoodLock get a permanent proof page showing the token, the amount, the share of supply and the transaction — readable without a wallet. You can search any token on <a href="/app/explore">the explore page</a> to see its burns alongside its locks and vesting schedules, or follow any proof page through to Blockscout to confirm the transaction independently.</p>
+
+<h2>What to do with the answer</h2>
+<p>Neither a burn nor a lock tells you whether a project is good. They tell you whether one specific exit is closed. Pair the finding with <a href="/blog/how-to-read-token-holder-distribution">the holder distribution</a> and the rest of <a href="/blog/rug-pull-red-flags-checklist">the red flag checklist</a> before you decide anything.</p>
+<h2>Common questions</h2>
+<h3>What&#x27;s the difference between burned and locked liquidity?</h3>
+<p>Burned LP tokens are sent to an address nobody controls, so the liquidity can never be withdrawn by anyone. Locked LP tokens sit in a time-locked contract and return to the owner on a set date. A burn is permanent; a lock is a deadline.</p>
+<h3>How can I tell if LP tokens were burned?</h3>
+<p>Open the LP token contract on the block explorer and look at the holder list. If the top holder is a null address such as 0x000...000 or one ending in dEaD, those LP tokens were burned. Check what percentage of LP supply it covers, not just that a burn exists.</p>
+<h3>Is burning liquidity better than locking it?</h3>
+<p>For the specific risk of a rug pull, burning is stronger because nothing can ever be withdrawn. But it also means the project can never migrate the pool to a different DEX or fix a misconfigured pool. A long lock that gets extended repeatedly can signal ongoing commitment in a way a one-time burn cannot.</p>
+<h3>If a project burned tokens, does that mean liquidity is safe?</h3>
+<p>No. Burning project tokens and burning LP tokens are different actions. Teams often burn a share of token supply before launch, which does nothing to protect the liquidity pool. Check which contract the burn actually touched.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/how-to-check-if-liquidity-is-locked">How to check if liquidity is locked</a></li>
+<li><a href="/blog/burning-vs-locking-liquidity">Burning vs locking liquidity</a></li>
+<li><a href="/blog/how-to-burn-tokens-on-robinhood-chain">How to burn tokens on Robinhood Chain</a></li>
+</ul>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Check burns, locks and vesting in one place</h2>
+  <p>Search any token address and read its full on-chain history — no wallet needed.</p>
+  <a class="btn" href="/app/explore">Check a token →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

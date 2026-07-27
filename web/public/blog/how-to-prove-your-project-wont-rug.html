@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Prove Your Project Won't Rug (Without Asking for Trust) | HoodLock</title>
+<meta name="description" content="Trust claims don't work anymore. Here are the specific, verifiable commitments that replace them — and the order to make them so each one reinforces the next.">
+<link rel="canonical" href="https://hoodlock.tech/blog/how-to-prove-your-project-wont-rug">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="How to Prove Your Project Won't Rug (Without Asking for Trust) | HoodLock"><meta property="og:description" content="Trust claims don't work anymore. Here are the specific, verifiable commitments that replace them — and the order to make them so each one reinforces the next.">
+<meta property="og:url" content="https://hoodlock.tech/blog/how-to-prove-your-project-wont-rug">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "How to Prove Your Project Won't Rug (Without Asking for Trust) | HoodLock", "description": "Trust claims don't work anymore. Here are the specific, verifiable commitments that replace them \u2014 and the order to make them so each one reinforces the next.", "datePublished": "2026-07-27", "dateModified": "2026-07-27", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/how-to-prove-your-project-wont-rug"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How can a project prove it won't rug pull?", "acceptedAnswer": {"@type": "Answer", "text": "By making it structurally impossible rather than promising it: lock the liquidity, vest the team allocation, verify the contract source, and give up owner powers that aren't needed. Then publish the proof links instead of the claims."}}, {"@type": "Question", "name": "Is saying 'the team is doxxed' enough?", "acceptedAnswer": {"@type": "Answer", "text": "It helps, but it doesn't remove any technical ability to withdraw liquidity or dump a team allocation. Verifiable on-chain commitments and identity address different risks, and the on-chain ones are the ones people check first."}}, {"@type": "Question", "name": "What's the single most important commitment?", "acceptedAnswer": {"@type": "Answer", "text": "Locking liquidity. It removes the fastest and most common exit, and without it the other commitments tend not to be read charitably \u2014 verified source on a token with unlocked liquidity reassures nobody."}}, {"@type": "Question", "name": "Should I renounce contract ownership?", "acceptedAnswer": {"@type": "Answer", "text": "Not automatically. Renouncing removes privileged functions but also removes the ability to fix bugs. What matters more is keeping only the powers you can justify and being explicit about which ones exist and who holds them."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>How to prove you won't rug — <span class="serif">without asking.</span></h1>
+<div class="meta">Published 2026-07-27 · HoodLock Team</div>
+<p>Every project says it won't rug. The ones people believe don't say it — they make it structurally impossible and publish the link. That's the whole difference, and it's available to any team willing to give something up.</p>
+
+<h2>Why saying it doesn't work</h2>
+<p>The claim "we won't rug" carries exactly as much weight coming from a serious team as from a scam, because both say it and neither can be distinguished by the statement. Anything you say, a scam can say. Only what you <i>give up</i> separates you — and giving something up is verifiable in a way that words aren't.</p>
+
+<h2>The four commitments, in order of weight</h2>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>1. Lock the liquidity.</b> Removes the fastest exit. This is the baseline; without it nothing else you do gets read charitably.</li>
+<li><b>2. Vest the team allocation.</b> Removes the second-fastest exit and says something about time horizon that a lock can't.</li>
+<li><b>3. Verify the contract source.</b> Makes every claim about the token checkable. Free, and its absence is treated as an answer.</li>
+<li><b>4. Give up powers you don't need.</b> Every owner-only function is something you're asking to be trusted with. Keep only what you can explain.</li>
+</ul>
+</div>
+<p>The order matters because each one is read in light of the previous. Verified source on a token with unlocked liquidity doesn't reassure anyone; verified source on a token with locked LP and vested team supply completes a picture.</p>
+
+<h2>Make the commitments legible</h2>
+<p>A commitment nobody can find isn't doing any work. Three practical rules:</p>
+<ol>
+<li><b>Link, don't claim.</b> "Liquidity is locked" invites a follow-up question. A proof page link ends it.</li>
+<li><b>Put the links where the question gets asked</b> — pinned in the community, in the site footer, in the launch announcement. Not buried in a docs site.</li>
+<li><b>Use links that stay valid.</b> A proof page that reads live from the chain keeps being true; a screenshot stops being evidence the moment anything changes.</li>
+</ol>
+
+<h2>The part most teams skip</h2>
+<p>Commitments decay. An LP lock that made sense at launch becomes a countdown as the unlock date approaches, and a team that says nothing as it nears is read as planning an exit — usually unfairly, but the silence is the problem. <b>Extend before the date, not after.</b> On HoodLock unlock times can only be pushed further out, so an extension is permanent and public, and a track record of extensions is something no new project can fabricate.</p>
+
+<h2>What you're actually buying</h2>
+<p>None of this makes a project succeed. What it does is remove your project from the default category — the one where people assume the worst because most launches deserve it. You're not proving you're good; you're proving you're not the specific bad thing everyone is scanning for, which is what lets anyone evaluate the rest on its merits.</p>
+<p>Start with <a href="/blog/token-launch-checklist-robinhood-chain">the launch checklist</a> if you haven't deployed, or <a href="/app/locks">lock liquidity now</a> if you have.</p>
+<h2>Common questions</h2>
+<h3>How can a project prove it won&#x27;t rug pull?</h3>
+<p>By making it structurally impossible rather than promising it: lock the liquidity, vest the team allocation, verify the contract source, and give up owner powers that aren&#x27;t needed. Then publish the proof links instead of the claims.</p>
+<h3>Is saying &#x27;the team is doxxed&#x27; enough?</h3>
+<p>It helps, but it doesn&#x27;t remove any technical ability to withdraw liquidity or dump a team allocation. Verifiable on-chain commitments and identity address different risks, and the on-chain ones are the ones people check first.</p>
+<h3>What&#x27;s the single most important commitment?</h3>
+<p>Locking liquidity. It removes the fastest and most common exit, and without it the other commitments tend not to be read charitably — verified source on a token with unlocked liquidity reassures nobody.</p>
+<h3>Should I renounce contract ownership?</h3>
+<p>Not automatically. Renouncing removes privileged functions but also removes the ability to fix bugs. What matters more is keeping only the powers you can justify and being explicit about which ones exist and who holds them.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/token-launch-checklist-robinhood-chain">Token launch checklist</a></li>
+<li><a href="/blog/how-long-should-you-lock-liquidity">How long should you lock liquidity?</a></li>
+<li><a href="/blog/how-to-choose-a-token-locker">How to choose a token locker</a></li>
+</ul>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Replace the claim with a link</h2>
+  <p>Lock liquidity, vest the team allocation, and publish proof pages anyone can read.</p>
+  <a class="btn" href="/app">Open HoodLock →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burning vs Locking Liquidity: Which Should You Choose? | HoodLock</title>
+<meta name="description" content="Burning LP is permanent and locking is a deadline. A direct comparison of what each protects against, what each costs you, and which suits a project at a given stage.">
+<link rel="canonical" href="https://hoodlock.tech/blog/burning-vs-locking-liquidity">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Burning vs Locking Liquidity: Which Should You Choose? | HoodLock"><meta property="og:description" content="Burning LP is permanent and locking is a deadline. A direct comparison of what each protects against, what each costs you, and which suits a project at a given stage.">
+<meta property="og:url" content="https://hoodlock.tech/blog/burning-vs-locking-liquidity">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Burning vs Locking Liquidity: Which Should You Choose? | HoodLock", "description": "Burning LP is permanent and locking is a deadline. A direct comparison of what each protects against, what each costs you, and which suits a project at a given stage.", "datePublished": "2026-07-27", "dateModified": "2026-07-27", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/burning-vs-locking-liquidity"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is burning liquidity better than locking it?", "acceptedAnswer": {"@type": "Answer", "text": "For preventing a rug pull, burning is stronger because nothing can ever be withdrawn. But it also permanently removes the ability to migrate pools or fix a misconfigured fee tier, and a one-time burn says nothing new after the day it happens."}}, {"@type": "Question", "name": "Can I burn some liquidity and lock the rest?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, and it is a common structure. Burning a portion creates a permanent floor while locking the remainder keeps the ability to migrate. Both actions produce their own proof page."}}, {"@type": "Question", "name": "What happens if I burn LP and the DEX deprecates the pool?", "acceptedAnswer": {"@type": "Answer", "text": "The liquidity stays in the deprecated pool permanently. This is the most common reason teams regret burning \u2014 exchanges do deprecate pool versions, and burned LP cannot follow."}}, {"@type": "Question", "name": "Which do holders prefer to see?", "acceptedAnswer": {"@type": "Answer", "text": "Either is far better than neither. Burning reads as maximum commitment; a long lock that has been extended repeatedly reads as ongoing commitment. The only option holders consistently penalise is doing neither."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>Burning vs locking <span class="serif">liquidity.</span></h1>
+<div class="meta">Published 2026-07-27 · HoodLock Team</div>
+<p>Both remove the ability to pull liquidity. They differ in whether that removal is permanent, and the choice has consequences most teams don't think through until they need the option they gave away.</p>
+
+<h2>Side by side</h2>
+<table>
+<tr><th></th><th>Burning LP</th><th>Locking LP</th></tr>
+<tr><td>Duration</td><td>Forever</td><td>Until a date you choose</td></tr>
+<tr><td>Reversible</td><td>No</td><td>After the unlock date</td></tr>
+<tr><td>Can migrate to a new pool</td><td>No</td><td>Yes</td></tr>
+<tr><td>Ongoing signal</td><td>One act</td><td>Extensions build a record</td></tr>
+<tr><td>Cost of being wrong</td><td>Permanent</td><td>Wait for the date</td></tr>
+<tr><td>Reads to holders as</td><td>Maximum commitment</td><td>Commitment with a horizon</td></tr>
+</table>
+
+<h2>The case for burning</h2>
+<p>Burning is unambiguous. There's no date to track, no extension to remember, no expiry conversation, and no possibility that a future version of the team decides differently. For a project whose pool configuration is settled and which wants to remove the question permanently, it's the cleanest answer available.</p>
+
+<h2>The case for locking</h2>
+<p>Locking preserves optionality that turns out to matter more often than teams expect:</p>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>DEX migrations.</b> Exchanges deprecate pool versions. Burned liquidity can't follow.</li>
+<li><b>Fee tier mistakes.</b> A pool created at the wrong fee tier is a permanent problem if the LP is burned.</li>
+<li><b>Consolidating fragmented liquidity</b> across several pools into one deeper pool.</li>
+<li><b>Building a track record.</b> Each extension is a fresh, dated commitment. A burn happens once and then says nothing new.</li>
+</ul>
+</div>
+
+<h2>Which to choose</h2>
+<p>A reasonable default: <b>lock, and extend.</b> It protects against the same exit, keeps the ability to fix mistakes, and produces an accumulating record that a one-time burn doesn't. Burning makes most sense for a settled project that has already run long locks and wants to close the question permanently — the decision reads very differently at year two than at launch.</p>
+<p>What doesn't work is doing neither and explaining why. That's the only option holders actually penalise.</p>
+
+<h2>You can do both</h2>
+<p>These aren't exclusive. Burning a portion of LP while locking the rest gives a permanent floor plus a migratable remainder. Locking a large majority and burning a slice is a common shape, and both actions produce their own proof page — the combination is legible to anyone who checks.</p>
+
+<h2>Verifying either</h2>
+<p>A burn shows up as a null address in the LP token's holder list; a lock shows up as a locker contract. Both are checkable in the same place, and both get a permanent proof page on HoodLock. See <a href="/blog/how-to-check-if-liquidity-is-burned">how to check for a burn</a> and <a href="/blog/how-to-check-if-liquidity-is-locked">how to check for a lock</a>.</p>
+<h2>Common questions</h2>
+<h3>Is burning liquidity better than locking it?</h3>
+<p>For preventing a rug pull, burning is stronger because nothing can ever be withdrawn. But it also permanently removes the ability to migrate pools or fix a misconfigured fee tier, and a one-time burn says nothing new after the day it happens.</p>
+<h3>Can I burn some liquidity and lock the rest?</h3>
+<p>Yes, and it is a common structure. Burning a portion creates a permanent floor while locking the remainder keeps the ability to migrate. Both actions produce their own proof page.</p>
+<h3>What happens if I burn LP and the DEX deprecates the pool?</h3>
+<p>The liquidity stays in the deprecated pool permanently. This is the most common reason teams regret burning — exchanges do deprecate pool versions, and burned LP cannot follow.</p>
+<h3>Which do holders prefer to see?</h3>
+<p>Either is far better than neither. Burning reads as maximum commitment; a long lock that has been extended repeatedly reads as ongoing commitment. The only option holders consistently penalise is doing neither.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/how-to-check-if-liquidity-is-burned">How to check if liquidity is burned</a></li>
+<li><a href="/blog/what-are-lp-tokens">What are LP tokens?</a></li>
+<li><a href="/blog/how-long-should-you-lock-liquidity">How long should you lock liquidity?</a></li>
+</ul>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Lock it, burn it, or both</h2>
+  <p>Both produce a permanent proof page anyone can verify on Robinhood Chain.</p>
+  <a class="btn" href="/app">Open HoodLock →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

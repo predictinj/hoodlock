@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Launch Checklist for Robinhood Chain (2026) | HoodLock</title>
+<meta name="description" content="Everything to have in place before and after launching a token on Robinhood Chain — contract verification, liquidity locking, team vesting and the proof links holders will ask for.">
+<link rel="canonical" href="https://hoodlock.tech/blog/token-launch-checklist-robinhood-chain">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Token Launch Checklist for Robinhood Chain (2026) | HoodLock"><meta property="og:description" content="Everything to have in place before and after launching a token on Robinhood Chain — contract verification, liquidity locking, team vesting and the proof links holders will ask for.">
+<meta property="og:url" content="https://hoodlock.tech/blog/token-launch-checklist-robinhood-chain">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Token Launch Checklist for Robinhood Chain (2026) | HoodLock", "description": "Everything to have in place before and after launching a token on Robinhood Chain \u2014 contract verification, liquidity locking, team vesting and the proof links holders will ask for.", "datePublished": "2026-07-27", "dateModified": "2026-07-27", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/token-launch-checklist-robinhood-chain"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What should I do first when launching a token on Robinhood Chain?", "acceptedAnswer": {"@type": "Answer", "text": "Decide the distribution and what powers the contract keeps after launch, before you deploy anything. Both become public and permanent at deployment, and both are much harder to explain afterwards than to plan beforehand."}}, {"@type": "Question", "name": "When should I lock liquidity after launching?", "acceptedAnswer": {"@type": "Answer", "text": "In the same session you create the pool. The gap between pool creation and locking is a period nobody can verify, and it is the most common thing holders point to when questioning a launch."}}, {"@type": "Question", "name": "Do I need to verify my contract source?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. An unverified contract makes every other check impossible \u2014 nobody can confirm the transfer logic, the supply cap or who holds privileged functions. Verification on Blockscout is free and takes minutes."}}, {"@type": "Question", "name": "Should team tokens be locked or vested?", "acceptedAnswer": {"@type": "Answer", "text": "Vested. A lock releases everything on one date, which creates a supply cliff. Vesting releases gradually, which is both easier for the market to absorb and a stronger signal about how long the team intends to stay."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>Token launch checklist for <span class="serif">Robinhood Chain.</span></h1>
+<div class="meta">Published 2026-07-27 · HoodLock Team</div>
+<p>Most of what determines whether a launch is trusted happens before anyone can buy. This is the order to do it in, and what each step is actually for.</p>
+
+<h2>Before you deploy</h2>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>Decide the distribution and write it down.</b> Team, investors, community, liquidity, treasury — the percentages become public the moment you deploy, so decide them deliberately rather than after launch. <a href="/blog/team-token-allocation-benchmarks">Benchmarks here</a>.</li>
+<li><b>Decide what the contract can do after launch.</b> A mint function, an adjustable fee, a pause switch — each one is a power you keep, and each one is something holders will find. Keep only what you can justify.</li>
+<li><b>Plan the vesting schedule.</b> Cliff, duration, per-recipient amounts. This is far easier to get right before deployment than to explain afterwards.</li>
+</ul>
+</div>
+
+<h2>At deployment</h2>
+<ol>
+<li><b>Verify the contract source on Blockscout immediately.</b> An unverified contract is treated as a red flag by default, and the longer it stays unverified the more it gets noticed. This costs nothing and takes minutes.</li>
+<li><b>Create the liquidity pool</b> with the amount you actually intend to keep there.</li>
+<li><b>Lock the LP.</b> Do this in the same session, not next week. The window between pool creation and locking is the window nobody can verify, and screenshots of intent don't close it. <a href="/blog/how-long-should-you-lock-liquidity">How long to lock</a>.</li>
+<li><b>Put team and advisor allocations into vesting</b> rather than wallets. A large allocation sitting liquid undoes a lot of the trust the LP lock buys you.</li>
+</ol>
+
+<h2>The four links to publish</h2>
+<p>Every question you'll be asked in the first week has a link that answers it permanently. Pin them:</p>
+<table>
+<tr><th>Question</th><th>What to link</th></tr>
+<tr><td>"Is liquidity locked?"</td><td>The lock's proof page</td></tr>
+<tr><td>"Is the team allocation locked?"</td><td>The vesting proof page</td></tr>
+<tr><td>"Is the contract safe?"</td><td>The verified source on Blockscout</td></tr>
+<tr><td>"Who can change things?"</td><td>The owner address, or proof of renouncement</td></tr>
+</table>
+<p>Answering with a link rather than a claim changes the conversation permanently — it moves you from asking for trust to letting people check.</p>
+
+<h2>After launch</h2>
+<ul>
+<li><b>Extend the LP lock as you ship.</b> On HoodLock unlock times are extend-only, so each extension is permanent and builds a record a new lock can't imitate.</li>
+<li><b>Announce unlock dates before they arrive.</b> Holders can see them coming; the only choice is whether you get there first. <a href="/blog/what-happens-when-a-token-lock-expires">What actually happens at expiry</a>.</li>
+<li><b>Lock treasury and ecosystem funds too</b>, not just LP — those are usually the largest remaining unlocked balances. <a href="/blog/locking-treasury-and-ecosystem-funds">More here</a>.</li>
+</ul>
+
+<h2>What this checklist won't do</h2>
+<p>Everything above is about removing reasons not to trust you. None of it makes a project good, and none of it substitutes for building something. What it does is stop a serious project from being dismissed for the same reasons an unserious one is — which, in a market where most people check nothing beyond whether liquidity is locked, is worth doing properly.</p>
+<h2>Common questions</h2>
+<h3>What should I do first when launching a token on Robinhood Chain?</h3>
+<p>Decide the distribution and what powers the contract keeps after launch, before you deploy anything. Both become public and permanent at deployment, and both are much harder to explain afterwards than to plan beforehand.</p>
+<h3>When should I lock liquidity after launching?</h3>
+<p>In the same session you create the pool. The gap between pool creation and locking is a period nobody can verify, and it is the most common thing holders point to when questioning a launch.</p>
+<h3>Do I need to verify my contract source?</h3>
+<p>Yes. An unverified contract makes every other check impossible — nobody can confirm the transfer logic, the supply cap or who holds privileged functions. Verification on Blockscout is free and takes minutes.</p>
+<h3>Should team tokens be locked or vested?</h3>
+<p>Vested. A lock releases everything on one date, which creates a supply cliff. Vesting releases gradually, which is both easier for the market to absorb and a stronger signal about how long the team intends to stay.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/team-token-allocation-benchmarks">Team token allocation benchmarks</a></li>
+<li><a href="/blog/how-to-prove-your-project-wont-rug">How to prove your project won't rug</a></li>
+<li><a href="/blog/how-to-lock-liquidity-on-robinhood-chain">How to lock liquidity on Robinhood Chain</a></li>
+</ul>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Lock liquidity before you announce</h2>
+  <p>Flat 0.005 ETH, extend-only unlock dates, and a proof link you can pin.</p>
+  <a class="btn" href="/app/locks">Start locking →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>
