@@ -131,7 +131,7 @@ function notify(msg: string) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => $("toast").classList.remove("show"), 2800);
 }
-($("ctLink") as HTMLAnchorElement).href = `${EXP}/address/${LOCKER}`;
+// (sidebar "Contract on Blockscout" link removed — multiple contracts now; proof pages link each one)
 
 /* ---------- view routing ---------- */
 const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS", affiliate: "AFFILIATE", developers: "DEVELOPERS", admin: "ADMIN CONSOLE" };
@@ -2327,7 +2327,7 @@ async function vCreate() {
 /* ---------- my schedules ---------- */
 // Fixed column widths so "Vesting to you" and "Created by you" align exactly —
 // auto layout sized them differently (three action buttons vs one).
-const VEST_HEAD = `<thead><tr><th style="width:22%">Token</th><th style="width:11%">Total</th><th style="width:11%">Vested</th><th style="width:11%">Claimed</th><th style="width:12%">Claimable</th><th style="width:15%">Fully vested</th><th style="width:18%;text-align:right">Actions</th></tr></thead>`;
+const VEST_HEAD = `<thead><tr><th style="width:20%">Token</th><th style="width:10%">Total</th><th style="width:10%">Vested</th><th style="width:10%">Claimed</th><th style="width:11%">Claimable</th><th style="width:14%">Fully vested</th><th style="width:25%;text-align:right">Actions</th></tr></thead>`;
 const VEST_TABLE_OPEN = `<table style="table-layout:fixed;width:100%">`;
 /** Vesting row shaped exactly like an explore lock row: Token | Amount | Unlocks(→vested %) | TVL(unclaimed) | Status | Actions. */
 async function vestExploreRowHTML(v: VestRow): Promise<string> {
