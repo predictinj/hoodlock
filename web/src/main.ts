@@ -1467,11 +1467,9 @@ async function claimEarnings(me: any) {
 function devSnippet(apiKey: string): string {
   const s = `<script src="${location.origin}/embed.js" data-key="${apiKey}"></scr` + `ipt>`;
   return `${s}\n\n` +
-    `<!-- lock LP or team tokens -->\n` +
-    `<button data-hoodlock data-token="0xYourTokenAddress">Lock with HoodLock</button>\n\n` +
-    `<!-- burn supply, permanently -->\n` +
+    `<!-- Add only the products you want. Each button works on its own. -->\n\n` +
+    `<button data-hoodlock data-token="0xYourTokenAddress">Lock tokens</button>\n\n` +
     `<button data-hoodlock data-mode="burn" data-token="0xYourTokenAddress">Burn tokens</button>\n\n` +
-    `<!-- vest a team or investor allocation -->\n` +
     `<button data-hoodlock data-mode="vesting" data-token="0xYourTokenAddress"\n` +
     `        data-beneficiary="0xRecipient">Create vesting</button>`;
 }
@@ -1564,7 +1562,7 @@ async function renderDevDashboard(me: any) {
       <div class="card-head"><div><h3>Integration docs</h3><div class="sub">EMBED · JS API · REST</div></div></div>
       <div class="dev-docs">
         <h4>1 · Embed button (recommended)</h4>
-        <p>Include the script once, then add a button with <code>data-hoodlock</code> for each product you want to offer. <code>data-mode</code> picks between <code>lock</code> (the default), <code>burn</code> and <code>vesting</code>; clicking opens that flow in a modal on your page.</p>
+        <p>Include the script once, then add a button with <code>data-hoodlock</code> for each product you want to offer. <code>data-mode</code> picks between <code>lock</code> (the default), <code>burn</code> and <code>vesting</code>; clicking opens that flow in a modal on your page.</p><p class="hintline">The buttons are independent — keep only the ones you need. A burn-only integration is a single button, and you earn on it either way.</p>
         <pre class="code-block">${escape(snippet)}</pre>
         <h4>2 · JavaScript API</h4>
         <p>Open programmatically and react to results:</p>
