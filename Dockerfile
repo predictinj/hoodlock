@@ -22,15 +22,16 @@ RUN npx vite build web
 # ---- stage 2: runtime (server serves dist + api) ----
 FROM node:20-slim
 WORKDIR /app/server
-# build tools in case better-sqlite3 has no prebuilt binary for this platform,
-# plus Inter — the share-card renderer draws text and the slim image ships no
-# fonts at all, so without this every card renders blank
-RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ fonts-inter \
+# build tools in case better-sqlite3 has no prebuilt binary for this platform
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 COPY server/package.json ./
 RUN npm install --no-audit --no-fund --omit=dev
 # every server module, not just the entrypoint — index.mjs imports logs.mjs
 COPY server/*.mjs ./
+# the share-card fonts — *.mjs doesn't match a directory, and without these
+# every generated card renders as an empty gradient
+COPY server/fonts ./fonts
 # the static build + the chain config the server needs (single source of truth)
 COPY --from=build /app/web/dist ./public
 COPY web/src/config.json ./config.json

@@ -10,9 +10,21 @@
  * fonts-inter), with fallbacks so local dev renders too.
  */
 import { Resvg } from "@resvg/resvg-js";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const W = 1200, H = 630;                 // the size every platform crops from
-const FONTS = "Inter, 'Liberation Sans', 'DejaVu Sans', sans-serif";
+const FONTS = "Inter, sans-serif";
+
+/* Ship the font rather than looking one up. Installing fonts-inter into the
+ * image was not enough — resvg found nothing and rendered every card as an
+ * empty gradient, so the files are passed by path and system lookup is off.
+ * Inter is SIL OFL 1.1; see fonts/LICENSE. */
+const FONT_DIR = join(dirname(fileURLToPath(import.meta.url)), "fonts");
+const FONT_FILES = ["Inter-Regular.otf", "Inter-SemiBold.otf", "Inter-Bold.otf"]
+  .map((f) => join(FONT_DIR, f))
+  .filter((f) => existsSync(f));
 
 const BG = "#050807", NEON = "#00e05a", INK = "#eef4ef", INK2 = "#8fa396", INK3 = "#59695e";
 const KIND = {
@@ -97,9 +109,19 @@ export function ogSvg(card) {
 export function renderPng(svg) {
   return new Resvg(svg, {
     fitTo: { mode: "width", value: W },
-    font: { loadSystemFonts: true, defaultFontFamily: "Inter" },
+    font: {
+      fontFiles: FONT_FILES,
+      // Only fall back to system fonts if the bundled files went missing —
+      // a card with the wrong font still beats a card with no text.
+      loadSystemFonts: FONT_FILES.length === 0,
+      defaultFontFamily: "Inter",
+    },
   }).render().asPng();
 }
+
+/** True when text can actually be drawn — checked at boot so a missing font
+ *  shows up in the logs instead of silently shipping blank cards. */
+export const fontsReady = () => FONT_FILES.length > 0;
 
 /** Cached PNG per proof. Records are immutable enough that an hour is safe. */
 export function makeOgRenderer({ ttlMs = 60 * 60_000, log = () => {} } = {}) {

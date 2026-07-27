@@ -9,7 +9,7 @@ import { createPublicClient, createWalletClient, http, fallback, defineChain, ge
 import { privateKeyToAccount } from "viem/accounts";
 import { keccak256, toHex } from "viem";
 import { makeLogReader, byTopic, addrArg, addrParam } from "./logs.mjs";
-import { makeOgRenderer } from "./og.mjs";
+import { makeOgRenderer, fontsReady } from "./og.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -1105,6 +1105,11 @@ app.use((_req, res) => {
 
 app.listen(PORT, () => {
   console.log(`[hoodlock] listening on ${PORT}`);
+  // A missing font renders every share card as an empty gradient with no error
+  // anywhere, so say so loudly at boot rather than finding out on X.
+  console.log(fontsReady()
+    ? "[hoodlock] share-card fonts loaded"
+    : "[hoodlock] WARNING: no share-card fonts — cards will render without text");
   // Pull the logs once at boot so the first visitor after a deploy doesn't pay
   // Blockscout's cold latency. Failures are fine — the cache just stays empty.
   readLogs.warm([LOCKER, BURNER, VESTING])
