@@ -86,7 +86,7 @@ const logoInflight = new Map<string, Promise<string | null>>();
 function tokenLogo(addr: string): Promise<string | null> {
   const k = addr.toLowerCase();
   try {
-    const hit = localStorage.getItem(`hl_logo_${k}`);
+    const hit = localStorage.getItem(`hl_logo2_${k}`);
     if (hit !== null) return Promise.resolve(hit === "none" ? null : hit);
   } catch { /* */ }
   if (!logoInflight.has(k)) {
@@ -94,8 +94,14 @@ function tokenLogo(addr: string): Promise<string | null> {
       try {
         const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${k}`);
         const j: any = await r.json();
-        const url = (j.pairs || []).map((p: any) => p?.info?.imageUrl).find(Boolean) || null;
-        try { localStorage.setItem(`hl_logo_${k}`, url ?? "none"); } catch { /* */ }
+        // A pair's info.imageUrl belongs to its BASE token. Only use it when the
+        // queried token IS the base — otherwise quote tokens like WETH inherit
+        // whatever memecoin happens to be first in their pair list.
+        const url = (j.pairs || [])
+          .filter((p: any) => p?.baseToken?.address?.toLowerCase() === k)
+          .map((p: any) => p?.info?.imageUrl)
+          .find(Boolean) || null;
+        try { localStorage.setItem(`hl_logo2_${k}`, url ?? "none"); } catch { /* */ }
         return url;
       } catch { return null; }
     })());
