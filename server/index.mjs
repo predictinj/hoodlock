@@ -10,7 +10,8 @@ import { privateKeyToAccount } from "viem/accounts";
 import { keccak256, toHex } from "viem";
 import { makeLogReader, byTopic, addrArg, addrParam } from "./logs.mjs";
 import { makeOgRenderer, fontsReady } from "./og.mjs";
-import { tokenData, tokenRecords, withRecords, renderTokenPage } from "./token.mjs";
+import { tokenData, withRecords, renderTokenPage } from "./token.mjs";
+import { makeTokenIndex } from "./tokenindex.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -73,8 +74,13 @@ const T_LOCKED = keccak256(toHex("Locked(uint256,address,address,uint256,uint256
 const T_BURNED = keccak256(toHex("Burned(uint256,address,address,uint256)"));
 const T_VESTING_CREATED = keccak256(toHex("VestingCreated(uint256,address,address,address,uint256,uint64,uint64,uint64)"));
 const readLogs = makeLogReader({ pub, explorer: cfg.explorer, ttlMs: 60_000,
+  deployBlocks: cfg.deployBlocks || {},
   log: (m) => console.log("[hoodlock]", m) });
 const ogPng = makeOgRenderer({ log: (m) => console.log("[hoodlock]", m) });
+/* One index for every token page, rebuilt from logs rather than scanned per
+   token — the cost of the hundredth page is the same as the first. */
+const tokenIndex = makeTokenIndex({ readLogs, LOCKER, BURNER, VESTING,
+  log: (m) => console.log("[hoodlock]", m) });
 
 /** Every fee-bearing action with its payer and timestamp: [{wallet, ts, fee, kind}] */
 async function feeActions() {
@@ -922,42 +928,25 @@ app.get("/og/:kind/:id.png", async (req, res) => {
 /* Token pages. Prototype: noindex and not in the sitemap until the quality
    gate exists — the chain mints tens of thousands of tokens a day and almost
    none of them deserve a page. */
-const tokenCache = new Map();
+const tokenCache = new Map();  // address -> { at, meta } — explorer/DEX data only
 app.get("/token/:slug", async (req, res) => {
   const slug = String(req.params.slug || "");
   const m = /(0x[0-9a-fA-F]{40})$/.exec(slug);
   if (!m) return next404(res);
   const addr = m[1].toLowerCase();
   try {
-    // Three counters, folded into one multicall. If any has moved, someone
-    // created a lock, burn or schedule since this page was built, so the
-    // cached copy is thrown away — that is what lets the page promise it
-    // reflects a new lock on the very next load.
-    const stamp = (await Promise.all([
-      pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "totalLocks" }).catch(() => -1n),
-      BURNER ? pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "totalBurns" }).catch(() => -1n) : 0n,
-      VESTING ? pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "totalSchedules" }).catch(() => -1n) : 0n,
-    ])).join("/");
-
+    // Records come from the shared index and are always current to within its
+    // refresh; only the explorer and DEX metadata is cached per token.
+    const recs = await tokenIndex.get(addr);
     const hit = tokenCache.get(addr);
-    const abis = { locker: LOCKER_READ_ABI, burner: BURNER_READ_ABI, vesting: VESTING_READ_ABI };
-    const contracts = { LOCKER, BURNER, VESTING };
-    let d = null;
+    let d;
     if (hit && Date.now() - hit.at < 60 * 60_000) {
-      // Metadata is still good. If a counter moved, re-read only our own
-      // records — one multicall — rather than the explorer round-trips too.
-      d = hit.stamp === stamp
-        ? hit.d
-        : withRecords(hit.d, await tokenRecords({ address: addr, pub, contracts, abis }));
-      tokenCache.set(addr, { at: hit.at, stamp, d });
-    }
-    if (!d) {
-      d = await tokenData({ address: addr, explorer: cfg.explorer, pub, contracts, abis });
+      d = withRecords(hit.meta, recs);
+    } else {
+      d = await tokenData({ address: addr, explorer: cfg.explorer, recs });
       if (!d) return next404(res);
-      tokenCache.set(addr, { at: Date.now(), stamp, d });
+      tokenCache.set(addr, { at: Date.now(), meta: d });
     }
-    // Short, so a project that just locked sees the change on a reload
-    // rather than being served their own stale copy for five minutes.
     res.set("Cache-Control", "public, max-age=30");
     return res.type("html").send(renderTokenPage(d, { slug, noindex: true }));
   } catch (e) {
@@ -965,6 +954,7 @@ app.get("/token/:slug", async (req, res) => {
     return next404(res);
   }
 });
+
 function next404(res) { res.status(404); return send(res, "404.html"); }
 
 /* ---------- static site with the same rewrites as serve.json ---------- */
@@ -1162,6 +1152,7 @@ app.listen(PORT, () => {
   // Pull the logs once at boot so the first visitor after a deploy doesn't pay
   // Blockscout's cold latency. Failures are fine — the cache just stays empty.
   readLogs.warm([LOCKER, BURNER, VESTING])
-    .then(() => console.log("[hoodlock] log cache warm"))
+    .then(() => tokenIndex.warm())
+    .then((ix) => console.log(`[hoodlock] log cache warm · token index: ${ix.size} tokens`))
     .catch(() => {});
 });

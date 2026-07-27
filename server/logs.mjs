@@ -12,8 +12,8 @@
  * for when Blockscout is unreachable.
  */
 
-const CHUNK = 2000n;        // the chain's hard per-request cap
-const MAX_CHUNK_CALLS = 400; // ~800k blocks; a safety valve, not a real limit
+const CHUNK = 2000n;           // the chain's hard per-request cap
+const MAX_CHUNK_CALLS = 12_000; // enough to reach the head from any deploy block
 
 /** Normalised log shape shared by both sources. */
 const shape = (address, topics, data, blockNumber, txHash, ts, decoded = null) => ({
@@ -69,7 +69,7 @@ async function fromRpcChunked(pub, address, fromBlock, head) {
  * All logs for a contract, newest-last. Blockscout first (one call, carries
  * timestamps), chunked RPC as fallback. Cached for `ttlMs`.
  */
-export function makeLogReader({ pub, explorer, ttlMs = 60_000, deployBlock = 0n, log = () => {} }) {
+export function makeLogReader({ pub, explorer, ttlMs = 60_000, deployBlocks = {}, log = () => {} }) {
   const cache = new Map();    // address -> { at, logs }
   const inflight = new Map(); // address -> Promise, so N callers share one fetch
 
@@ -114,8 +114,14 @@ export function makeLogReader({ pub, explorer, ttlMs = 60_000, deployBlock = 0n,
     if (logs === null) {
       try {
         const head = await pub.getBlockNumber();
-        logs = await fromRpcChunked(pub, key, deployBlock, head);
-        log(`fell back to chunked rpc for ${key}: ${logs.length} logs`);
+        // Starting at block 0 meant scanning millions of blocks from before
+        // the contract existed and hitting the call cap long before reaching
+        // any of its logs — the reader returned empty and said nothing.
+        const from = BigInt(deployBlocks[key] ?? 0);
+        logs = await fromRpcChunked(pub, key, from, head);
+        log(logs.length
+          ? `fell back to chunked rpc for ${key}: ${logs.length} logs from block ${from}`
+          : `WARNING: chunked rpc found NO logs for ${key} from block ${from} — treat downstream numbers as unreliable`);
       } catch (e) {
         log(`chunked rpc failed for ${key}: ${e?.message || e}`);
         return hit ? hit.logs : []; // stale data beats no data

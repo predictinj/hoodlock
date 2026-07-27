@@ -34,48 +34,17 @@ async function j(url, opts) {
   return r.json();
 }
 
-/**
- * HoodLock's own records for a token. Split out from the rest because these
- * are the only figures that must be current the instant they change — the
- * explorer metadata around them can happily be an hour old, and re-fetching
- * it would make a fresh lock slower to appear rather than faster.
- */
-export async function tokenRecords({ address, pub, contracts, abis }) {
-  const addr = String(address).toLowerCase();
-  const { LOCKER, BURNER, VESTING } = contracts;
-  // Read every record at once. Sequentially this was one round-trip per lock;
-  // as one batch, multicall folds the whole scan into a single eth_call.
-  const scan = async (target, abi, counter, getter, pick) => {
-    if (!target) return [];
-    const n = Number(await pub.readContract({ address: target, abi, functionName: counter }).catch(() => 0));
-    const rows = await Promise.all(Array.from({ length: n }, (_, i) =>
-      pub.readContract({ address: target, abi, functionName: getter, args: [BigInt(i)] })
-        .then((r) => pick(r, i)).catch(() => null)));
-    return rows.filter(Boolean);
-  };
-  const [locks, burns, vesting] = await Promise.all([
-    scan(LOCKER, abis.locker, "totalLocks", "locks", (r, i) =>
-      String(r[1]).toLowerCase() === addr ? { id: i, amount: r[2], unlock: Number(r[3]), withdrawn: r[4] } : null),
-    scan(BURNER, abis.burner, "totalBurns", "getBurn", (r, i) =>
-      String(r.token ?? r[1]).toLowerCase() === addr ? { id: i, amount: r.amount ?? r[2], ts: Number(r.timestamp ?? r[3]) } : null),
-    scan(VESTING, abis.vesting, "totalSchedules", "getSchedule", (r, i) =>
-      String(r.token ?? r[0]).toLowerCase() === addr
-        ? { id: i, total: r.total ?? r[2], claimed: r.claimed ?? r[3], end: Number(r.end ?? r[6]) } : null),
-  ]);
-  return { locks, burns, vesting };
-}
-
 /** Recompute the fields derived from records, after a records-only refresh. */
 export function withRecords(d, recs) {
   const now = Math.floor(Date.now() / 1000);
-  return { ...d, recs, activeLocks: recs.locks.filter((l) => !l.withdrawn && l.unlock > now), checkedAt: new Date() };
+  return { ...d, recs, activeLocks: recs.locks.filter((l) => !l.withdrawn && l.unlock > now), recordsAt: new Date() };
 }
 
 /**
  * Everything a token page shows, read live. Returns null when the token
  * doesn't look like an ERC-20 we can describe.
  */
-export async function tokenData({ address, explorer, pub, contracts, abis }) {
+export async function tokenData({ address, explorer, recs }) {
   const addr = String(address).toLowerCase();
   const [meta, counters, holders, verified, dex] = await Promise.all([
     j(`${explorer}/api/v2/tokens/${addr}`).catch(() => null),
@@ -101,8 +70,6 @@ export async function tokenData({ address, explorer, pub, contracts, abis }) {
   const pair = pairs.length
     ? pairs.reduce((a, b) => (Number(b.liquidity?.usd || 0) > Number(a.liquidity?.usd || 0) ? b : a))
     : null;
-
-  const recs = await tokenRecords({ address: addr, pub, contracts, abis });
 
   const now = Math.floor(Date.now() / 1000);
   const activeLocks = recs.locks.filter((l) => !l.withdrawn && l.unlock > now);
@@ -131,6 +98,9 @@ export async function tokenData({ address, explorer, pub, contracts, abis }) {
     burnAddrPct: pctOf(burnedHeld, supply),
     recs,
     activeLocks,
+    // Two clocks: our records are verified far more often than the
+    // explorer metadata, and conflating them would overstate one of them.
+    recordsAt: new Date(),
     checkedAt: new Date(),
   };
 }

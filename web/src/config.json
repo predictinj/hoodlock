@@ -4,5 +4,10 @@
   "explorer": "https://robinhoodchain.blockscout.com",
   "locker": "0xd0f7d8c6e9f6d80c297bebe4f7fd1b9c8125c32f",
   "burner": "0x6bf43ca706faa8ea46803299c191484e82280652",
-  "vesting": "0x910e19bcC4bce46999994Ed7297E0Fc4431ec72E"
+  "vesting": "0x910e19bcC4bce46999994Ed7297E0Fc4431ec72E",
+  "deployBlocks": {
+    "0xd0f7d8c6e9f6d80c297bebe4f7fd1b9c8125c32f": 4591195,
+    "0x6bf43ca706faa8ea46803299c191484e82280652": 16820186,
+    "0x910e19bcc4bce46999994ed7297e0fc4431ec72e": 20301744
+  }
 }
