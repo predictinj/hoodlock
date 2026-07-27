@@ -483,10 +483,11 @@ async function loadWalletTokens(): Promise<WalletTok[]> {
   } catch { walletToks = []; }
   return walletToks ?? [];
 }
-async function renderTokDd() {
-  const dd = $("tokDd");
+/** Generic wallet-token dropdown — used by both the lock form and the vesting form. */
+async function renderTokenDropdown(inputId: string, ddId: string, onPick: () => void) {
+  const dd = $(ddId);
   if (!account) { dd.classList.remove("show"); return; }
-  const q = ($("tokenAddr") as HTMLInputElement).value.trim().toLowerCase();
+  const q = ($(inputId) as HTMLInputElement).value.trim().toLowerCase();
   dd.innerHTML = `<div class="td-note">Loading your tokens… <span class="spin"></span></div>`;
   dd.classList.add("show");
   const toks = await loadWalletTokens();
@@ -505,15 +506,19 @@ async function renderTokDd() {
   dd.querySelectorAll<HTMLElement>(".td-item").forEach((el) => el.addEventListener("mousedown", (e) => {
     e.preventDefault();   // hinner före inputens blur
     const t = hits[Number(el.dataset.i)];
-    ($("tokenAddr") as HTMLInputElement).value = t.addr;
+    ($(inputId) as HTMLInputElement).value = t.addr;
     dd.classList.remove("show");
-    refreshToken();
+    onPick();
   }));
 }
-$("tokenAddr").addEventListener("focus", renderTokDd);
-$("tokenAddr").addEventListener("input", debounce(renderTokDd, 250));
-$("tokenAddr").addEventListener("blur", () => setTimeout(() => $("tokDd").classList.remove("show"), 150));
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("tokDd").classList.remove("show"); });
+function wireTokenDropdown(inputId: string, ddId: string, onPick: () => void) {
+  const render = () => renderTokenDropdown(inputId, ddId, onPick);
+  $(inputId).addEventListener("focus", render);
+  $(inputId).addEventListener("input", debounce(render, 250));
+  $(inputId).addEventListener("blur", () => setTimeout(() => $(ddId).classList.remove("show"), 150));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") $(ddId).classList.remove("show"); });
+}
+wireTokenDropdown("tokenAddr", "tokDd", () => refreshToken());
 
 /* ---------- live lock summary ---------- */
 function updateSummary() {
@@ -2273,10 +2278,10 @@ function loadVestingView() {
   if (!VESTING) return;
   if (!document.querySelector("#vRows .v-row")) {
     vAddRow();
-    const now = new Date();
-    ($("vStart") as HTMLInputElement).value = localDT(now);
-    ($("vEnd") as HTMLInputElement).value = localDT(new Date(now.getTime() + 365 * 86400_000));
+    // All three dates stay empty until the user picks them (or taps a preset).
+    ($("vStart") as HTMLInputElement).value = "";
     ($("vCliff") as HTMLInputElement).value = "";
+    ($("vEnd") as HTMLInputElement).value = "";
     updateVSummary();
   }
   renderVestMine();
@@ -2353,7 +2358,13 @@ if (VESTING && document.getElementById("vCreateBtn")) {
     if (showing) vApplyCsv();
   });
   $("vTokenAddr").addEventListener("input", debounce(vRefreshToken, 400));
+  wireTokenDropdown("vTokenAddr", "vTokDd", () => vRefreshToken());
   ["vStart", "vCliff", "vEnd"].forEach((id) => $(id).addEventListener("input", updateVSummary));
+  document.querySelectorAll<HTMLElement>("#vStartPresets .chip-dur").forEach((c) => c.addEventListener("click", () => {
+    document.querySelectorAll("#vStartPresets .chip-dur").forEach((x) => x.classList.remove("on")); c.classList.add("on");
+    ($("vStart") as HTMLInputElement).value = localDT(new Date(Date.now() + Number(c.dataset.startdays) * 86400_000));
+    updateVSummary();
+  }));
   document.querySelectorAll<HTMLElement>("#vCliffPresets .chip-dur").forEach((c) => c.addEventListener("click", () => {
     document.querySelectorAll("#vCliffPresets .chip-dur").forEach((x) => x.classList.remove("on")); c.classList.add("on");
     const days = Number(c.dataset.cliffdays || 0);

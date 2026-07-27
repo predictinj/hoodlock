@@ -510,7 +510,8 @@
         <div class="card">
           <div class="field">
             <label>Token contract <span class="hint">Robinhood Chain</span></label>
-            <div class="input-wrap"><input type="text" id="vTokenAddr" placeholder="0x…" spellcheck="false" autocomplete="off" /></div>
+            <div class="input-wrap"><input type="text" id="vTokenAddr" placeholder="0x… — or pick from your wallet" spellcheck="false" autocomplete="off" />
+              <div class="tok-dd" id="vTokDd"></div></div>
             <div class="hintline" id="vTokenInfo"></div>
             <div class="hintline" id="vBalHint"></div>
           </div>
@@ -529,6 +530,11 @@
           <div class="field">
             <label>Vesting starts</label>
             <div class="input-wrap"><input type="datetime-local" id="vStart" /></div>
+            <div class="chips" id="vStartPresets">
+              <span class="chip-dur" data-startdays="0">NOW</span>
+              <span class="chip-dur" data-startdays="7">IN 7D</span>
+              <span class="chip-dur" data-startdays="30">IN 30D</span>
+            </div>
             <div class="hintline">May be in the past (e.g. your TGE date) — already-elapsed time becomes claimable immediately.</div>
           </div>
           <div class="field">
@@ -551,10 +557,6 @@
               <span class="chip-dur" data-enddays="730">2Y</span>
               <span class="chip-dur" data-enddays="1460">4Y</span>
             </div>
-          </div>
-          <div class="note">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5b731" stroke-width="2"><path d="M12 9v4M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg>
-            <span><b>Irrevocable.</b> Once created, a schedule cannot be cancelled, shortened or clawed back — by anyone, including you. Recipients claim as tokens vest.</span>
           </div>
         </div>
         <div class="card summary">
