@@ -2161,11 +2161,22 @@ function drawVCurve() {
   svg.innerHTML = `${frame}
     <path d="${area}" fill="${NEON}" opacity=".07"/>
     <path d="${line}" fill="none" stroke="${NEON}" stroke-width="2" stroke-linejoin="round"/>
-    ${hasCliff ? `
+    ${hasCliff ? (() => {
+      // Collision-proof cliff label: clamp inside the plot, flip the anchor at
+      // the edges, drop below the dot near the top, and when cliff == end the
+      // endpoint's own labels already tell the whole story — skip it entirely.
+      if (cliffFrac >= 0.999) return `
+      <line x1="${cliffX}" y1="${y(cliffFrac)}" x2="${cliffX}" y2="${y0}" stroke="${NEON}" stroke-width=".75" opacity=".45" stroke-dasharray="2 3"/>`;
+      const lx = Math.max(L + 4, Math.min(cliffX, W - R - 4));
+      const anchor = cliffX > W - R - 96 ? "end" : cliffX < L + 60 ? "start" : "middle";
+      const nearTop = y(cliffFrac) < T + 18;
+      const ly = nearTop ? y(cliffFrac) + 14 : y(cliffFrac) - 6;
+      return `
       <line x1="${cliffX}" y1="${y(cliffFrac)}" x2="${cliffX}" y2="${y0}" stroke="${NEON}" stroke-width=".75" opacity=".45" stroke-dasharray="2 3"/>
       <circle cx="${cliffX}" cy="${y(cliffFrac)}" r="3" fill="${NEON}"/>
-      <text x="${cliffX}" y="${y(cliffFrac) - 6}" font-family="var(--mono)" font-size="8" fill="${NEON}" text-anchor="middle">CLIFF · ${(cliffFrac * 100).toFixed(0)}% UNLOCKS</text>
-      ${showCliffDate ? `<text x="${cliffX}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="middle">${shortDate(d.cliff)}</text>` : ""}` : ""}
+      <text x="${lx}" y="${ly}" font-family="var(--mono)" font-size="8" fill="${NEON}" text-anchor="${anchor}">CLIFF · ${(cliffFrac * 100).toFixed(0)}% UNLOCKS</text>
+      ${showCliffDate ? `<text x="${cliffX}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="middle">${shortDate(d.cliff)}</text>` : ""}`;
+    })() : ""}
     <circle cx="${x(d.end)}" cy="${y(1)}" r="3" fill="${NEON}"/>
     <text x="${W - R}" y="${T - 6}" font-family="var(--mono)" font-size="8" fill="${NEON}" text-anchor="end">ALL TOKENS FREE</text>
     <text x="${L}" y="${H - 12}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="start">STARTS</text>
