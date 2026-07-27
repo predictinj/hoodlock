@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard concepts — HoodLock</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050807; --card:#0a0f0c; --card-2:#0d1410;
+    --line:rgba(255,255,255,.065); --line-2:rgba(255,255,255,.12);
+    --neon:#00e05a; --amber:#f5b731; --bad:#ff6b6b;
+    --ink:#eef4ef; --ink-2:#8fa396; --ink-3:#59695e;
+    --sans:'Inter',system-ui,sans-serif; --serif:'Instrument Serif',Georgia,serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  :focus-visible{outline:2px solid var(--neon);outline-offset:3px;border-radius:4px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ── chrome for the concept gallery itself (not part of any design) ── */
+  .gal-bar{position:sticky;top:0;z-index:100;display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+    padding:12px 20px;background:rgba(5,8,7,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+  .gal-bar b{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink-3);margin-right:8px;text-transform:uppercase}
+  .gal-bar a{font-family:var(--mono);font-size:11px;padding:5px 10px;border:1px solid var(--line);border-radius:6px;color:var(--ink-2)}
+  .gal-bar a:hover{border-color:var(--neon);color:var(--neon)}
+  .spec{max-width:1180px;margin:0 auto;padding:54px 24px 10px}
+  .spec .n{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--neon)}
+  .spec h2{font-size:26px;font-weight:700;letter-spacing:-.03em;margin-top:8px}
+  .spec p{color:var(--ink-2);font-size:14px;margin-top:8px;max-width:640px;line-height:1.6}
+  .stage{max-width:1180px;margin:20px auto 0;padding:0 24px 64px}
+  .frame{border:1px solid var(--line);border-radius:20px;background:var(--card);overflow:hidden}
+</style></head><body>
+
+<div class="gal-bar"><b>Dashboard concepts</b><a href="#c1">01</a><a href="#c2">02</a><a href="#c3">03</a><a href="#c4">04</a><a href="#c5">05</a><a href="#c6">06</a><a href="#c7">07</a><a href="#c8">08</a><a href="#c9">09</a><a href="#c10">10</a><a href="/app/dashboard" style="margin-left:auto;border-color:var(--line-2)">Current →</a></div>
+
+<section class="spec" id="c1"><div class="n">CONCEPT 01</div><h2>Ask the question they arrived with</h2><p>Nobody wakes up wanting to “use a vesting contract”. They want to prove something to their holders. The page asks the question out loud and the answers are the products.</p></section>
+<div class="stage"><div class="frame"><style>
+.v1{padding:64px 56px}
+.v1 .q{font-size:15px;font-family:var(--mono);letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase}
+.v1 h3{font-size:52px;font-weight:700;letter-spacing:-.045em;line-height:1.02;margin-top:14px}
+.v1 h3 em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.v1 .ans{margin-top:44px;display:flex;flex-direction:column;gap:2px}
+.v1 .a{display:flex;align-items:center;gap:22px;padding:24px 4px;border-top:1px solid var(--line);transition:padding-left .28s cubic-bezier(.2,.7,.3,1),background .28s}
+.v1 .a:last-child{border-bottom:1px solid var(--line)}
+.v1 .a:hover{padding-left:20px;background:linear-gradient(90deg,rgba(0,224,90,.05),transparent 60%)}
+.v1 .a .lbl{flex:1}
+.v1 .a .lbl b{display:block;font-size:21px;font-weight:600;letter-spacing:-.02em}
+.v1 .a .lbl span{display:block;color:var(--ink-2);font-size:14px;margin-top:5px}
+.v1 .a .go{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--ink-3);white-space:nowrap}
+.v1 .a:hover .go{color:var(--neon)}
+.v1 .a .dot{width:9px;height:9px;border-radius:50%;background:var(--ink-3);flex:none;transition:.28s}
+.v1 .a:hover .dot{background:var(--neon);box-shadow:0 0 14px var(--neon)}
+@media(max-width:720px){.v1{padding:40px 24px}.v1 h3{font-size:34px}}
+</style><div class="v1">
+  <div class="q">Start here</div>
+  <h3>What do you need to<br><em>prove today?</em></h3>
+  <div class="ans">
+    <a class="a" href="/app/locks"><span class="dot"></span><span class="lbl"><b>That liquidity can't be pulled</b><span>Lock LP or tokens until a date you choose</span></span><span class="go">TOKEN LOCKS →</span></a>
+    <a class="a" href="/app/vesting"><span class="dot"></span><span class="lbl"><b>That the team can't dump</b><span>Release tokens gradually, with a cliff</span></span><span class="go">VESTING →</span></a>
+    <a class="a" href="/app/locks"><span class="dot"></span><span class="lbl"><b>That supply is gone for good</b><span>Burn tokens to the dead address</span></span><span class="go">BURN →</span></a>
+    <a class="a" href="/app/explore"><span class="dot"></span><span class="lbl"><b>That someone else's claim is real</b><span>Verify any lock on Robinhood Chain</span></span><span class="go">EXPLORE →</span></a>
+  </div>
+</div></div></div>
+
+<section class="spec" id="c2"><div class="n">CONCEPT 02</div><h2>One axis: what happens to the tokens over time</h2><p>Burn, lock and vesting differ on exactly one thing — how they treat time. Laying them on a single time axis makes the choice self-explanatory instead of something you have to read three cards to work out.</p></section>
+<div class="stage"><div class="frame"><style>
+.v2{padding:60px 56px 72px}
+.v2 h3{font-size:34px;font-weight:700;letter-spacing:-.035em}
+.v2 h3 em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.v2 .sub{color:var(--ink-2);font-size:14px;margin-top:8px}
+.v2 .axis{position:relative;margin-top:56px;padding-top:46px}
+.v2 .rule{position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--bad),var(--neon) 45%,var(--amber))}
+.v2 .rule::after{content:'TIME →';position:absolute;right:0;top:-20px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink-3)}
+.v2 .row{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.v2 .col{position:relative;padding-top:8px}
+.v2 .col::before{content:'';position:absolute;top:-46px;left:0;width:2px;height:46px;background:currentColor;opacity:.5}
+.v2 .col .tick{position:absolute;top:-56px;left:0;font-family:var(--mono);font-size:10px;letter-spacing:.16em;white-space:nowrap}
+.v2 .c-burn{color:var(--bad)} .v2 .c-lock{color:var(--neon)} .v2 .c-vest{color:var(--amber)}
+.v2 .box{display:block;border:1px solid var(--line);border-radius:14px;padding:26px 24px;background:var(--card-2);
+  transition:border-color .25s,transform .25s;height:100%}
+.v2 .box:hover{border-color:currentColor;transform:translateY(-3px)}
+.v2 .box b{font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--ink);display:block}
+.v2 .box p{color:var(--ink-2);font-size:13.5px;line-height:1.6;margin-top:9px}
+.v2 .box .cta{display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:currentColor}
+.v2 .foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:44px;padding-top:26px;border-top:1px solid var(--line)}
+.v2 .foot a{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:9px 16px}
+.v2 .foot a:hover{border-color:var(--neon);color:var(--neon)}
+@media(max-width:820px){.v2{padding:40px 24px 48px}.v2 .row{grid-template-columns:1fr;gap:52px}}
+</style><div class="v2">
+  <h3>Three ways to <em>take your hands off</em> the tokens</h3>
+  <div class="sub">They differ on one thing only: what time does to them.</div>
+  <div class="axis"><div class="rule"></div>
+    <div class="row">
+      <div class="col c-burn"><span class="tick">NEVER COMES BACK</span>
+        <a class="box" href="/app/locks"><b>Burn</b><p>Tokens go to the dead address in one hop. No contract holds them, because nothing can.</p><span class="cta">BURN TOKENS →</span></a></div>
+      <div class="col c-lock"><span class="tick">RETURNS ON ONE DATE</span>
+        <a class="box" href="/app/locks"><b>Lock</b><p>Held by contract until the date you set. Extendable, never shortenable — not even by you.</p><span class="cta">CREATE A LOCK →</span></a></div>
+      <div class="col c-vest"><span class="tick">RETURNS CONTINUOUSLY</span>
+        <a class="box" href="/app/vesting"><b>Vesting</b><p>Released second by second after the cliff. For team, investor and advisor allocations.</p><span class="cta">SET UP VESTING →</span></a></div>
+    </div>
+  </div>
+  <div class="foot"><a href="/app/explore">Verify someone else's lock</a><a href="/app/affiliate">Earn 30% as an affiliate</a><a href="/app/developers">Add locking to your app</a></div>
+</div></div></div>
+
+<section class="spec" id="c3"><div class="n">CONCEPT 03</div><h2>Type what you want to do</h2><p>The audience lives in wallets, explorers and terminals. A command palette is native to them and scales past four products without turning into a wall of cards. The filter here actually works — try typing “lp” or “team”.</p></section>
+<div class="stage"><div class="frame"><style>
+.v3{padding:70px 56px 80px;background:radial-gradient(70% 55% at 50% 0%,rgba(0,224,90,.07),transparent 70%)}
+.v3 .cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;color:var(--ink-3);text-align:center}
+.v3 h3{text-align:center;font-size:30px;font-weight:700;letter-spacing:-.03em;margin-top:12px}
+.v3 h3 em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.v3 .pal{max-width:600px;margin:34px auto 0;border:1px solid var(--line-2);border-radius:16px;background:var(--card-2);overflow:hidden;
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.9)}
+.v3 .inp{display:flex;align-items:center;gap:12px;padding:17px 20px;border-bottom:1px solid var(--line)}
+.v3 .inp span{color:var(--neon);font-family:var(--mono);font-size:15px}
+.v3 .inp input{flex:1;background:none;border:none;outline:none;color:var(--ink);font-size:15px;font-family:var(--sans)}
+.v3 .inp input::placeholder{color:var(--ink-3)}
+.v3 .inp kbd{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:3px 7px}
+.v3 .list{max-height:320px;overflow:auto;padding:8px}
+.v3 .it{display:flex;align-items:center;gap:14px;padding:13px 14px;border-radius:10px;transition:background .16s}
+.v3 .it:hover{background:rgba(255,255,255,.05)}
+.v3 .it .ico{width:30px;height:30px;flex:none;border-radius:8px;display:grid;place-items:center;
+  border:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--neon)}
+.v3 .it b{font-size:14.5px;font-weight:500}
+.v3 .it i{display:block;font-style:normal;color:var(--ink-3);font-size:12.5px;margin-top:2px}
+.v3 .it .arr{margin-left:auto;color:var(--ink-3);font-family:var(--mono);font-size:11px}
+.v3 .it:hover .arr{color:var(--neon)}
+.v3 .none{padding:26px;text-align:center;color:var(--ink-3);font-size:13px}
+@media(max-width:720px){.v3{padding:44px 20px 56px}}
+</style><div class="v3">
+  <div class="cap">HOODLOCK</div>
+  <h3>What are you <em>here to do?</em></h3>
+  <div class="pal">
+    <div class="inp"><span>›</span><input id="v3q" placeholder="Search actions — try “lp”, “team”, “verify”" autocomplete="off"><kbd>ESC</kbd></div>
+    <div class="list" id="v3l">
+      <a class="it" href="/app/locks" data-k="lock lp liquidity token pull rug"><span class="ico">LK</span><span><b>Lock tokens or LP</b><i>Held until a date you choose. Extend-only.</i></span><span class="arr">↵</span></a>
+      <a class="it" href="/app/vesting" data-k="vesting team investor advisor cliff release schedule"><span class="ico">VS</span><span><b>Set up vesting</b><i>Cliff plus linear release for team allocations.</i></span><span class="arr">↵</span></a>
+      <a class="it" href="/app/locks" data-k="burn dead supply destroy forever"><span class="ico">BN</span><span><b>Burn tokens</b><i>Straight to the dead address, with proof.</i></span><span class="arr">↵</span></a>
+      <a class="it" href="/app/explore" data-k="verify explore check proof someone search"><span class="ico">VF</span><span><b>Verify a lock</b><i>Check any token or wallet on Robinhood Chain.</i></span><span class="arr">↵</span></a>
+      <a class="it" href="/app/affiliate" data-k="affiliate earn referral commission money link"><span class="ico">AF</span><span><b>Earn as an affiliate</b><i>30% of the fee on everything you refer.</i></span><span class="arr">↵</span></a>
+      <a class="it" href="/app/developers" data-k="developer api embed integrate build button"><span class="ico">DV</span><span><b>Build with HoodLock</b><i>Embed the lock button, earn 50%.</i></span><span class="arr">↵</span></a>
+      <div class="none" id="v3n" style="display:none">No action matches that.</div>
+    </div>
+  </div>
+</div>
+<script>(function(){var q=document.getElementById('v3q'),l=document.getElementById('v3l'),n=document.getElementById('v3n');
+q.addEventListener('input',function(){var v=q.value.toLowerCase().trim(),c=0;
+l.querySelectorAll('.it').forEach(function(it){var m=!v||it.dataset.k.includes(v)||it.textContent.toLowerCase().includes(v);
+it.style.display=m?'':'none';if(m)c++;});n.style.display=c?'none':'';});})();</script></div></div>
+
+<section class="spec" id="c4"><div class="n">CONCEPT 04</div><h2>Let the type do the work</h2><p>No cards, no icons, no boxes. Product names at display size become the interface, and the neon fill on hover is the only ornament. Fastest to scan of all ten, and it looks like nothing else on the chain.</p></section>
+<div class="stage"><div class="frame"><style>
+.v4{padding:66px 56px 74px}
+.v4 .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;color:var(--ink-3)}
+.v4 .rows{margin-top:30px}
+.v4 .r{position:relative;display:block;padding:26px 0;border-top:1px solid var(--line);overflow:hidden}
+.v4 .r:last-child{border-bottom:1px solid var(--line)}
+.v4 .r .in{display:flex;align-items:baseline;gap:20px;position:relative;z-index:2;transition:transform .3s cubic-bezier(.2,.7,.3,1)}
+.v4 .r:hover .in{transform:translateX(18px)}
+.v4 .r h4{font-size:46px;font-weight:700;letter-spacing:-.045em;line-height:1;transition:color .3s}
+.v4 .r .d{color:var(--ink-2);font-size:14px;max-width:330px}
+.v4 .r .st{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--ink-3);align-self:center}
+.v4 .r::before{content:'';position:absolute;inset:0;background:var(--neon);transform:scaleY(0);transform-origin:bottom;transition:transform .32s cubic-bezier(.2,.7,.3,1)}
+.v4 .r:hover::before{transform:scaleY(1)}
+.v4 .r:hover h4,.v4 .r:hover .d,.v4 .r:hover .st{color:#04120a}
+.v4 .r.soon{pointer-events:none}
+.v4 .r.soon h4{color:var(--ink-3)} .v4 .r.soon::before{display:none}
+@media(max-width:820px){.v4{padding:40px 24px 48px}.v4 .r h4{font-size:30px}.v4 .r .in{flex-wrap:wrap;gap:8px}.v4 .r .st{margin-left:0}}
+</style><div class="v4">
+  <div class="eyebrow">CHOOSE A PRODUCT</div>
+  <div class="rows">
+    <a class="r" href="/app/locks"><span class="in"><h4>Locks</h4><span class="d">Tokens and LP, held until your date</span><span class="st">21 CREATED</span></span></a>
+    <a class="r" href="/app/vesting"><span class="in"><h4>Vesting</h4><span class="d">Cliff and linear release, irrevocable</span><span class="st">NEW</span></span></a>
+    <a class="r" href="/app/locks"><span class="in"><h4>Burn</h4><span class="d">Permanent, with a shareable proof</span><span class="st">1 BURNED</span></span></a>
+    <a class="r" href="/app/explore"><span class="in"><h4>Verify</h4><span class="d">Check anyone's lock on the chain</span><span class="st">PUBLIC</span></span></a>
+    <div class="r soon"><span class="in"><h4>Airdrops</h4><span class="d">Merkle distribution</span><span class="st">SOON</span></span></div>
+  </div>
+</div></div></div>
+
+<section class="spec" id="c5"><div class="n">CONCEPT 05</div><h2>Two doors, then the rest</h2><p>Most visitors want one of two things: lock something, or check something. Giving those two the entire stage and demoting everything else removes the decision entirely for the common case.</p></section>
+<div class="stage"><div class="frame"><style>
+.v5{display:grid;grid-template-columns:1fr 1fr;min-height:440px}
+.v5 .door{position:relative;padding:56px 44px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;transition:flex .4s}
+.v5 .door + .door{border-left:1px solid var(--line)}
+.v5 .door .glow{position:absolute;inset:0;opacity:0;transition:opacity .45s}
+.v5 .door:hover .glow{opacity:1}
+.v5 .d1 .glow{background:radial-gradient(70% 60% at 30% 100%,rgba(0,224,90,.16),transparent 70%)}
+.v5 .d2 .glow{background:radial-gradient(70% 60% at 70% 100%,rgba(245,183,49,.13),transparent 70%)}
+.v5 .door .num{position:relative;font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;color:var(--ink-3)}
+.v5 .door h4{position:relative;font-size:40px;font-weight:700;letter-spacing:-.04em;margin-top:auto;line-height:1.04}
+.v5 .door h4 em{font-family:var(--serif);font-style:italic;font-weight:400}
+.v5 .d1 h4 em{color:var(--neon)} .v5 .d2 h4 em{color:var(--amber)}
+.v5 .door p{position:relative;color:var(--ink-2);font-size:14.5px;margin-top:14px;max-width:330px;line-height:1.6}
+.v5 .door .go{position:relative;margin-top:26px;display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:14px}
+.v5 .door .go i{font-style:normal;transition:transform .3s}
+.v5 .door:hover .go i{transform:translateX(6px)}
+.v5 .rest{grid-column:1/-1;display:flex;gap:0;border-top:1px solid var(--line)}
+.v5 .rest a{flex:1;padding:20px 24px;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--ink-2);transition:.2s}
+.v5 .rest a + a{border-left:1px solid var(--line)}
+.v5 .rest a:hover{background:rgba(255,255,255,.04);color:var(--neon)}
+@media(max-width:820px){.v5{grid-template-columns:1fr}.v5 .door{padding:40px 24px;min-height:280px}.v5 .door + .door{border-left:none;border-top:1px solid var(--line)}.v5 .rest{flex-wrap:wrap}.v5 .rest a{flex:1 1 50%}}
+</style><div class="v5">
+  <a class="door d1" href="/app/locks"><span class="glow"></span><span class="num">01 — I HAVE TOKENS</span>
+    <h4>Lock them<br><em>until a date.</em></h4>
+    <p>Tokens, LP or a vesting schedule. Every one mints a proof page your holders can check.</p>
+    <span class="go">Create a lock <i>→</i></span></a>
+  <a class="door d2" href="/app/explore"><span class="glow"></span><span class="num">02 — I'M CHECKING SOMEONE</span>
+    <h4>See if it's<br><em>actually locked.</em></h4>
+    <p>Search any token or wallet on Robinhood Chain. No connection needed.</p>
+    <span class="go">Explore and verify <i>→</i></span></a>
+  <div class="rest"><a href="/app/vesting">VESTING</a><a href="/app/locks">BURN</a><a href="/app/affiliate">AFFILIATE</a><a href="/app/developers">DEVELOPERS</a></div>
+</div></div></div>
+
+<section class="spec" id="c6"><div class="n">CONCEPT 06</div><h2>Show the whole flow, not just the buttons</h2><p>New users don't know what a proof page is or why it matters. A schematic explains the product's actual promise — your tokens go in, a public proof comes out — and each node is the entry point to that step.</p></section>
+<div class="stage"><div class="frame"><style>
+.v6{padding:60px 48px 70px}
+.v6 h3{font-size:30px;font-weight:700;letter-spacing:-.03em;text-align:center}
+.v6 h3 em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.v6 .flow{margin-top:52px;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:0}
+.v6 .node{border:1px solid var(--line);border-radius:16px;background:var(--card-2);padding:24px 22px;text-align:center;transition:border-color .25s,transform .25s;display:block}
+.v6 a.node:hover{border-color:var(--neon);transform:translateY(-3px)}
+.v6 .node .t{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink-3)}
+.v6 .node b{display:block;font-size:17px;font-weight:600;margin-top:10px;letter-spacing:-.015em}
+.v6 .node p{color:var(--ink-2);font-size:12.5px;margin-top:7px;line-height:1.55}
+.v6 .wire{position:relative;height:1px;background:var(--line-2);min-width:44px}
+.v6 .wire::after{content:'';position:absolute;top:-3px;right:-1px;border:4px solid transparent;border-left-color:var(--line-2)}
+.v6 .wire .pulse{position:absolute;top:-2px;left:0;width:5px;height:5px;border-radius:50%;background:var(--neon);box-shadow:0 0 10px var(--neon);animation:v6run 3.2s linear infinite}
+.v6 .wire:nth-of-type(4) .pulse{animation-delay:1.6s}
+@keyframes v6run{0%{left:0;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:100%;opacity:0}}
+.v6 .pick{margin-top:16px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.v6 .pick a{font-family:var(--mono);font-size:10px;letter-spacing:.1em;border:1px solid var(--line);border-radius:999px;padding:6px 11px;color:var(--ink-2)}
+.v6 .pick a:hover{border-color:var(--neon);color:var(--neon)}
+@media(max-width:900px){.v6{padding:40px 24px 48px}.v6 .flow{grid-template-columns:1fr;gap:14px}.v6 .wire{width:1px;height:30px;min-width:0;margin:0 auto;background:var(--line-2)}.v6 .wire::after{display:none}.v6 .wire .pulse{animation:none;display:none}}
+</style><div class="v6">
+  <h3>Your tokens go in. A <em>public proof</em> comes out.</h3>
+  <div class="flow">
+    <div class="node"><div class="t">YOU HOLD</div><b>Tokens or LP</b><p>In your own wallet, on Robinhood Chain.</p>
+      <div class="pick"><a href="/app/locks">Lock</a><a href="/app/vesting">Vest</a><a href="/app/locks">Burn</a></div></div>
+    <div class="wire"><span class="pulse"></span></div>
+    <div class="node"><div class="t">CONTRACT HOLDS</div><b>No admin key</b><p>Nobody can move them early — not us, not you.</p></div>
+    <div class="wire"><span class="pulse"></span></div>
+    <a class="node" href="/app/explore"><div class="t">ANYONE CHECKS</div><b>Proof page</b><p>A link your community can verify in one click.</p>
+      <div class="pick"><a href="/app/explore">Explore →</a></div></a>
+  </div>
+</div></div></div>
+
+<section class="spec" id="c7"><div class="n">CONCEPT 07</div><h2>The dial</h2><p>One unapologetic hero object borrowed from the thing the brand is named after. The dial is the signature; everything around it stays quiet so it can carry the page on its own.</p></section>
+<div class="stage"><div class="frame"><style>
+.v7{padding:60px 48px 68px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:52px;align-items:center}
+.v7 .lft h3{font-size:38px;font-weight:700;letter-spacing:-.04em;line-height:1.06}
+.v7 .lft h3 em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.v7 .lft p{color:var(--ink-2);font-size:15px;margin-top:16px;line-height:1.6;max-width:400px}
+.v7 .picks{margin-top:30px;display:flex;flex-direction:column;gap:9px}
+.v7 .picks a{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid var(--line);
+  border-radius:12px;padding:15px 18px;transition:.22s;background:var(--card-2)}
+.v7 .picks a:hover{border-color:var(--neon);background:rgba(0,224,90,.05)}
+.v7 .picks b{font-size:15px;font-weight:600}
+.v7 .picks i{font-style:normal;color:var(--ink-3);font-size:12.5px;display:block;margin-top:2px}
+.v7 .picks span.k{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+.v7 .picks a:hover span.k{color:var(--neon)}
+.v7 .dial{position:relative;aspect-ratio:1;max-width:400px;justify-self:center;width:100%}
+.v7 .dial svg{width:100%;height:100%;display:block}
+.v7 .ring{transform-origin:50% 50%;animation:v7spin 46s linear infinite}
+.v7 .ring2{transform-origin:50% 50%;animation:v7spin 34s linear infinite reverse}
+@keyframes v7spin{to{transform:rotate(360deg)}}
+.v7 .ctr{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.v7 .ctr .n{font-size:40px;font-weight:700;letter-spacing:-.04em;line-height:1}
+.v7 .ctr .l{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink-3);margin-top:8px}
+@media(max-width:900px){.v7{grid-template-columns:1fr;padding:40px 24px 48px;gap:36px}.v7 .dial{max-width:280px}}
+</style><div class="v7">
+  <div class="lft">
+    <h3>Everything here is<br><em>locked by contract.</em></h3>
+    <p>Pick what you want to put out of reach. Each action mints a proof page anyone can verify — no account, no trust required.</p>
+    <div class="picks">
+      <a href="/app/locks"><span><b>Lock tokens or LP</b><i>Until a date you set</i></span><span class="k">OPEN →</span></a>
+      <a href="/app/vesting"><span><b>Vesting schedule</b><i>Cliff, then linear release</i></span><span class="k">OPEN →</span></a>
+      <a href="/app/locks"><span><b>Burn forever</b><i>Straight to the dead address</i></span><span class="k">OPEN →</span></a>
+      <a href="/app/explore"><span><b>Verify a lock</b><i>Anyone's, no wallet needed</i></span><span class="k">OPEN →</span></a>
+    </div>
+  </div>
+  <div class="dial">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <defs><linearGradient id="v7g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00e05a" stop-opacity=".7"/><stop offset="100%" stop-color="#00e05a" stop-opacity=".08"/></linearGradient></defs>
+      <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(255,255,255,.06)"/>
+      <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(255,255,255,.05)"/>
+      <g class="ring"><circle cx="100" cy="100" r="92" fill="none" stroke="url(#v7g)" stroke-width="2" stroke-dasharray="3 11" stroke-linecap="round"/></g>
+      <g class="ring2"><circle cx="100" cy="100" r="74" fill="none" stroke="#00e05a" stroke-opacity=".3" stroke-width="1" stroke-dasharray="26 160" stroke-linecap="round"/></g>
+      <circle cx="100" cy="100" r="56" fill="rgba(0,224,90,.04)" stroke="rgba(0,224,90,.22)"/>
+      <path d="M86 100v-9a14 14 0 0 1 28 0v9" fill="none" stroke="#00e05a" stroke-width="3" stroke-linecap="round"/>
+      <rect x="82" y="100" width="36" height="26" rx="6" fill="none" stroke="#00e05a" stroke-width="3"/>
+    </svg>
+  </div>
+</div></div></div>
+
+<section class="spec" id="c8"><div class="n">CONCEPT 08</div><h2>Proof first, buttons second</h2><p>The strongest argument for using HoodLock is that other projects already do. Real recent locks lead the page and the actions sit alongside them, so the navigation arrives with evidence attached.</p></section>
+<div class="stage"><div class="frame"><style>
+.v8{padding:52px 44px 60px;display:grid;grid-template-columns:1.25fr 1fr;gap:34px}
+.v8 .hd{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.v8 .hd h3{font-size:29px;font-weight:700;letter-spacing:-.03em}
+.v8 .hd h3 em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.v8 .hd .live{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--neon);
+  border:1px solid rgba(0,224,90,.35);border-radius:999px;padding:7px 14px}
+.v8 .hd .live i{width:6px;height:6px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px var(--neon);animation:v8b 2.2s infinite}
+@keyframes v8b{0%,100%{opacity:1}50%{opacity:.35}}
+.v8 .feed{display:flex;flex-direction:column;gap:1px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.v8 .fi{display:flex;align-items:center;gap:14px;padding:15px 17px;background:var(--card-2);transition:background .2s}
+.v8 .fi:hover{background:rgba(255,255,255,.045)}
+.v8 .fi .av{width:30px;height:30px;border-radius:8px;flex:none;display:grid;place-items:center;font-family:var(--mono);font-size:10px;
+  background:linear-gradient(135deg,rgba(0,224,90,.25),rgba(0,224,90,.06));color:var(--neon)}
+.v8 .fi b{font-size:14px;font-weight:600}
+.v8 .fi i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--ink-3);display:block;margin-top:2px}
+.v8 .fi .tag{margin-left:auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;border:1px solid var(--line);border-radius:999px;padding:4px 9px;color:var(--ink-3)}
+.v8 .acts{display:flex;flex-direction:column;gap:9px}
+.v8 .acts a{border:1px solid var(--line);border-radius:13px;padding:18px 19px;background:var(--card-2);transition:.22s;display:block}
+.v8 .acts a:hover{border-color:var(--neon);transform:translateX(3px)}
+.v8 .acts b{font-size:15.5px;font-weight:600;display:block}
+.v8 .acts p{color:var(--ink-2);font-size:12.5px;margin-top:5px;line-height:1.5}
+.v8 .acts a.pri{background:rgba(0,224,90,.07);border-color:rgba(0,224,90,.3)}
+@media(max-width:900px){.v8{grid-template-columns:1fr;padding:36px 22px 44px}}
+</style><div class="v8">
+  <div class="hd"><h3>Locked <em>this week</em> on Robinhood Chain</h3><span class="live"><i></i>READING CHAIN</span></div>
+  <div class="feed">
+    <div class="fi"><span class="av">BU</span><span><b>9,800,000 $BUH</b><i>locked until 25 Aug 2026</i></span><span class="tag">LOCK</span></div>
+    <div class="fi"><span class="av">PO</span><span><b>5 $PONS</b><i>vesting, fully released 29 Jul</i></span><span class="tag">VESTING</span></div>
+    <div class="fi"><span class="av">BW</span><span><b>12,526,465 $BWOB</b><i>burned forever</i></span><span class="tag">BURN</span></div>
+    <div class="fi"><span class="av">AN</span><span><b>47,165,311 $ANIMI</b><i>locked until 22 Aug 2026</i></span><span class="tag">LOCK</span></div>
+  </div>
+  <div class="acts">
+    <a class="pri" href="/app/locks"><b>Lock your tokens →</b><p>Tokens or LP, held until the date you choose.</p></a>
+    <a href="/app/vesting"><b>Set up vesting →</b><p>Cliff and linear release for the team.</p></a>
+    <a href="/app/explore"><b>Verify a project →</b><p>Search any token or wallet.</p></a>
+    <a href="/app/affiliate"><b>Earn 30% →</b><p>Share your link, get paid in ETH.</p></a>
+  </div>
+</div></div></div>
+
+<section class="spec" id="c9"><div class="n">CONCEPT 09</div><h2>Cards shaped like the thing</h2><p>A conventional card grid, but each card carries a shackle notch cut into its top edge so the grid reads as a row of padlocks. Familiar to use, specific to this product.</p></section>
+<div class="stage"><div class="frame"><style>
+.v9{padding:56px 48px 64px}
+.v9 .top{text-align:center;margin-bottom:44px}
+.v9 .top h3{font-size:30px;font-weight:700;letter-spacing:-.03em}
+.v9 .top h3 em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.v9 .top p{color:var(--ink-2);font-size:14px;margin-top:9px}
+.v9 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.v9 .c{position:relative;border:1px solid var(--line);border-radius:16px;background:var(--card-2);padding:44px 22px 24px;
+  transition:border-color .25s,transform .25s;display:block;margin-top:20px}
+.v9 .c:hover{border-color:var(--neon);transform:translateY(-4px)}
+.v9 .c::before{content:'';position:absolute;top:-21px;left:50%;transform:translateX(-50%);width:44px;height:42px;
+  border:3px solid var(--line);border-bottom:none;border-radius:22px 22px 0 0;background:transparent;transition:border-color .25s}
+.v9 .c:hover::before{border-color:var(--neon)}
+.v9 .c::after{content:'';position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:52px;height:5px;background:var(--card-2);}
+.v9 .c b{display:block;font-size:18px;font-weight:600;letter-spacing:-.02em;text-align:center}
+.v9 .c p{color:var(--ink-2);font-size:13px;line-height:1.55;margin-top:9px;text-align:center}
+.v9 .c .go{display:block;margin-top:18px;text-align:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+.v9 .c:hover .go{color:var(--neon)}
+.v9 .c.soon{opacity:.45;pointer-events:none}
+@media(max-width:720px){.v9{padding:38px 22px 46px}}
+</style><div class="v9">
+  <div class="top"><h3>Put something <em>out of reach</em></h3><p>Every action mints a proof page anyone can verify.</p></div>
+  <div class="grid">
+    <a class="c" href="/app/locks"><b>Locks</b><p>Tokens or LP, held by contract until your date. Extend-only.</p><span class="go">CREATE A LOCK →</span></a>
+    <a class="c" href="/app/vesting"><b>Vesting</b><p>Cliff plus linear release for team and investor allocations.</p><span class="go">SET UP VESTING →</span></a>
+    <a class="c" href="/app/locks"><b>Burn</b><p>Straight to the dead address. Nothing can bring it back.</p><span class="go">BURN TOKENS →</span></a>
+    <a class="c" href="/app/explore"><b>Verify</b><p>Check any lock on the chain. No wallet needed.</p><span class="go">EXPLORE →</span></a>
+  </div>
+</div></div></div>
+
+<section class="spec" id="c10"><div class="n">CONCEPT 10</div><h2>The disciplined baseline</h2><p>No metaphor, no signature object — two primary actions sized to their importance, everything else in a quiet strip below. Included deliberately as the control: if a concept above doesn't beat this on clarity, it isn't earning its ambition.</p></section>
+<div class="stage"><div class="frame"><style>
+.v10{padding:52px 48px 58px}
+.v10 .hd{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px}
+.v10 .hd h3{font-size:27px;font-weight:700;letter-spacing:-.03em}
+.v10 .hd p{color:var(--ink-2);font-size:13.5px;margin-top:6px}
+.v10 .hd .chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:8px 15px}
+.v10 .pri{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.v10 .pri a{border:1px solid var(--line);border-radius:16px;padding:28px 26px;background:var(--card-2);transition:.24s;display:block}
+.v10 .pri a:hover{border-color:var(--neon);background:rgba(0,224,90,.05)}
+.v10 .pri b{font-size:21px;font-weight:600;letter-spacing:-.02em;display:block}
+.v10 .pri p{color:var(--ink-2);font-size:13.5px;margin-top:8px;line-height:1.55;max-width:330px}
+.v10 .pri .go{display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--neon)}
+.v10 .sec{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:14px}
+.v10 .sec a{border:1px solid var(--line);border-radius:12px;padding:16px 17px;background:var(--card);transition:.22s}
+.v10 .sec a:hover{border-color:var(--line-2);background:var(--card-2)}
+.v10 .sec b{font-size:14px;font-weight:500;display:block}
+.v10 .sec i{font-style:normal;color:var(--ink-3);font-size:12px;display:block;margin-top:3px}
+@media(max-width:760px){.v10{padding:36px 22px 44px}.v10 .pri{grid-template-columns:1fr}}
+</style><div class="v10">
+  <div class="hd"><div><h3>What would you like to do?</h3><p>Everything settles on Robinhood Chain and mints a public proof.</p></div>
+    <span class="chip">CHAIN 4663 · LIVE</span></div>
+  <div class="pri">
+    <a href="/app/locks"><b>Lock tokens or LP</b><p>Held by contract until the date you choose. Extend-only, never shortenable.</p><span class="go">CREATE A LOCK →</span></a>
+    <a href="/app/vesting"><b>Set up vesting</b><p>Cliff plus linear release for team, investor and advisor allocations.</p><span class="go">SET UP VESTING →</span></a>
+  </div>
+  <div class="sec">
+    <a href="/app/locks"><b>Burn tokens</b><i>Permanent, with proof</i></a>
+    <a href="/app/explore"><b>Verify a lock</b><i>Anyone's, no wallet</i></a>
+    <a href="/app/affiliate"><b>Affiliate</b><i>Earn 30%</i></a>
+    <a href="/app/developers"><b>Developers</b><i>Embed, earn 50%</i></a>
+  </div>
+</div></div></div>
+</body></html>
