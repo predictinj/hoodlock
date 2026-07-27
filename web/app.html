@@ -630,11 +630,29 @@
             <button class="btn btn-line btn-sm" id="adVestWithdraw">Withdraw to collector</button>
             <span class="msg" id="adVestFeesMsg" style="margin:0"></span>
           </div>
+          <div id="adVestCfg" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
+            <div style="font-size:13px;color:var(--ink-2);margin-bottom:10px">Vesting fee collector: <b id="adVestColl" class="mono" style="color:var(--ink);font-size:12px">—</b></div>
+            <div class="explore-bar" style="margin:0 0 6px">
+              <div class="input-wrap"><input type="text" id="adVestCollAddr" placeholder="0x… new collector wallet" spellcheck="false" autocomplete="off" /></div>
+              <button class="btn btn-line" id="adVestCollBtn" style="padding:11px 22px">Change collector</button>
+            </div>
+            <div class="hintline">Applies to already-accrued and future vesting fees. Only the collector wallet itself can withdraw them.</div>
+            <div class="msg" id="adVestCollMsg"></div>
+          </div>
         </div>
 
         <div class="card" style="margin-bottom:12px">
-          <div class="card-head"><div><h3>Activity</h3><div class="sub">ACTIONS PER DAY · LAST 30 DAYS</div></div></div>
-          <svg id="adChart" viewBox="0 0 640 170" style="width:100%"></svg>
+          <div class="card-head"><div><h3>Activity</h3><div class="sub" id="adChartSub">ACTIONS · LAST 30 DAYS</div></div></div>
+          <div class="chips" id="adChartRange" style="margin-bottom:10px">
+            <span class="chip-dur" data-range="1">1D</span>
+            <span class="chip-dur" data-range="7">7D</span>
+            <span class="chip-dur on" data-range="30">30D</span>
+            <span class="chip-dur" data-range="0">LIFETIME</span>
+          </div>
+          <div style="position:relative">
+            <svg id="adChart" viewBox="0 0 640 170" style="width:100%;display:block"></svg>
+            <div id="adChartTip" style="position:absolute;display:none;pointer-events:none;background:var(--card-2,#0d1410);border:1px solid var(--line-2);border-radius:8px;padding:8px 11px;font-family:var(--mono);font-size:10px;line-height:1.8;z-index:5;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.5)"></div>
+          </div>
           <div style="display:flex;gap:16px;margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--ink-2)">
             <span><i style="display:inline-block;width:8px;height:8px;background:var(--neon);border-radius:2px;margin-right:5px"></i>LOCKS</span>
             <span><i style="display:inline-block;width:8px;height:8px;background:#ff6b6b;border-radius:2px;margin-right:5px"></i>BURNS</span>

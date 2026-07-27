@@ -1831,21 +1831,51 @@ function syncAdminNav() {
   if ($("view-admin").classList.contains("active")) loadAdmin();
 }
 // first-touch referral: if arrived via /r/<code>, tell the backend which wallet connected
-/* admin activity chart — stacked daily bars (locks/burns/vesting), last 30 days */
+/* admin activity chart — stacked bars (locks/burns/vesting) with a range
+   selector (1D hourly · 7D · 30D · lifetime) and a hover tooltip per bar */
+let adminActsCache: { ts: number; kind: string }[] = [];
+let adminChartNow = 0;
+let adminChartRange = 30; // days; 0 = lifetime; 1 = last 24h in hourly buckets
 function drawAdminChart(acts: { ts: number; kind: string }[], now: number) {
+  adminActsCache = acts; adminChartNow = now;
+  renderAdminChart();
+}
+function renderAdminChart() {
   const svg = document.getElementById("adChart"); if (!svg) return;
-  const DAYS = 30, W = 640, H = 170, L = 30, R = 6, T = 12, B = 22;
-  const day0 = Math.floor(now / 86400) - (DAYS - 1); // day index of the left-most bar
-  const buckets = Array.from({ length: DAYS }, () => ({ LOCK: 0, BURN: 0, VESTING: 0 } as Record<string, number>));
+  const acts = adminActsCache, now = adminChartNow || Math.floor(Date.now() / 1000);
+  const W = 640, H = 170, L = 30, R = 6, T = 12, B = 22;
+  const COLORS: Record<string, string> = { LOCK: "var(--neon,#00e05a)", BURN: "#ff6b6b", VESTING: "#f5b731" };
+
+  // bucket size + count per range
+  let bucketSec: number, count: number, startTs: number, subLabel: string;
+  if (adminChartRange === 1) {
+    bucketSec = 3600; count = 24; startTs = (Math.floor(now / 3600) - 23) * 3600; subLabel = "ACTIONS PER HOUR · LAST 24H";
+  } else if (adminChartRange === 0) {
+    const first = acts.length ? Math.min(...acts.map((a) => a.ts)) : now;
+    const days = Math.max(7, Math.floor((now - first) / 86400) + 1);
+    if (days > 90) { bucketSec = 7 * 86400; count = Math.ceil(days / 7); subLabel = "ACTIONS PER WEEK · LIFETIME"; }
+    else { bucketSec = 86400; count = days; subLabel = "ACTIONS PER DAY · LIFETIME"; }
+    startTs = (Math.floor(now / bucketSec) - (count - 1)) * bucketSec;
+  } else {
+    bucketSec = 86400; count = adminChartRange; startTs = (Math.floor(now / 86400) - (count - 1)) * 86400;
+    subLabel = `ACTIONS PER DAY · LAST ${count} DAYS`;
+  }
+  const sub = document.getElementById("adChartSub"); if (sub) sub.textContent = subLabel;
+
+  const buckets = Array.from({ length: count }, () => ({ LOCK: 0, BURN: 0, VESTING: 0 } as Record<string, number>));
   for (const a of acts) {
-    const d = Math.floor(a.ts / 86400) - day0;
-    if (d >= 0 && d < DAYS) buckets[d][a.kind] = (buckets[d][a.kind] || 0) + 1;
+    const i = Math.floor((a.ts - startTs) / bucketSec);
+    if (i >= 0 && i < count) buckets[i][a.kind] = (buckets[i][a.kind] || 0) + 1;
   }
   const max = Math.max(1, ...buckets.map((b) => b.LOCK + b.BURN + b.VESTING));
-  const bw = (W - L - R) / DAYS;
+  const bw = (W - L - R) / count;
   const y = (n: number) => H - B - (n / max) * (H - T - B);
-  const COLORS: Record<string, string> = { LOCK: "var(--neon,#00e05a)", BURN: "#ff6b6b", VESTING: "#f5b731" };
-  let bars = "";
+  const lbl = (i: number) => {
+    const dte = new Date((startTs + i * bucketSec) * 1000);
+    if (bucketSec === 3600) return `${String(dte.getUTCHours()).padStart(2, "0")}:00`;
+    return `${dte.getUTCDate()}/${dte.getUTCMonth() + 1}`;
+  };
+  let bars = "", overlays = "";
   buckets.forEach((b, i) => {
     let acc = 0;
     const x = L + i * bw + 1;
@@ -1855,16 +1885,55 @@ function drawAdminChart(acts: { ts: number; kind: string }[], now: number) {
       bars += `<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${Math.max(1, y0b - y1).toFixed(1)}" fill="${COLORS[kind]}" rx="1"/>`;
       acc += n;
     }
+    // full-height invisible hover target per bucket
+    overlays += `<rect class="ad-hov" data-i="${i}" x="${(L + i * bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${H - T - B}" fill="transparent"/>`;
   });
-  const dLbl = (idx: number) => { const dte = new Date((day0 + idx) * 86400_000); return `${dte.getUTCDate()}/${dte.getUTCMonth() + 1}`; };
   svg.innerHTML = `
     <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--ink-3,#59695e)" stroke-width=".5" opacity=".5"/>
     <text x="${L - 5}" y="${y(max) + 3}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="end">${max}</text>
     <text x="${L - 5}" y="${H - B + 3}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="end">0</text>
     ${bars}
-    <text x="${L}" y="${H - 8}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="start">${dLbl(0)}</text>
-    <text x="${W - R}" y="${H - 8}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="end">${dLbl(DAYS - 1)}</text>`;
+    <text x="${L}" y="${H - 8}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="start">${lbl(0)}</text>
+    <text x="${W - R}" y="${H - 8}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="end">${lbl(count - 1)}</text>
+    ${overlays}`;
+
+  // hover tooltip
+  const tip = document.getElementById("adChartTip");
+  const wrap = svg.parentElement;
+  if (tip && wrap) {
+    svg.querySelectorAll<SVGRectElement>(".ad-hov").forEach((r) => {
+      r.addEventListener("mousemove", (e) => {
+        const i = Number(r.dataset.i); const b = buckets[i];
+        const total = b.LOCK + b.BURN + b.VESTING;
+        const dte = new Date((startTs + i * bucketSec) * 1000);
+        const head = bucketSec === 3600
+          ? `${lbl(i)}–${String((dte.getUTCHours() + 1) % 24).padStart(2, "0")}:00 UTC`
+          : bucketSec > 86400 ? `week of ${lbl(i)}` : dte.toISOString().slice(0, 10);
+        tip.innerHTML = `<b>${head}</b><br>
+          <span style="color:var(--neon)">■</span> Locks: ${b.LOCK}<br>
+          <span style="color:#ff6b6b">■</span> Burns: ${b.BURN}<br>
+          <span style="color:#f5b731">■</span> Vesting: ${b.VESTING}<br>
+          <b>Total: ${total}</b>`;
+        const wr = wrap.getBoundingClientRect();
+        let tx = e.clientX - wr.left + 14;
+        tip.style.display = "block";
+        const tw = tip.offsetWidth;
+        if (tx + tw > wr.width - 4) tx = e.clientX - wr.left - tw - 14;
+        tip.style.left = `${Math.max(0, tx)}px`;
+        tip.style.top = `${Math.max(0, e.clientY - wr.top - 20)}px`;
+        r.setAttribute("fill", "rgba(255,255,255,.05)");
+      });
+      r.addEventListener("mouseleave", () => { tip.style.display = "none"; r.setAttribute("fill", "transparent"); });
+    });
+  }
 }
+// range chips (exist only on the admin page markup)
+document.querySelectorAll<HTMLElement>("#adChartRange .chip-dur").forEach((c) => c.addEventListener("click", () => {
+  document.querySelectorAll("#adChartRange .chip-dur").forEach((x) => x.classList.remove("on"));
+  c.classList.add("on");
+  adminChartRange = Number(c.dataset.range);
+  renderAdminChart();
+}));
 
 function attributeRef() {
   let ref = "";
@@ -1942,6 +2011,31 @@ async function loadAdmin() {
       ...vestRows.filter((v) => v.total > v.claimed).map((v) => ({ token: v.token, amount: v.total - v.claimed, withdrawn: false })),
     ] as any);
     $("adTvl").textContent = tvl.ethUsd > 0 ? fmtUsd(tvl.usd) : `${tvl.eth.toFixed(3)} ETH`;
+
+    // ── vesting fee collector (admin-gated on-chain via setFeeCollector) ──
+    if (VESTING) {
+      try {
+        const coll = await pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "feeCollector" }) as string;
+        $("adVestCfg").style.display = "";
+        $("adVestColl").textContent = coll;
+        ($("adVestCollBtn") as HTMLButtonElement).onclick = async () => {
+          const m4 = $("adVestCollMsg"); m4.className = "msg";
+          const raw = ($("adVestCollAddr") as HTMLInputElement).value.trim();
+          if (!isAddress(raw)) { m4.className = "msg bad"; m4.textContent = "Enter a valid wallet address (0x…)."; return; }
+          const next = getAddress(raw);
+          if (!window.confirm(`Change the vesting fee collector to ${next}?\n\nAll accrued and future vesting fees become withdrawable ONLY by that wallet. Make sure you control it.`)) return;
+          try {
+            m4.textContent = "Confirm in wallet…";
+            const h = await send(VESTING!, encodeFunctionData({ abi: VESTING_ABI as any, functionName: "setFeeCollector", args: [next] }));
+            m4.innerHTML = `Updating… <span class="spin"></span>`;
+            await waitTx(h);
+            m4.className = "msg ok"; m4.textContent = "Collector updated ✓";
+            ($("adVestCollAddr") as HTMLInputElement).value = "";
+            loadAdmin();
+          } catch (e: any) { m4.className = "msg bad"; m4.textContent = friendlyErr(e); }
+        };
+      } catch { /* leave hidden */ }
+    }
 
     // ── accrued vesting fees + withdraw (collector-gated on-chain) ──
     if (VESTING) {
