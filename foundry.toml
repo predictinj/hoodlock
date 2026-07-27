@@ -1,0 +1,16 @@
+[profile.default]
+src = 'contracts'
+test = 'contracts/test'
+out = 'contracts/out'
+cache_path = 'contracts/cache'
+libs = ['contracts/lib']
+solc = '0.8.24'
+# Robinhood Chain lacks Cancun opcodes (no mcopy) — same setting as hoodmarket.
+evm_version = 'paris'
+optimizer = true
+optimizer_runs = 200
+
+[invariant]
+runs = 64
+depth = 64
+fail_on_revert = false

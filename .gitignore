@@ -11,3 +11,5 @@ server/public
 server/data
 server/config.json
 data
+contracts/cache
+contracts/out
