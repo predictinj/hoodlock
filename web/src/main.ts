@@ -133,6 +133,18 @@ function notify(msg: string) {
 }
 // (sidebar "Contract on Blockscout" link removed — multiple contracts now; proof pages link each one)
 
+/* Proof-page back links navigate in-app instead of full-reloading (the reload
+   flashed the dashboard view before JS re-routed — read as a glitch). */
+document.addEventListener("click", (e) => {
+  const a = (e.target as HTMLElement).closest?.("a.p-back") as HTMLAnchorElement | null;
+  if (!a) return;
+  const path = a.getAttribute("href") || "/app";
+  const view = path.match(/^\/app\/([a-z]+)/)?.[1] || "dashboard";
+  e.preventDefault();
+  history.pushState(null, "", path === "/app" ? "/app/dashboard" : path);
+  go(view, false);
+});
+
 /* ---------- view routing ---------- */
 const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS", affiliate: "AFFILIATE", developers: "DEVELOPERS", admin: "ADMIN CONSOLE" };
 const ADMIN_WALLET = "0x79c1230cab12d53d040f5fe1f5279e1a481ccea2";
@@ -2290,23 +2302,49 @@ function updateVSummary() {
 }
 
 /* ---------- create ---------- */
+/** Red-ring the offending inputs; the ring clears as soon as the field is edited. */
+function ringBad(els: (HTMLElement | null)[]) {
+  els.filter((e): e is HTMLElement => !!e).forEach((el) => {
+    el.classList.add("ring-bad");
+    const clear = () => el.classList.remove("ring-bad");
+    el.addEventListener("input", clear, { once: true });
+    el.addEventListener("change", clear, { once: true });
+  });
+}
+function clearRings() { document.querySelectorAll(".ring-bad").forEach((el) => el.classList.remove("ring-bad")); }
 async function vCreate() {
   const msg = $("vMsg"); msg.className = "msg";
+  clearRings();
   try {
     if (!account) return openWalletModal();
     if (!VESTING) throw new Error("Vesting is not configured.");
-    if (!vTokenMeta) throw new Error("Enter a valid token address.");
+    if (!vTokenMeta) { ringBad([$("vTokenAddr")]); throw new Error("Enter a valid token address."); }
     const rows = vReadRows();
-    if (!rows.length) throw new Error("Add at least one recipient (address + amount).");
+    if (!rows.length) {
+      // ring exactly what's missing on each row
+      document.querySelectorAll<HTMLElement>("#vRows .v-row").forEach((r) => {
+        const a = r.querySelector<HTMLInputElement>(".vRowAddr")!;
+        const m2 = r.querySelector<HTMLInputElement>(".vRowAmt")!;
+        if (!isAddress(a.value.trim())) ringBad([a]);
+        if (!(Number(m2.value) > 0)) ringBad([m2]);
+      });
+      throw new Error("Add at least one recipient (address + amount).");
+    }
     const d = vDates();
-    if (!d) throw new Error("Pick start and fully-vested dates.");
-    if (d.cliff < d.start) throw new Error("The cliff cannot be before the start.");
-    if (d.cliff > d.end) throw new Error("The cliff cannot be after the fully-vested date.");
-    if (d.end <= d.start) throw new Error("Fully-vested must be after the start.");
-    if (d.end <= Math.floor(Date.now() / 1000) + 24 * 3600) throw new Error("The schedule must run at least 24 hours from now.");
+    if (!d) {
+      ringBad([($("vStart") as HTMLInputElement).value ? null : $("vStart"), ($("vEnd") as HTMLInputElement).value ? null : $("vEnd")]);
+      throw new Error("Pick start and fully-vested dates.");
+    }
+    if (d.cliff < d.start) { ringBad([$("vCliff")]); throw new Error("The cliff cannot be before the start."); }
+    if (d.cliff > d.end) { ringBad([$("vCliff"), $("vEnd")]); throw new Error("The cliff cannot be after the fully-vested date."); }
+    if (d.end <= d.start) { ringBad([$("vEnd")]); throw new Error("Fully-vested must be after the start."); }
+    if (d.end <= Math.floor(Date.now() / 1000) + 24 * 3600) { ringBad([$("vEnd")]); throw new Error("The schedule must run at least 24 hours from now."); }
     const amounts = rows.map((r) => parseUnits(r.amt, vTokenMeta!.decimals));
     const sum = amounts.reduce((s, a) => s + a, 0n);
-    if (sum > vTokenMeta.bal) throw new Error("Total amount exceeds your balance.");
+    if (sum > vTokenMeta.bal) {
+      ringBad([...document.querySelectorAll<HTMLElement>("#vRows .vRowAmt")]);
+      throw new Error("Total amount exceeds your balance.");
+    }
     const n = BigInt(rows.length);
     const btn = $("vCreateBtn") as HTMLButtonElement; btn.disabled = true;
 
