@@ -663,11 +663,194 @@ app.post("/api/admin/aff-commission", (req, res) => {
   res.json({ ok: true, code: aff.code, commission: rate });
 });
 
+/* ---------- proof-page SEO: server-rendered <head> per lock/burn/vesting ----------
+ * Proof pages are the highest-intent surface we have ("is $TOKEN liquidity
+ * locked?"), but they are SPA routes — every one of them shipped the same
+ * generic title with no content, so Google saw N duplicates. Here we read the
+ * schedule/lock/burn from chain and inject a unique title, description,
+ * canonical and JSON-LD before serving app.html. The SPA still renders as
+ * before; this only fills the head for crawlers and link unfurls. */
+const LOCKER_READ_ABI = [
+  { type: "function", name: "locks", stateMutability: "view", inputs: [{ type: "uint256" }],
+    outputs: [{ name: "owner", type: "address" }, { name: "token", type: "address" }, { name: "amount", type: "uint256" }, { name: "unlockTime", type: "uint256" }, { name: "withdrawn", type: "bool" }] },
+  { type: "function", name: "totalLocks", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+];
+const BURNER_READ_ABI = [
+  { type: "function", name: "getBurn", stateMutability: "view", inputs: [{ type: "uint256" }],
+    outputs: [{ components: [{ name: "burner", type: "address" }, { name: "token", type: "address" }, { name: "amount", type: "uint256" }, { name: "timestamp", type: "uint256" }], type: "tuple" }] },
+  { type: "function", name: "totalBurns", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+];
+const VESTING_READ_ABI = [
+  { type: "function", name: "getSchedule", stateMutability: "view", inputs: [{ type: "uint256" }],
+    outputs: [{ components: [{ name: "creator", type: "address" }, { name: "start", type: "uint64" }, { name: "beneficiary", type: "address" }, { name: "cliff", type: "uint64" }, { name: "token", type: "address" }, { name: "end", type: "uint64" }, { name: "total", type: "uint128" }, { name: "claimed", type: "uint128" }], type: "tuple" }] },
+  { type: "function", name: "totalSchedules", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+];
+const ERC20_READ_ABI = [
+  { type: "function", name: "symbol", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
+  { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
+  { type: "function", name: "totalSupply", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+];
+
+const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+const fmtAmt = (v, d) => {
+  const n = Number(v) / 10 ** Number(d);
+  return n.toLocaleString("en-US", { maximumFractionDigits: n >= 1 ? 0 : 6 });
+};
+const dayLabel = (sec) => new Date(Number(sec) * 1000).toISOString().slice(0, 10);
+
+const tokMetaCache = new Map();
+async function tokenMeta(addr) {
+  const k = String(addr).toLowerCase();
+  if (tokMetaCache.has(k)) return tokMetaCache.get(k);
+  const [symbol, decimals, supply] = await Promise.all([
+    pub.readContract({ address: addr, abi: ERC20_READ_ABI, functionName: "symbol" }).catch(() => "TOKEN"),
+    pub.readContract({ address: addr, abi: ERC20_READ_ABI, functionName: "decimals" }).catch(() => 18),
+    pub.readContract({ address: addr, abi: ERC20_READ_ABI, functionName: "totalSupply" }).catch(() => 0n),
+  ]);
+  const m = { symbol: String(symbol), decimals: Number(decimals), supply };
+  tokMetaCache.set(k, m);
+  return m;
+}
+
+const proofCache = new Map(); // "kind:id" -> { at, meta }
+async function proofMeta(kind, id) {
+  const key = `${kind}:${id}`;
+  const hit = proofCache.get(key);
+  if (hit && Date.now() - hit.at < 10 * 60_000) return hit.meta;
+  let meta = null;
+  try {
+    if (kind === "lock") {
+      const [, token, amount, unlockTime, withdrawn] = await pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "locks", args: [BigInt(id)] });
+      if (!amount) return null;
+      const t = await tokenMeta(token);
+      const pct = t.supply > 0n ? (Number((amount * 10000n) / t.supply) / 100).toFixed(2) : null;
+      const amt = fmtAmt(amount, t.decimals);
+      const until = dayLabel(unlockTime);
+      meta = {
+        title: `${amt} $${t.symbol} locked until ${until} — on-chain proof | HoodLock`,
+        desc: `${amt} $${t.symbol}${pct ? ` (${pct}% of supply)` : ""} is ${withdrawn ? "was locked" : "locked"} in a time-locked contract on Robinhood Chain until ${until}. Verify the lock yourself on-chain — HoodLock lock #${id}.`,
+        canonical: `https://hoodlock.tech/app?lock=${id}`,
+        heading: `${amt} $${t.symbol} locked`,
+      };
+    } else if (kind === "burn" && BURNER) {
+      const b = await pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "getBurn", args: [BigInt(id)] });
+      if (!b || !b.amount) return null;
+      const t = await tokenMeta(b.token);
+      const pct = t.supply > 0n ? (Number((b.amount * 10000n) / t.supply) / 100).toFixed(2) : null;
+      const amt = fmtAmt(b.amount, t.decimals);
+      meta = {
+        title: `${amt} $${t.symbol} burned forever — on-chain proof | HoodLock`,
+        desc: `${amt} $${t.symbol}${pct ? ` (${pct}% of supply)` : ""} was permanently burned on Robinhood Chain on ${dayLabel(b.timestamp)}. The tokens went to the dead address and can never be recovered — HoodLock burn #${id}.`,
+        canonical: `https://hoodlock.tech/app?burn=${id}`,
+        heading: `${amt} $${t.symbol} burned forever`,
+      };
+    } else if (kind === "vesting" && VESTING) {
+      const v = await pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "getSchedule", args: [BigInt(id)] });
+      if (!v || !v.total) return null;
+      const t = await tokenMeta(v.token);
+      const amt = fmtAmt(v.total, t.decimals);
+      const end = dayLabel(v.end);
+      const hasCliff = Number(v.cliff) > Number(v.start);
+      meta = {
+        title: `${amt} $${t.symbol} vesting until ${end} — on-chain proof | HoodLock`,
+        desc: `${amt} $${t.symbol} is vesting on Robinhood Chain${hasCliff ? ` with a cliff on ${dayLabel(v.cliff)}` : ""}, fully released ${end}. Irrevocable and verifiable on-chain — HoodLock vesting #${id}.`,
+        canonical: `https://hoodlock.tech/app?vesting=${id}`,
+        heading: `${amt} $${t.symbol} vesting`,
+      };
+    }
+  } catch { meta = null; }
+  proofCache.set(key, { at: Date.now(), meta });
+  return meta;
+}
+
+/** Serve app.html with the proof page's own head tags patched in. */
+function sendProof(res, meta) {
+  let html = readFileSync(join(PUBLIC, "app.html"), "utf8");
+  const jsonld = {
+    "@context": "https://schema.org", "@type": "WebPage",
+    name: meta.title, description: meta.desc, url: meta.canonical,
+    isPartOf: { "@type": "WebSite", name: "HoodLock", url: "https://hoodlock.tech/" },
+  };
+  const head = `
+<title>${esc(meta.title)}</title>
+<meta name="description" content="${esc(meta.desc)}" />
+<link rel="canonical" href="${esc(meta.canonical)}" />
+<meta property="og:title" content="${esc(meta.title)}" />
+<meta property="og:description" content="${esc(meta.desc)}" />
+<meta property="og:url" content="${esc(meta.canonical)}" />
+<meta name="twitter:title" content="${esc(meta.title)}" />
+<meta name="twitter:description" content="${esc(meta.desc)}" />
+<script type="application/ld+json">${JSON.stringify(jsonld)}</script>
+<noscript><h1>${esc(meta.heading)}</h1><p>${esc(meta.desc)}</p></noscript>`;
+  // drop the generic title/description/og-title/og-description, then inject ours
+  html = html
+    .replace(/<title>[\s\S]*?<\/title>/, "")
+    .replace(/<meta name="description"[^>]*>/, "")
+    .replace(/<meta property="og:title"[^>]*>/, "")
+    .replace(/<meta property="og:description"[^>]*>/, "")
+    .replace(/<meta property="og:url"[^>]*>/, "")
+    .replace(/<meta name="twitter:title"[^>]*>/, "")
+    .replace(/<meta name="twitter:description"[^>]*>/, "")
+    .replace("</head>", head + "\n</head>");
+  res.type("html").send(html);
+}
+
 /* ---------- static site with the same rewrites as serve.json ---------- */
 const send = (res, file) => res.sendFile(join(PUBLIC, file));
 app.get("/", (_req, res) => send(res, "index.html"));
-app.get("/app", (_req, res) => send(res, "app.html"));
+app.get("/app", async (req, res) => {
+  for (const kind of ["lock", "burn", "vesting"]) {
+    const raw = req.query[kind];
+    if (typeof raw === "string" && /^\d{1,9}$/.test(raw)) {
+      const meta = await proofMeta(kind, Number(raw)).catch(() => null);
+      if (meta) return sendProof(res, meta);
+      break;
+    }
+  }
+  send(res, "app.html");
+});
 app.get("/app/*", (_req, res) => send(res, "app.html"));
+/* Dynamic sitemap: the static pages plus every proof page that exists on
+   chain, so new locks/burns/vesting become indexable without a redeploy.
+   Falls back to the static file if the chain is unreachable. */
+let sitemapCache = { at: 0, xml: "" };
+app.get("/sitemap.xml", async (_req, res) => {
+  if (Date.now() - sitemapCache.at < 15 * 60_000 && sitemapCache.xml) {
+    return res.type("application/xml").send(sitemapCache.xml);
+  }
+  try {
+    const [nLocks, nBurns, nVests] = await Promise.all([
+      pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "totalLocks" }).then(Number).catch(() => 0),
+      BURNER ? pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "totalBurns" }).then(Number).catch(() => 0) : 0,
+      VESTING ? pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "totalSchedules" }).then(Number).catch(() => 0) : 0,
+    ]);
+    const today = new Date().toISOString().slice(0, 10);
+    const statics = [
+      ["/", "daily", "1.0"], ["/app/locks", "weekly", "0.9"], ["/app/vesting", "weekly", "0.9"],
+      ["/app/explore", "daily", "0.8"], ["/app/affiliate", "monthly", "0.7"], ["/app/developers", "monthly", "0.7"],
+      ["/app", "weekly", "0.6"], ["/blog", "weekly", "0.7"],
+      ["/blog/how-to-lock-liquidity-on-robinhood-chain", "monthly", "0.6"],
+      ["/blog/what-is-a-liquidity-lock", "monthly", "0.6"],
+      ["/blog/how-to-burn-tokens-on-robinhood-chain", "monthly", "0.6"],
+      ["/blog/token-locks-vs-vesting-vs-burning", "monthly", "0.6"],
+    ];
+    const parts = statics.map(([p, cf, pr]) =>
+      `  <url><loc>https://hoodlock.tech${p}</loc><lastmod>${today}</lastmod><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`);
+    const proof = (kind, n, pr) => {
+      for (let i = 0; i < n; i++) {
+        parts.push(`  <url><loc>https://hoodlock.tech/app?${kind}=${i}</loc><changefreq>weekly</changefreq><priority>${pr}</priority></url>`);
+      }
+    };
+    proof("lock", nLocks, "0.8");
+    proof("burn", nBurns, "0.8");
+    proof("vesting", nVests, "0.8");
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${parts.join("\n")}\n</urlset>\n`;
+    sitemapCache = { at: Date.now(), xml };
+    res.type("application/xml").send(xml);
+  } catch {
+    send(res, "sitemap.xml"); // static fallback — never 5xx on a crawler
+  }
+});
 app.get("/embed", (_req, res) => send(res, "embed.html")); // framable (headers exempted above)
 app.get("/blog", (_req, res) => send(res, "blog/index.html"));
 app.get("/blog/:slug", (req, res) => {
