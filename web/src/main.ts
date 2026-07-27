@@ -4,7 +4,7 @@
    WalletConnect for Robinhood Wallet mobile. */
 import {
   createPublicClient, http, fallback, custom, defineChain, getAddress, isAddress,
-  parseUnits, formatUnits, encodeFunctionData, numberToHex, type Hex,
+  parseUnits, formatUnits, encodeFunctionData, numberToHex, keccak256, toHex, type Hex,
 } from "viem";
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
@@ -697,7 +697,46 @@ const BURNED_EVENT = { type: "event", name: "Burned", inputs: [
   { name: "id", type: "uint256", indexed: true }, { name: "burner", type: "address", indexed: true },
   { name: "token", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false } ] } as const;
 
-/* burns: id → tx via Burned-eventet (samma atomiska promise-mönster) */
+
+/* ---------- event logs via Blockscout (the chain caps getLogs at 2000 blocks) ----------
+   The RPC now rejects any getLogs spanning more than 2000 blocks, and the chain
+   is ~21M blocks deep, so the fromBlock:0 queries this app was built on always
+   fail. Blockscout is an indexer with no such limit and returns block_timestamp
+   with each log, which also removes the per-log getBlock round-trip. */
+type BsLog = { topics: string[]; data: string; block: number; tx: string; ts: number };
+const bsCache = new Map<string, Promise<BsLog[]>>();
+function bsLogs(address: string): Promise<BsLog[]> {
+  const key = address.toLowerCase();
+  if (!bsCache.has(key)) {
+    bsCache.set(key, (async () => {
+      try {
+        const r = await fetch(`${EXP}/api/v2/addresses/${key}/logs`);
+        if (!r.ok) throw new Error(String(r.status));
+        const j: any = await r.json();
+        return (j.items || []).map((it: any) => ({
+          topics: it.topics || [],
+          data: it.data ?? "0x",
+          block: Number(it.block_number),
+          tx: it.transaction_hash || it.tx_hash,
+          ts: it.block_timestamp ? Math.floor(new Date(it.block_timestamp).getTime() / 1000) : 0,
+        }));
+      } catch { bsCache.delete(key); return []; }   // let the next call retry
+    })());
+  }
+  return bsCache.get(key)!;
+}
+/** Logs of one event type, with the id from topics[1] (all three events index id first). */
+async function eventLogs(address: string, topic0: string): Promise<(BsLog & { id: number })[]> {
+  const all = await bsLogs(address);
+  return all
+    .filter((l) => (l.topics[0] || "").toLowerCase() === topic0.toLowerCase())
+    .map((l) => ({ ...l, id: Number(BigInt(l.topics[1] || "0x0")) }));
+}
+const TOPIC_LOCKED = keccak256(toHex("Locked(uint256,address,address,uint256,uint256)"));
+const TOPIC_BURNED = keccak256(toHex("Burned(uint256,address,address,uint256)"));
+const TOPIC_VESTING_CREATED = keccak256(toHex("VestingCreated(uint256,address,address,address,uint256,uint64,uint64,uint64)"));
+
+/* burns: id → tx via Burned-eventet */
 type BurnedLog = { id: number; tx: string };
 let burnedLogsPromise: Promise<BurnedLog[]> | null = null;
 function loadBurnedLogs(): Promise<BurnedLog[]> {
@@ -705,8 +744,7 @@ function loadBurnedLogs(): Promise<BurnedLog[]> {
     burnedLogsPromise = (async () => {
       if (!BURNER) return [];
       try {
-        const logs = await pub.getLogs({ address: BURNER, event: BURNED_EVENT as any, fromBlock: 0n, toBlock: "latest" });
-        return logs.map((lg: any) => ({ id: Number(lg.args.id), tx: lg.transactionHash as string }));
+        return (await eventLogs(BURNER, TOPIC_BURNED)).map((l) => ({ id: l.id, tx: l.tx }));
       } catch { burnedLogsPromise = null; return []; }
     })();
   }
@@ -725,12 +763,13 @@ async function txForBurn(id: number): Promise<string | null> {
     const hit = logs.find((l) => l.id === id);
     if (hit) { burnTxCache.set(id, hit.tx); return hit.tx; }
   } catch { /* fall through to the targeted lookup */ }
-  for (let a = 0; a < 5; a++) {
+  for (let a = 0; a < 3; a++) {
     try {
-      const ev = await pub.getLogs({ address: BURNER, event: BURNED_EVENT as any, args: { id: BigInt(id) } as any, fromBlock: 0n, toBlock: "latest" });
-      if (ev.length) { const tx = ev[0].transactionHash as string; burnTxCache.set(id, tx); return tx; }
-      return null; // query succeeded, no such burn → genuinely none
-    } catch { await new Promise((r) => setTimeout(r, 500 * (a + 1))); } // RPC blip → retry
+      bsCache.delete(BURNER.toLowerCase());          // force a fresh read
+      const hit = (await eventLogs(BURNER, TOPIC_BURNED)).find((l) => l.id === id);
+      if (hit) { burnTxCache.set(id, hit.tx); return hit.tx; }
+      return null; // read succeeded, no such burn → genuinely none
+    } catch { await new Promise((r) => setTimeout(r, 500 * (a + 1))); }
   }
   return null;
 }
@@ -758,24 +797,27 @@ async function supplyPct(token: string, amount: bigint): Promise<string> {
 }
 
 // One atomic promise per event type — concurrent renders await the SAME fetch.
-type LockedLog = { id: number; owner: string; token: string; amount: bigint; unlockTime: number; tx: string; block: bigint };
+type LockedLog = { id: number; owner: string; token: string; amount: bigint; unlockTime: number; tx: string; block: bigint; ts: number };
 let lockedLogsPromise: Promise<LockedLog[]> | null = null;
 function loadLockedLogs(): Promise<LockedLog[]> {
   if (!lockedLogsPromise) {
     lockedLogsPromise = (async () => {
       try {
-        const logs = await pub.getLogs({ address: LOCKER, event: LOCKED_EVENT as any, fromBlock: 0n, toBlock: "latest" });
-        return logs.map((lg: any) => ({
-          id: Number(lg.args.id), owner: String(lg.args.owner), token: String(lg.args.token),
-          amount: lg.args.amount as bigint, unlockTime: Number(lg.args.unlockTime),
-          tx: lg.transactionHash as string, block: lg.blockNumber as bigint,
+        // Locked(id indexed, owner indexed, token indexed, amount, unlockTime)
+        return (await eventLogs(LOCKER, TOPIC_LOCKED)).map((l) => ({
+          id: l.id,
+          owner: getAddress("0x" + (l.topics[2] || "").slice(-40)),
+          token: getAddress("0x" + (l.topics[3] || "").slice(-40)),
+          amount: BigInt("0x" + (l.data.slice(2, 66) || "0")),
+          unlockTime: Number(BigInt("0x" + (l.data.slice(66, 130) || "0"))),
+          tx: l.tx, block: BigInt(l.block), ts: l.ts,
         })).sort((a, b) => (a.block < b.block ? -1 : 1));
       } catch { lockedLogsPromise = null; return []; }
     })();
   }
   return lockedLogsPromise;
 }
-function invalidateEvents() { lockedLogsPromise = null; blockTsCache.clear(); }
+function invalidateEvents() { lockedLogsPromise = null; burnedLogsPromise = null; bsCache.clear(); blockTsCache.clear(); }
 // Same reliability contract as txForBurn: never hide the confirm button on a flaky read.
 const lockTxCache = new Map<number, string>();
 async function txForLock(id: number): Promise<string | null> {
@@ -785,10 +827,11 @@ async function txForLock(id: number): Promise<string | null> {
     const hit = logs.find((l) => l.id === id);
     if (hit) { lockTxCache.set(id, hit.tx); return hit.tx; }
   } catch { /* fall through to the targeted lookup */ }
-  for (let a = 0; a < 5; a++) {
+  for (let a = 0; a < 3; a++) {
     try {
-      const ev = await pub.getLogs({ address: LOCKER, event: LOCKED_EVENT as any, args: { id: BigInt(id) } as any, fromBlock: 0n, toBlock: "latest" });
-      if (ev.length) { const tx = ev[0].transactionHash as string; lockTxCache.set(id, tx); return tx; }
+      bsCache.delete(LOCKER.toLowerCase());          // force a fresh read
+      const hit = (await eventLogs(LOCKER, TOPIC_LOCKED)).find((l) => l.id === id);
+      if (hit) { lockTxCache.set(id, hit.tx); return hit.tx; }
       return null;
     } catch { await new Promise((r) => setTimeout(r, 500 * (a + 1))); }
   }
@@ -798,6 +841,12 @@ async function lockedAtBlock(id: number): Promise<bigint | null> {
   const logs = await loadLockedLogs();
   const hit = logs.find((l) => l.id === id);
   return hit ? hit.block : null;
+}
+/** When a lock was created. Comes with the log now, so no extra round-trip. */
+async function lockedAtTs(id: number): Promise<number | null> {
+  const hit = (await loadLockedLogs()).find((l) => l.id === id);
+  if (hit?.ts) return hit.ts;
+  return hit ? blockTs(hit.block) : null;   // pre-Blockscout logs carry ts 0
 }
 // block → timestamp cache
 const blockTsCache = new Map<string, number>();
@@ -844,9 +893,8 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
   const unlocked = now >= l.unlockTime;
   // progress toward unlock, from the Locked event's block timestamp
   let pct = unlocked ? 100 : 50;
-  const lb = await lockedAtBlock(l.id);
-  if (lb !== null && !unlocked) {
-    const t0 = await blockTs(lb);
+  if (!unlocked) {
+    const t0 = await lockedAtTs(l.id);
     if (t0 !== null && l.unlockTime > t0) pct = Math.min(99, Math.max(1, Math.round(((now - t0) / (l.unlockTime - t0)) * 100)));
   }
   const status = l.withdrawn
@@ -1028,8 +1076,7 @@ let exploreLoaded = false;
 // locks — same columns, sorted by creation time alongside them).
 async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], limit = 25): Promise<string> {
   const lockItems = await Promise.all(lockRows.map(async (l) => {
-    const lb = await lockedAtBlock(l.id);
-    const ts = lb !== null ? (await blockTs(lb)) ?? 0 : 0;
+    const ts = (await lockedAtTs(l.id)) ?? 0;
     return { ts, render: () => lockRowHTML(l, false, "explore") };
   }));
   const burnItems = burnRows.map((b) => ({ ts: b.timestamp, render: () => burnRowHTML(b, "explore") }));
@@ -1300,7 +1347,7 @@ async function affLocksTable(me: any): Promise<string> {
   const cand = logs.filter((l) => attrMap.has(l.owner.toLowerCase()) && l.owner.toLowerCase() !== self);
   const rows: string[] = [];
   for (const l of cand) {
-    const ts = await blockTs(l.block);
+    const ts = l.ts || await blockTs(l.block);
     if (ts === null || ts <= (attrMap.get(l.owner.toLowerCase()) as number)) continue;
     const mt = await tokMeta(l.token);
     rows.push(`<tr><td><div class="tk-cell">${await tokenIcoHTML(l.token, mt.symbol)}<div><div class="n">$${escape(mt.symbol)} <span class="tag">#${l.id}</span></div><div class="a">${short(l.owner)}</div></div></div></td>
@@ -1805,7 +1852,7 @@ async function loadAdmin() {
     // lock timestamps come from the Locked logs (same source the chart uses)
     const lockLogs = await loadLockedLogs();
     prodData.locks = (await Promise.all(lockLogs.map(async (l) => ({
-      ts: (await blockTs(l.block)) || 0,
+      ts: l.ts || (await blockTs(l.block)) || 0,
       wallet: l.owner.toLowerCase(),
       active: rows.some((r) => r.id === l.id && !r.withdrawn && r.unlockTime > now),
     }))));
@@ -1856,7 +1903,7 @@ async function loadAdmin() {
     const logs = await loadLockedLogs();
     type Act = { wallet: string; token: string; ts: number; kind: string; color: string; fee: number };
     const acts: Act[] = [];
-    for (const l of logs) { const ts = await blockTs(l.block); if (ts) acts.push({ wallet: l.owner, token: l.token, ts, kind: "LOCK", color: "var(--neon)", fee: feeEth }); }
+    for (const l of logs) { const ts = l.ts || await blockTs(l.block); if (ts) acts.push({ wallet: l.owner, token: l.token, ts, kind: "LOCK", color: "var(--neon)", fee: feeEth }); }
     burnRows.forEach((b) => acts.push({ wallet: b.burner, token: b.token, ts: b.timestamp, kind: "BURN", color: "#ff6b6b", fee: burnFeeEth }));
     vestRows.forEach((v) => { const ts = vestTs.get(v.id); if (ts) acts.push({ wallet: v.creator, token: v.token, ts, kind: "VESTING", color: "#f5b731", fee: vestFeeEth }); });
     acts.sort((a, b) => b.ts - a.ts);
@@ -1995,10 +2042,9 @@ async function vestCreationInfo(id: number): Promise<{ tx: string; ts: number } 
   if (vestTxCache.has(id)) return vestTxCache.get(id)!;
   for (let a = 0; a < 4; a++) {
     try {
-      const ev = await pub.getLogs({ address: VESTING!, event: VESTING_CREATED_EVENT as any, args: { id: BigInt(id) } as any, fromBlock: 0n, toBlock: "latest" });
-      if (!ev.length) return null;
-      const blk = await pub.getBlock({ blockNumber: ev[0].blockNumber! });
-      const info = { tx: ev[0].transactionHash as string, ts: Number(blk.timestamp) };
+      const hit = (await eventLogs(VESTING!, TOPIC_VESTING_CREATED)).find((l) => l.id === id);
+      if (!hit) return null;
+      const info = { tx: hit.tx, ts: hit.ts };
       vestTxCache.set(id, info); return info;
     } catch { await new Promise((r) => setTimeout(r, 500 * (a + 1))); }
   }

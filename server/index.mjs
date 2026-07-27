@@ -7,6 +7,8 @@ import { dirname, join } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createPublicClient, createWalletClient, http, fallback, defineChain, getAddress, verifyMessage, isAddress, parseEther, encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { keccak256, toHex } from "viem";
+import { makeLogReader, byTopic, addrArg, addrParam } from "./logs.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -59,6 +61,37 @@ const VESTING_CREATED_EVENT = { type: "event", name: "VestingCreated", inputs: [
   { name: "total", type: "uint256", indexed: false }, { name: "start", type: "uint64", indexed: false },
   { name: "cliff", type: "uint64", indexed: false }, { name: "end", type: "uint64", indexed: false } ] };
 
+/* Event topics. The chain caps eth_getLogs at 2000 blocks, so logs come from
+   Blockscout (one call, carries timestamps and decodes non-indexed params)
+   with chunked RPC as fallback — see logs.mjs. */
+const T_LOCKED = keccak256(toHex("Locked(uint256,address,address,uint256,uint256)"));
+const T_BURNED = keccak256(toHex("Burned(uint256,address,address,uint256)"));
+const T_VESTING_CREATED = keccak256(toHex("VestingCreated(uint256,address,address,address,uint256,uint64,uint64,uint64)"));
+const readLogs = makeLogReader({ pub, explorer: cfg.explorer, ttlMs: 60_000,
+  log: (m) => console.log("[hoodlock]", m) });
+
+/** Every fee-bearing action with its payer and timestamp: [{wallet, ts, fee, kind}] */
+async function feeActions() {
+  const out = [];
+  const pull = async (addr, topic, kind, fee, pick) => {
+    if (!addr) return;
+    try {
+      for (const l of byTopic(await readLogs(addr), topic)) {
+        const w = pick(l);
+        if (w) out.push({ wallet: w.toLowerCase(), ts: l.timestamp ?? 0, fee, kind });
+      }
+    } catch { /* one contract failing must not zero the others */ }
+  };
+  // Locked(id, owner, token, …) — owner indexed at topics[2]
+  await pull(LOCKER, T_LOCKED, "lock", FEE_ETH, (l) => addrArg(l, 2));
+  // Burned(id, burner, token, …) — burner indexed at topics[2]
+  await pull(BURNER, T_BURNED, "burn", BURN_FEE_ETH, (l) => addrArg(l, 2));
+  // VestingCreated(id, token, beneficiary, creator, …) — creator is the payer
+  // but is NOT indexed, so it comes from the decoded params (first data word).
+  await pull(VESTING, T_VESTING_CREATED, "vest", VEST_FEE_ETH, (l) => addrParam(l, "creator", 0));
+  return out;
+}
+
 let FEE_ETH = 0.005; // sane default; refreshed from chain at boot
 let FEE_WEI = 5000000000000000n; // 0.005 ETH default
 let BURN_FEE_ETH = 0.005, VEST_FEE_ETH = 0.005;
@@ -75,15 +108,7 @@ let lockCache = { at: 0, byOwner: new Map() };
 async function lockCounts() {
   if (Date.now() - lockCache.at < 60_000) return lockCache.byOwner;
   const byOwner = new Map();
-  const add = (addr) => { const o = String(addr).toLowerCase(); byOwner.set(o, (byOwner.get(o) || 0) + 1); };
-  const [locks, burns, vests] = await Promise.all([
-    pub.getLogs({ address: LOCKER, event: LOCKED_EVENT, fromBlock: 0n, toBlock: "latest" }),
-    BURNER ? pub.getLogs({ address: BURNER, event: BURNED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
-    VESTING ? pub.getLogs({ address: VESTING, event: VESTING_CREATED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
-  ]);
-  for (const lg of locks) add(lg.args.owner);
-  for (const lg of burns) add(lg.args.burner);
-  for (const lg of vests) add(lg.args.creator);
+  for (const a of await feeActions()) byOwner.set(a.wallet, (byOwner.get(a.wallet) || 0) + 1);
   lockCache = { at: Date.now(), byOwner };
   return byOwner;
 }
@@ -156,36 +181,18 @@ async function ethUsd() {
   return ethUsdCache.v;
 }
 
-// per-owner lock block-timestamps (drives post-attribution commission), cached 60s
-const blockTsCache = new Map();
-async function blockTsOf(bn) {
-  const k = bn.toString();
-  if (blockTsCache.has(k)) return blockTsCache.get(k);
-  const b = await pub.getBlock({ blockNumber: bn });
-  const ts = Number(b.timestamp);
-  blockTsCache.set(k, ts);
-  return ts;
-}
-// per-wallet fee-bearing actions {ts, feeEth} across locks + burns + vesting,
-// cached 60s — commission is fee-weighted since the products charge different fees
+// blockTsOf() removed: Blockscout returns block_timestamp with every log, so
+// the per-log getBlock round-trip it existed for is gone.
+// per-wallet fee-bearing actions {ts, fee, kind}, cached 60s. Commission is
+// fee-weighted because the three products can price differently.
 let lockRecCache = { at: 0, byOwner: new Map() };
 async function actionRecords() {
   if (Date.now() - lockRecCache.at < 60_000) return lockRecCache.byOwner;
   const byOwner = new Map();
-  const add = async (addr, lg, fee, kind) => {
-    const w = String(addr).toLowerCase();
-    const ts = await blockTsOf(lg.blockNumber);
-    if (!byOwner.has(w)) byOwner.set(w, []);
-    byOwner.get(w).push({ ts, fee, kind });
-  };
-  const [locks, burns, vests] = await Promise.all([
-    pub.getLogs({ address: LOCKER, event: LOCKED_EVENT, fromBlock: 0n, toBlock: "latest" }),
-    BURNER ? pub.getLogs({ address: BURNER, event: BURNED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
-    VESTING ? pub.getLogs({ address: VESTING, event: VESTING_CREATED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
-  ]);
-  for (const lg of locks) await add(lg.args.owner, lg, FEE_ETH, "lock");
-  for (const lg of burns) await add(lg.args.burner, lg, BURN_FEE_ETH, "burn");
-  for (const lg of vests) await add(lg.args.creator, lg, VEST_FEE_ETH, "vest");
+  for (const a of await feeActions()) {
+    if (!byOwner.has(a.wallet)) byOwner.set(a.wallet, []);
+    byOwner.get(a.wallet).push({ ts: a.ts, fee: a.fee, kind: a.kind });
+  }
   lockRecCache = { at: Date.now(), byOwner };
   return byOwner;
 }
@@ -345,7 +352,7 @@ async function attributeWallet(code, wallet) {
   if (db.prepare("SELECT 1 FROM attributions WHERE wallet = ?").get(wallet)) return { ok: false, reason: "already-attributed" };
   const conn = db.prepare("SELECT first_ts FROM connections WHERE wallet = ?").get(wallet);
   if (conn && conn.first_ts < nowSec() - ATTR_GRACE_SEC) return { ok: false, reason: "established-wallet" };
-  try { const recs = await lockRecords(); if ((recs.get(wallet) || []).length > 0) return { ok: false, reason: "already-locked" }; } catch { /* chain read failed → allow */ }
+  try { const recs = await actionRecords(); if ((recs.get(wallet) || []).length > 0) return { ok: false, reason: "already-locked" }; } catch { /* chain read failed → allow */ }
   try { db.prepare("INSERT OR IGNORE INTO attributions (wallet, code, ts) VALUES (?,?,?)").run(wallet, row.code, nowSec()); } catch { /* */ }
   return { ok: true };
 }
