@@ -2238,8 +2238,19 @@ function updateVSummary() {
   $("vsCount").textContent = rows.length ? String(rows.length) : "—";
   const totalNum = rows.reduce((s, r) => s + Number(r.amt), 0);
   $("vsTotal").textContent = rows.length && vTokenMeta ? `${totalNum.toLocaleString("en-US", { maximumFractionDigits: 4 })} $${vTokenMeta.symbol}` : "—";
-  $("vsCliff").textContent = d ? (d.cliff > d.start ? dateTimeUTC(d.cliff) : "no cliff") : "—";
-  $("vsEnd").textContent = d ? dateTimeUTC(d.end) : "—";
+  // Show the user's LOCAL time first (it matches what they typed in the
+  // pickers), with UTC in parentheses — displaying UTC alone read as a bug
+  // ("I entered 03:06, it shows 02:06").
+  const dtLocalUtc = (sec: number) => {
+    const dd = new Date(sec * 1000);
+    const p = (n: number) => String(n).padStart(2, "0");
+    const local = `${dd.getFullYear()}-${p(dd.getMonth() + 1)}-${p(dd.getDate())} ${p(dd.getHours())}:${p(dd.getMinutes())}`;
+    const utcFull = dateTimeUTC(sec); // "YYYY-MM-DD HH:MM UTC"
+    const sameDay = utcFull.slice(0, 10) === local.slice(0, 10);
+    return `${local} (${sameDay ? utcFull.slice(11) : utcFull})`;
+  };
+  $("vsCliff").textContent = d ? (d.cliff > d.start ? dtLocalUtc(d.cliff) : "no cliff") : "—";
+  $("vsEnd").textContent = d ? dtLocalUtc(d.end) : "—";
   // F-6: surface how much of the schedule is already liquid at creation time.
   // Audit fixes: (1) sub-0.1% reads as 0% — datetime-local is minute-precision,
   // so a NOW-click always leaves a few seconds of "elapsed" time that used to
