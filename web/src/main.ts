@@ -2461,8 +2461,8 @@ async function showVestingProof(id: number, push = true) {
       <div class="proof-amt">${fmtNum(v.total, m.decimals)} $${escape(m.symbol)}</div>
       <div class="proof-sub">HOODLOCK · VESTING #${id} · ROBINHOOD CHAIN 4663</div>
       <div class="p-row"><span class="k">Status</span><span class="v">${status}</span></div>
-      <div class="p-row"><span class="k">Vested so far</span><span class="v g">${fmtNum(vestedNow, m.decimals)} (${pctNow.toFixed(1)}%)</span></div>
-      <div class="p-row"><span class="k">Claimed</span><span class="v">${fmtNum(v.claimed, m.decimals)}</span></div>
+      <div class="p-row"><span class="k">Vested so far</span><span class="v g">${fmtNum(vestedNow, m.decimals)} $${escape(m.symbol)} (${pctNow.toFixed(1)}%)</span></div>
+      <div class="p-row"><span class="k">Claimed</span><span class="v">${fmtNum(v.claimed, m.decimals)} $${escape(m.symbol)}</span></div>
       ${cliffJumpRow}
       <div class="p-row"><span class="k">Token</span><span class="v mono">${v.token}</span></div>
       <div class="p-row"><span class="k">Recipient</span><span class="v mono">${v.beneficiary}</span></div>
