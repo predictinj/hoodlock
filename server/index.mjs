@@ -5,7 +5,7 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { createPublicClient, createWalletClient, http, defineChain, getAddress, verifyMessage, isAddress, parseEther, encodeFunctionData } from "viem";
+import { createPublicClient, createWalletClient, http, fallback, defineChain, getAddress, verifyMessage, isAddress, parseEther, encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -17,9 +17,26 @@ const PORT = process.env.PORT || 8080;
 const REF_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
 /* ---------- chain ---------- */
+/* The public Robinhood RPC is rate-limited by design. The server reads chain
+   state on every proof-page crawl, sitemap build and affiliate calculation, so
+   a dropped call here shows up as a generic <title> for Googlebot or a missing
+   commission. RPC_URL (a dedicated endpoint) is tried first when set, with the
+   public endpoint as last-resort fallback and a short retry on each. */
+const RPC_URLS = [process.env.RPC_URL, ...(Array.isArray(cfg.rpcs) ? cfg.rpcs : []), cfg.rpc]
+  .filter((u) => typeof u === "string" && /^https?:\/\//.test(u))
+  .filter((u, i, a) => a.indexOf(u) === i);
 const CHAIN = defineChain({ id: cfg.chainId, name: "Robinhood Chain",
-  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: [cfg.rpc] } } });
-const pub = createPublicClient({ chain: CHAIN, transport: http(cfg.rpc) });
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: RPC_URLS } } });
+const rpcTransport = fallback(
+  // A dead dedicated endpoint must fail fast, not sit on a long timeout while
+  // a crawler waits — short timeout and one retry, then straight to the next.
+  RPC_URLS.map((u, i) => http(u, i < RPC_URLS.length - 1
+    ? { timeout: 4_000, retryCount: 1, retryDelay: 250 }
+    : { timeout: 12_000, retryCount: 2, retryDelay: 400 })),
+  { rank: false },
+);
+const pub = createPublicClient({ chain: CHAIN, transport: rpcTransport });
+console.log(`[hoodlock] rpc: ${RPC_URLS.length} endpoint(s)${process.env.RPC_URL ? " (dedicated first)" : " (public only)"}`);
 const LOCKER = getAddress(cfg.locker);
 const LOCKED_EVENT = { type: "event", name: "Locked", inputs: [
   { name: "id", type: "uint256", indexed: true }, { name: "owner", type: "address", indexed: true },
@@ -219,7 +236,7 @@ try {
   if (process.env.PAYOUT_PRIVATE_KEY) {
     const pk = process.env.PAYOUT_PRIVATE_KEY.startsWith("0x") ? process.env.PAYOUT_PRIVATE_KEY : "0x" + process.env.PAYOUT_PRIVATE_KEY;
     payoutAccount = privateKeyToAccount(pk);
-    walletClient = createWalletClient({ account: payoutAccount, chain: CHAIN, transport: http(cfg.rpc) });
+    walletClient = createWalletClient({ account: payoutAccount, chain: CHAIN, transport: rpcTransport });
     console.log("[hoodlock] payout wallet ready:", payoutAccount.address);
   } else {
     console.log("[hoodlock] no PAYOUT_PRIVATE_KEY — claims will queue as pending");
@@ -804,7 +821,12 @@ app.get("/", (_req, res) => send(res, "index.html"));
 app.get("/proof/:kind/:id", async (req, res) => {
   const { kind, id } = req.params;
   if (!["lock", "burn", "vesting"].includes(kind) || !/^\d{1,9}$/.test(id)) return send(res, "app.html");
-  const meta = await proofMeta(kind, Number(id)).catch(() => null);
+  // Serve the plain shell rather than keeping a crawler waiting: a generic
+  // title costs a little SEO, a timeout reads as a 5xx and costs the crawl.
+  const meta = await Promise.race([
+    proofMeta(kind, Number(id)).catch(() => null),
+    new Promise((r) => setTimeout(() => r(null), 6_000)),
+  ]);
   return meta ? sendProof(res, meta) : send(res, "app.html");
 });
 app.get("/app", (req, res) => {
@@ -826,11 +848,18 @@ app.get("/sitemap.xml", async (_req, res) => {
     return res.type("application/xml").send(sitemapCache.xml);
   }
   try {
-    const [nLocks, nBurns, nVests] = await Promise.all([
-      pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "totalLocks" }).then(Number).catch(() => 0),
-      BURNER ? pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "totalBurns" }).then(Number).catch(() => 0) : 0,
-      VESTING ? pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "totalSchedules" }).then(Number).catch(() => 0) : 0,
+    // Same deadline discipline as the proof pages: if the chain is slow, ship
+    // the static sitemap rather than making a crawler wait.
+    const counts = await Promise.race([
+      Promise.all([
+        pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "totalLocks" }).then(Number).catch(() => 0),
+        BURNER ? pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "totalBurns" }).then(Number).catch(() => 0) : 0,
+        VESTING ? pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "totalSchedules" }).then(Number).catch(() => 0) : 0,
+      ]),
+      new Promise((r) => setTimeout(() => r(null), 8_000)),
     ]);
+    if (!counts) return send(res, "sitemap.xml");
+    const [nLocks, nBurns, nVests] = counts;
     const today = new Date().toISOString().slice(0, 10);
     const statics = [
       ["/", "daily", "1.0"], ["/app/locks", "weekly", "0.9"], ["/app/vesting", "weekly", "0.9"],
