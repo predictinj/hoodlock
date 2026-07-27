@@ -35,6 +35,43 @@ async function j(url, opts) {
 }
 
 /**
+ * HoodLock's own records for a token. Split out from the rest because these
+ * are the only figures that must be current the instant they change — the
+ * explorer metadata around them can happily be an hour old, and re-fetching
+ * it would make a fresh lock slower to appear rather than faster.
+ */
+export async function tokenRecords({ address, pub, contracts, abis }) {
+  const addr = String(address).toLowerCase();
+  const { LOCKER, BURNER, VESTING } = contracts;
+  // Read every record at once. Sequentially this was one round-trip per lock;
+  // as one batch, multicall folds the whole scan into a single eth_call.
+  const scan = async (target, abi, counter, getter, pick) => {
+    if (!target) return [];
+    const n = Number(await pub.readContract({ address: target, abi, functionName: counter }).catch(() => 0));
+    const rows = await Promise.all(Array.from({ length: n }, (_, i) =>
+      pub.readContract({ address: target, abi, functionName: getter, args: [BigInt(i)] })
+        .then((r) => pick(r, i)).catch(() => null)));
+    return rows.filter(Boolean);
+  };
+  const [locks, burns, vesting] = await Promise.all([
+    scan(LOCKER, abis.locker, "totalLocks", "locks", (r, i) =>
+      String(r[1]).toLowerCase() === addr ? { id: i, amount: r[2], unlock: Number(r[3]), withdrawn: r[4] } : null),
+    scan(BURNER, abis.burner, "totalBurns", "getBurn", (r, i) =>
+      String(r.token ?? r[1]).toLowerCase() === addr ? { id: i, amount: r.amount ?? r[2], ts: Number(r.timestamp ?? r[3]) } : null),
+    scan(VESTING, abis.vesting, "totalSchedules", "getSchedule", (r, i) =>
+      String(r.token ?? r[0]).toLowerCase() === addr
+        ? { id: i, total: r.total ?? r[2], claimed: r.claimed ?? r[3], end: Number(r.end ?? r[6]) } : null),
+  ]);
+  return { locks, burns, vesting };
+}
+
+/** Recompute the fields derived from records, after a records-only refresh. */
+export function withRecords(d, recs) {
+  const now = Math.floor(Date.now() / 1000);
+  return { ...d, recs, activeLocks: recs.locks.filter((l) => !l.withdrawn && l.unlock > now), checkedAt: new Date() };
+}
+
+/**
  * Everything a token page shows, read live. Returns null when the token
  * doesn't look like an ERC-20 we can describe.
  */
@@ -65,28 +102,7 @@ export async function tokenData({ address, explorer, pub, contracts, abis }) {
     ? pairs.reduce((a, b) => (Number(b.liquidity?.usd || 0) > Number(a.liquidity?.usd || 0) ? b : a))
     : null;
 
-  // HoodLock's own records. These are the only claims we can make with
-  // authority, and the only ones the page states without hedging.
-  const recs = { locks: [], burns: [], vesting: [] };
-  const { LOCKER, BURNER, VESTING } = contracts;
-  const scan = async (target, abi, counter, getter, pick) => {
-    if (!target) return [];
-    const n = Number(await pub.readContract({ address: target, abi, functionName: counter }).catch(() => 0));
-    const out = [];
-    for (let i = 0; i < n; i++) {
-      const r = await pub.readContract({ address: target, abi, functionName: getter, args: [BigInt(i)] }).catch(() => null);
-      const hit = r && pick(r, i);
-      if (hit) out.push(hit);
-    }
-    return out;
-  };
-  recs.locks = await scan(LOCKER, abis.locker, "totalLocks", "locks", (r, i) =>
-    String(r[1]).toLowerCase() === addr ? { id: i, amount: r[2], unlock: Number(r[3]), withdrawn: r[4] } : null);
-  recs.burns = await scan(BURNER, abis.burner, "totalBurns", "getBurn", (r, i) =>
-    String(r.token ?? r[1]).toLowerCase() === addr ? { id: i, amount: r.amount ?? r[2], ts: Number(r.timestamp ?? r[3]) } : null);
-  recs.vesting = await scan(VESTING, abis.vesting, "totalSchedules", "getSchedule", (r, i) =>
-    String(r.token ?? r[0]).toLowerCase() === addr
-      ? { id: i, total: r.total ?? r[2], claimed: r.claimed ?? r[3], end: Number(r.end ?? r[6]) } : null);
+  const recs = await tokenRecords({ address: addr, pub, contracts, abis });
 
   const now = Math.floor(Date.now() / 1000);
   const activeLocks = recs.locks.filter((l) => !l.withdrawn && l.unlock > now);
@@ -164,7 +180,7 @@ function faqs(d) {
     [`Is ${t} liquidity locked?`,
      d.activeLocks.length
        ? `${t} has ${d.activeLocks.length} active lock recorded on HoodLock as of ${stamp}. Open the proof page to see the amount and unlock date read live from the chain.`
-       : `No HoodLock lock was found for ${t} as of ${stamp}. That covers HoodLock's own locker only — the tokens may be locked with another service, or the liquidity may be burned, so check the LP token's holder list before concluding anything.`],
+       : `No HoodLock lock was found for ${t} as of ${stamp}. This page re-reads Robinhood Chain on every visit, so if ${t} is locked through HoodLock the answer here changes on the very next load — there is nothing to submit and nobody to notify. That said, this covers HoodLock's own locker only: the tokens may be locked with another service, or the liquidity burned, so check the LP token's holder list before concluding anything.`],
     [`How many holders does ${t} have?`,
      `${nf(d.holders)} addresses hold ${t} on Robinhood Chain, across ${nf(d.transfers)} transfers, as of ${stamp}.`],
     [`Is the ${t} contract verified?`,
@@ -311,7 +327,7 @@ footer{border-top:1px solid var(--line);margin-top:50px;padding:24px 22px;text-a
 <div class="verdict">
   <div class="q">Is $${esc(d.symbol)} locked?</div>
   <div class="a ${d.activeLocks.length ? "ok" : "none"}">${esc(verdictLine(d))}</div>
-  <div class="stamp">as of ${esc(stamp)} · read live from Robinhood Chain</div>
+  <div class="stamp">as of ${esc(stamp)} · re-read from Robinhood Chain on every visit${d.activeLocks.length ? "" : " — lock this token and it updates here immediately"}</div>
 </div>
 
 <h2>What the chain says</h2>
@@ -327,7 +343,7 @@ ${recRow("Locks", d.recs.locks, "lock", (r) => `${fmtUnits(r.amount, d.decimals)
 ${recRow("Burns", d.recs.burns, "burn", (r) => `${fmtUnits(r.amount, d.decimals)} $${esc(d.symbol)} on ${day(r.ts)}`)}
 ${recRow("Vesting", d.recs.vesting, "vesting", (r) => `${fmtUnits(r.total, d.decimals)} $${esc(d.symbol)} until ${day(r.end)}`)}
 </table>
-<p class="dim">These cover HoodLock's own contracts only. Tokens may also be locked elsewhere or liquidity burned directly — <a href="/blog/how-to-check-if-liquidity-is-locked">how to check the rest</a>.</p>
+<p class="dim">Read live from HoodLock's contracts — a new lock, burn or schedule shows up here on the next page load. These cover HoodLock's own contracts only; tokens may also be locked elsewhere or liquidity burned directly — <a href="/blog/how-to-check-if-liquidity-is-locked">how to check the rest</a>.</p>
 
 <div class="links">
   <a href="https://robinhoodchain.blockscout.com/token/${esc(d.address)}" target="_blank" rel="noopener">Contract on Blockscout ↗</a>
@@ -343,7 +359,7 @@ ${faqList.map(([q, a]) => `<h3>${esc(q)}</h3>\n<p>${a}</p>`).join("\n")}
   <h2 style="margin-top:0">${d.activeLocks.length ? `Verify the $${esc(d.symbol)} lock yourself` : `Is this your project?`}</h2>
   <p>${d.activeLocks.length
       ? `Every HoodLock position has a permanent proof page that reads live from the chain — no wallet needed.`
-      : `Lock tokens, vest a team allocation or burn supply on Robinhood Chain, and get a proof link holders can check.`}</p>
+      : `Lock tokens, vest a team allocation or burn supply on Robinhood Chain, and get a proof link holders can check. This page updates the moment you do — no submission, no waiting.`}</p>
   <a class="btn" href="${d.activeLocks.length ? `/proof/lock/${d.activeLocks[0].id}` : "/app/locks"}">${d.activeLocks.length ? "Open proof page →" : "Start locking →"}</a>
 </div>
 

@@ -10,7 +10,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { keccak256, toHex } from "viem";
 import { makeLogReader, byTopic, addrArg, addrParam } from "./logs.mjs";
 import { makeOgRenderer, fontsReady } from "./og.mjs";
-import { tokenData, renderTokenPage } from "./token.mjs";
+import { tokenData, tokenRecords, withRecords, renderTokenPage } from "./token.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -929,18 +929,36 @@ app.get("/token/:slug", async (req, res) => {
   if (!m) return next404(res);
   const addr = m[1].toLowerCase();
   try {
+    // Three counters, folded into one multicall. If any has moved, someone
+    // created a lock, burn or schedule since this page was built, so the
+    // cached copy is thrown away — that is what lets the page promise it
+    // reflects a new lock on the very next load.
+    const stamp = (await Promise.all([
+      pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "totalLocks" }).catch(() => -1n),
+      BURNER ? pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "totalBurns" }).catch(() => -1n) : 0n,
+      VESTING ? pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "totalSchedules" }).catch(() => -1n) : 0n,
+    ])).join("/");
+
     const hit = tokenCache.get(addr);
-    let d = hit && Date.now() - hit.at < 60 * 60_000 ? hit.d : null;
-    if (!d) {
-      d = await tokenData({
-        address: addr, explorer: cfg.explorer, pub,
-        contracts: { LOCKER, BURNER, VESTING },
-        abis: { locker: LOCKER_READ_ABI, burner: BURNER_READ_ABI, vesting: VESTING_READ_ABI },
-      });
-      if (!d) return next404(res);
-      tokenCache.set(addr, { at: Date.now(), d });
+    const abis = { locker: LOCKER_READ_ABI, burner: BURNER_READ_ABI, vesting: VESTING_READ_ABI };
+    const contracts = { LOCKER, BURNER, VESTING };
+    let d = null;
+    if (hit && Date.now() - hit.at < 60 * 60_000) {
+      // Metadata is still good. If a counter moved, re-read only our own
+      // records — one multicall — rather than the explorer round-trips too.
+      d = hit.stamp === stamp
+        ? hit.d
+        : withRecords(hit.d, await tokenRecords({ address: addr, pub, contracts, abis }));
+      tokenCache.set(addr, { at: hit.at, stamp, d });
     }
-    res.set("Cache-Control", "public, max-age=300");
+    if (!d) {
+      d = await tokenData({ address: addr, explorer: cfg.explorer, pub, contracts, abis });
+      if (!d) return next404(res);
+      tokenCache.set(addr, { at: Date.now(), stamp, d });
+    }
+    // Short, so a project that just locked sees the change on a reload
+    // rather than being served their own stale copy for five minutes.
+    res.set("Cache-Control", "public, max-age=30");
     return res.type("html").send(renderTokenPage(d, { slug, noindex: true }));
   } catch (e) {
     console.log("[hoodlock] token page failed:", e?.message || e);
