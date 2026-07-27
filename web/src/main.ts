@@ -2344,7 +2344,7 @@ async function vestExploreRowHTML(v: VestRow): Promise<string> {
   const tvl = usd !== null && usd > 0 ? fmtUsd(usd) : "—";
   return `<tr>
     <td><div class="tk-cell">${await tokenIcoHTML(v.token, m.symbol)}
-      <div><div class="n">$${escape(m.symbol)} <span class="tag">VEST #${v.id}</span></div><div class="a">${short(v.token)}</div></div></div></td>
+      <div><div class="n">$${escape(m.symbol)} <span class="tag">VESTING #${v.id}</span></div><div class="a">${short(v.token)}</div></div></div></td>
     <td>${fmtNum(v.total, m.decimals)}</td>
     <td>${v.claimed >= v.total ? "100%" : claimedPct.toFixed(1) + "%"} claimed</td>
     <td>${tvl}</td>
