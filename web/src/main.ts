@@ -1560,7 +1560,7 @@ async function renderAffDashboard(me: any) {
       <div class="tile"><div class="k">Lifetime earnings</div><div class="v g">${me.lifetimeEarnedEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(me.lifetimeEarnedEth * me.ethUsd) : `${Math.round((me.commission || 0) * 100)}% of referred fees`}</div></div>
       <div class="tile"><div class="k">Claimable now</div><div class="v">${me.claimableEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(claimableUsd) : ""} · min $${me.minClaimUsd}</div></div>
       <div class="tile"><div class="k">Clicks</div><div class="v">${me.clicks.toLocaleString("en-US")}</div><div class="d">link visits</div></div>
-      <div class="tile"><div class="k">Referred lockers</div><div class="v">${me.lockers.toLocaleString("en-US")}</div><div class="d">of ${me.signups.toLocaleString("en-US")} signups</div></div>
+      <div class="tile"><div class="k">Referred activity</div><div class="v">${me.qualifyingLocks.toLocaleString("en-US")}</div><div class="d">${(me.locksCount || 0)} locks · ${(me.burnsCount || 0)} burns · ${(me.vestsCount || 0)} vesting</div></div>
       <div class="tile"><div class="k">Commission rate</div><div class="v g">${Math.round((me.commission || 0) * 100)}%</div><div class="d">${(me.commission || 0) > 0.3 ? "boosted rate" : "your share per lock"}</div></div>
     </div>
     <div class="card" style="margin-bottom:12px">
@@ -1744,7 +1744,8 @@ function renderAdAffTable() {
   const cols = [
     { k: "code", label: "Code", num: false }, { k: "owner", label: "Owner", num: false },
     { k: "clicks", label: "Clicks", num: true }, { k: "signups", label: "Signups", num: true },
-    { k: "lockers", label: "Lockers", num: true }, { k: "locks", label: "Locks", num: true },
+    { k: "locksCount", label: "Locks", num: true }, { k: "burnsCount", label: "Burns", num: true },
+    { k: "vestsCount", label: "Vesting", num: true },
     { k: "commission", label: "Rate", num: true },
     { k: "earnedEth", label: "Earned", num: true }, { k: "claimedEth", label: "Claimed", num: true },
     { k: "claimableEth", label: "Unclaimed", num: true },
@@ -1759,8 +1760,9 @@ function renderAdAffTable() {
     <td><b>${escape(a.code)}</b></td><td class="addr">${short(a.owner)}</td>
     <td style="text-align:right">${a.clicks.toLocaleString("en-US")}</td>
     <td style="text-align:right">${a.signups.toLocaleString("en-US")}</td>
-    <td style="text-align:right">${a.lockers.toLocaleString("en-US")}</td>
-    <td style="text-align:right">${a.locks.toLocaleString("en-US")}</td>
+    <td style="text-align:right">${(a.locksCount || 0).toLocaleString("en-US")}</td>
+    <td style="text-align:right">${(a.burnsCount || 0).toLocaleString("en-US")}</td>
+    <td style="text-align:right">${(a.vestsCount || 0).toLocaleString("en-US")}</td>
     <td style="text-align:right"><a href="#" data-editrate="${escape(a.code)}" data-rate="${a.commission}" title="Click to change commission" style="color:var(--fg);border-bottom:1px dashed var(--muted)">${Math.round((a.commission || 0) * 100)}%</a></td>
     <td style="text-align:right;color:var(--neon)">${money(a.earnedEth)}</td>
     <td style="text-align:right">${money(a.claimedEth)}</td>
@@ -1831,13 +1833,50 @@ function syncAdminNav() {
   if ($("view-admin").classList.contains("active")) loadAdmin();
 }
 // first-touch referral: if arrived via /r/<code>, tell the backend which wallet connected
+/* admin products table — same range selector as the chart (1D/7D/30D/lifetime) */
+type ProdItem = { ts: number; wallet: string; active: boolean };
+let prodData: { locks: ProdItem[]; burns: ProdItem[]; vests: ProdItem[]; lockTs: Map<string, number>; fees: { lock: number; burn: number; vest: number }; ethUsd: number } | null = null;
+let prodRange = 0; // days; 0 = lifetime
+function renderProducts() {
+  const box = document.getElementById("adProdBox"); if (!box || !prodData) return;
+  const now = Math.floor(Date.now() / 1000);
+  const cutoff = prodRange > 0 ? now - prodRange * 86400 : 0;
+  const inRange = (i: ProdItem) => prodRange === 0 || i.ts >= cutoff;
+  const sub = document.getElementById("adProdSub");
+  if (sub) sub.textContent = prodRange === 0 ? "REVENUE · USERS · ACTIVITY — LIFETIME" : `REVENUE · USERS · ACTIVITY — LAST ${prodRange} DAY${prodRange === 1 ? "" : "S"}`;
+
+  const L = prodData.locks.filter(inRange), B = prodData.burns.filter(inRange), V = prodData.vests.filter(inRange);
+  const u = (xs: ProdItem[]) => new Set(xs.map((x) => x.wallet)).size;
+  const all = new Set([...L, ...B, ...V].map((x) => x.wallet)).size;
+  const revL = L.length * prodData.fees.lock, revB = B.length * prodData.fees.burn, revV = V.length * prodData.fees.vest;
+  const usd = prodData.ethUsd;
+  const rev = (n: number) => `${n.toFixed(4)} ETH${usd > 0 ? ` <span style="color:var(--ink-3);font-size:11px">≈ ${fmtUsd(n * usd)}</span>` : ""}`;
+  // "Active" is a point-in-time count, so it always reflects now regardless of range
+  const activeLocks = prodData.locks.filter((x) => x.active).length;
+  const activeVest = prodData.vests.filter((x) => x.active).length;
+  box.innerHTML = `<table style="table-layout:fixed;width:100%"><thead><tr>
+      <th style="width:22%">Product</th><th style="width:14%">Count</th><th style="width:26%">Revenue</th><th style="width:20%">Unique users</th><th style="width:18%">Active now</th></tr></thead><tbody>
+    <tr><td><b>Token Locks</b></td><td>${L.length}</td><td>${rev(revL)}</td><td>${u(L)}</td><td>${activeLocks} locked</td></tr>
+    <tr><td><b>Burns</b></td><td>${B.length}</td><td>${rev(revB)}</td><td>${u(B)}</td><td>—</td></tr>
+    <tr><td><b>Vesting</b></td><td>${V.length}</td><td>${rev(revV)}</td><td>${u(V)}</td><td>${activeVest} vesting</td></tr>
+    <tr style="border-top:1px solid var(--line-2)"><td><b style="color:var(--neon)">TOTAL</b></td><td><b>${L.length + B.length + V.length}</b></td><td><b>${rev(revL + revB + revV)}</b></td><td><b>${all}</b></td><td>—</td></tr>
+    </tbody></table>`;
+}
+document.querySelectorAll<HTMLElement>("#adProdRange .chip-dur").forEach((c) => c.addEventListener("click", () => {
+  document.querySelectorAll("#adProdRange .chip-dur").forEach((x) => x.classList.remove("on"));
+  c.classList.add("on");
+  prodRange = Number(c.dataset.range);
+  renderProducts();
+}));
+
 /* admin activity chart — stacked bars (locks/burns/vesting) with a range
    selector (1D hourly · 7D · 30D · lifetime) and a hover tooltip per bar */
-let adminActsCache: { ts: number; kind: string }[] = [];
+let adminActsCache: { ts: number; kind: string; fee?: number }[] = [];
+let adminEthUsd = 0;
 let adminChartNow = 0;
 let adminChartRange = 30; // days; 0 = lifetime; 1 = last 24h in hourly buckets
-function drawAdminChart(acts: { ts: number; kind: string }[], now: number) {
-  adminActsCache = acts; adminChartNow = now;
+function drawAdminChart(acts: { ts: number; kind: string; fee?: number }[], now: number, ethUsd = 0) {
+  adminActsCache = acts; adminChartNow = now; adminEthUsd = ethUsd;
   renderAdminChart();
 }
 function renderAdminChart() {
@@ -1863,9 +1902,10 @@ function renderAdminChart() {
   const sub = document.getElementById("adChartSub"); if (sub) sub.textContent = subLabel;
 
   const buckets = Array.from({ length: count }, () => ({ LOCK: 0, BURN: 0, VESTING: 0 } as Record<string, number>));
+  const revenue = Array.from({ length: count }, () => 0);
   for (const a of acts) {
     const i = Math.floor((a.ts - startTs) / bucketSec);
-    if (i >= 0 && i < count) buckets[i][a.kind] = (buckets[i][a.kind] || 0) + 1;
+    if (i >= 0 && i < count) { buckets[i][a.kind] = (buckets[i][a.kind] || 0) + 1; revenue[i] += a.fee ?? 0; }
   }
   const max = Math.max(1, ...buckets.map((b) => b.LOCK + b.BURN + b.VESTING));
   const bw = (W - L - R) / count;
@@ -1909,11 +1949,14 @@ function renderAdminChart() {
         const head = bucketSec === 3600
           ? `${lbl(i)}–${String((dte.getUTCHours() + 1) % 24).padStart(2, "0")}:00 UTC`
           : bucketSec > 86400 ? `week of ${lbl(i)}` : dte.toISOString().slice(0, 10);
+        const rev = revenue[i];
+        const revUsd = adminEthUsd > 0 ? ` <span style="color:var(--ink-3)">≈ ${fmtUsd(rev * adminEthUsd)}</span>` : "";
         tip.innerHTML = `<b>${head}</b><br>
           <span style="color:var(--neon)">■</span> Locks: ${b.LOCK}<br>
           <span style="color:#ff6b6b">■</span> Burns: ${b.BURN}<br>
           <span style="color:#f5b731">■</span> Vesting: ${b.VESTING}<br>
-          <b>Total: ${total}</b>`;
+          <b>Total: ${total}</b><br>
+          <span style="color:var(--neon)">Earnings: ${rev.toFixed(4)} ETH</span>${revUsd}`;
         const wr = wrap.getBoundingClientRect();
         let tx = e.clientX - wr.left + 14;
         tip.style.display = "block";
@@ -1982,27 +2025,33 @@ async function loadAdmin() {
     const vestTs = new Map<number, number>();
     await Promise.all(vestRows.map(async (v) => { const inf = await vestCreationInfo(v.id).catch(() => null); if (inf) vestTs.set(v.id, inf.ts); }));
 
-    // ── per-product breakdown + TOTAL ──
-    const lockUsers = new Set(rows.map((r) => r.owner.toLowerCase()));
-    const burnUsers = new Set(burnRows.map((b) => b.burner.toLowerCase()));
-    const vestUsers = new Set(vestRows.map((v) => v.creator.toLowerCase()));
-    const allUsers = new Set([...lockUsers, ...burnUsers, ...vestUsers]);
-    const revL = total * feeEth, revB = burnTotal * burnFeeEth, revV = vestTotal * vestFeeEth;
-    const revEth = revL + revB + revV;
-    const activeLocks = rows.filter((r) => !r.withdrawn && r.unlockTime > now).length;
-    const activeVest = vestRows.filter((v) => v.claimed < v.total).length;
-    const rev = (n: number) => `${n.toFixed(4)} ETH${ethUsd > 0 ? ` <span style="color:var(--ink-3);font-size:11px">≈ ${fmtUsd(n * ethUsd)}</span>` : ""}`;
-    $("adProdBox").innerHTML = `<table style="table-layout:fixed;width:100%"><thead><tr>
-        <th style="width:22%">Product</th><th style="width:14%">Count</th><th style="width:26%">Revenue</th><th style="width:20%">Unique users</th><th style="width:18%">Active</th></tr></thead><tbody>
-      <tr><td><b>Token Locks</b></td><td>${total}</td><td>${rev(revL)}</td><td>${lockUsers.size}</td><td>${activeLocks} locked</td></tr>
-      <tr><td><b>Burns</b></td><td>${burnTotal}</td><td>${rev(revB)}</td><td>${burnUsers.size}</td><td>—</td></tr>
-      <tr><td><b>Vesting</b></td><td>${vestTotal}</td><td>${rev(revV)}</td><td>${vestUsers.size}</td><td>${activeVest} vesting</td></tr>
-      <tr style="border-top:1px solid var(--line-2)"><td><b style="color:var(--neon)">TOTAL</b></td><td><b>${total + burnTotal + vestTotal}</b></td><td><b>${rev(revEth)}</b></td><td><b>${allUsers.size}</b></td><td>—</td></tr>
-      </tbody></table>`;
+    // ── per-product breakdown + TOTAL (range-filterable) ──
+    prodData = {
+      locks: rows.map((r) => ({ ts: 0, wallet: r.owner.toLowerCase(), active: !r.withdrawn && r.unlockTime > now })),
+      burns: burnRows.map((b) => ({ ts: b.timestamp, wallet: b.burner.toLowerCase(), active: false })),
+      vests: vestRows.map((v) => ({ ts: vestTs.get(v.id) || 0, wallet: v.creator.toLowerCase(), active: v.claimed < v.total })),
+      lockTs: new Map<string, number>(),
+      fees: { lock: feeEth, burn: burnFeeEth, vest: vestFeeEth },
+      ethUsd,
+    };
+    // lock timestamps come from the Locked logs (same source the chart uses)
+    const lockLogs = await loadLockedLogs();
+    prodData.locks = (await Promise.all(lockLogs.map(async (l) => ({
+      ts: (await blockTs(l.block)) || 0,
+      wallet: l.owner.toLowerCase(),
+      active: rows.some((r) => r.id === l.id && !r.withdrawn && r.unlockTime > now),
+    }))));
+    renderProducts();
 
+    const revEth = rows.length * feeEth + burnRows.length * burnFeeEth + vestRows.length * vestFeeEth;
+    const allUsers = new Set([
+      ...rows.map((r) => r.owner.toLowerCase()),
+      ...burnRows.map((b) => b.burner.toLowerCase()),
+      ...vestRows.map((v) => v.creator.toLowerCase()),
+    ]);
     $("adRevenue").textContent = revEth.toFixed(4) + " ETH";
     $("adRevenueSub").textContent = ethUsd > 0 ? `≈ ${fmtUsd(revEth * ethUsd)} · at current fees` : "at current fees";
-    $("adActions").textContent = (total + burnTotal + vestTotal).toLocaleString("en-US");
+    $("adActions").textContent = (rows.length + burnRows.length + vestRows.length).toLocaleString("en-US");
     $("adUsers").textContent = allUsers.size.toLocaleString("en-US");
 
     const tvl = await computeTvl(pub as any, [
@@ -2037,11 +2086,11 @@ async function loadAdmin() {
 
     // ── recent activity: locks + burns + vesting interleaved, newest first ──
     const logs = await loadLockedLogs();
-    type Act = { wallet: string; token: string; ts: number; kind: string; color: string };
+    type Act = { wallet: string; token: string; ts: number; kind: string; color: string; fee: number };
     const acts: Act[] = [];
-    for (const l of logs) { const ts = await blockTs(l.block); if (ts) acts.push({ wallet: l.owner, token: l.token, ts, kind: "LOCK", color: "var(--neon)" }); }
-    burnRows.forEach((b) => acts.push({ wallet: b.burner, token: b.token, ts: b.timestamp, kind: "BURN", color: "#ff6b6b" }));
-    vestRows.forEach((v) => { const ts = vestTs.get(v.id); if (ts) acts.push({ wallet: v.creator, token: v.token, ts, kind: "VESTING", color: "#f5b731" }); });
+    for (const l of logs) { const ts = await blockTs(l.block); if (ts) acts.push({ wallet: l.owner, token: l.token, ts, kind: "LOCK", color: "var(--neon)", fee: feeEth }); }
+    burnRows.forEach((b) => acts.push({ wallet: b.burner, token: b.token, ts: b.timestamp, kind: "BURN", color: "#ff6b6b", fee: burnFeeEth }));
+    vestRows.forEach((v) => { const ts = vestTs.get(v.id); if (ts) acts.push({ wallet: v.creator, token: v.token, ts, kind: "VESTING", color: "#f5b731", fee: vestFeeEth }); });
     acts.sort((a, b) => b.ts - a.ts);
     const recent = acts.slice(0, 15);
     const body = (await Promise.all(recent.map(async (a) => {
@@ -2056,7 +2105,7 @@ async function loadAdmin() {
       : `<div class="empty"><div class="small">No activity yet.</div></div>`;
 
     // ── activity chart: stacked daily bars, last 30 days ──
-    drawAdminChart(acts, now);
+    drawAdminChart(acts, now, ethUsd);
   } catch {
     $("adRevenue").textContent = "—";
   }
@@ -2112,17 +2161,18 @@ async function loadAffiliates() {
     if (r.status === 401) { try { localStorage.removeItem("hl_admtok"); } catch { /* */ } return loadAffiliates(); }
     if (!r.ok) throw new Error(String(r.status));
     const data: any = await r.json();
-    const rows = (data.affiliates || []) as { code: string; label: string; clicks: number; signups: number; lockers: number; locks: number; commission: number; revenueEth: number }[];
+    const rows = (data.affiliates || []) as { code: string; label: string; clicks: number; signups: number; lockers: number; locks: number; locksCount?: number; burnsCount?: number; vestsCount?: number; commission: number; revenueEth: number }[];
     if (!rows.length) { box.innerHTML = `<div class="empty"><div class="small">No affiliate links yet — create your first above.</div></div>`; return; }
-    box.innerHTML = `<table><thead><tr><th>Campaign</th><th>Link</th><th>Clicks</th><th>Signups</th><th>Lockers</th><th>Locks</th><th style="text-align:right">Commission</th><th style="text-align:right">Revenue</th></tr></thead><tbody>${
+    box.innerHTML = `<table><thead><tr><th>Campaign</th><th>Link</th><th>Clicks</th><th>Signups</th><th>Locks</th><th>Burns</th><th>Vesting</th><th style="text-align:right">Commission</th><th style="text-align:right">Revenue</th></tr></thead><tbody>${
       rows.map((a) => `<tr>
         <td><b>${escape(a.label || a.code)}</b></td>
         <td><a href="/r/${escape(a.code)}" target="_blank" rel="noopener" class="mono" style="font-size:11px">hoodlock.tech/r/${escape(a.code)}</a>
           <button class="btn btn-line btn-sm" style="margin-left:6px" data-copyref="${escape(a.code)}">Copy</button></td>
         <td>${a.clicks.toLocaleString("en-US")}</td>
         <td>${a.signups.toLocaleString("en-US")}</td>
-        <td>${a.lockers.toLocaleString("en-US")}</td>
-        <td>${a.locks.toLocaleString("en-US")}</td>
+        <td>${(a.locksCount || 0).toLocaleString("en-US")}</td>
+        <td>${(a.burnsCount || 0).toLocaleString("en-US")}</td>
+        <td>${(a.vestsCount || 0).toLocaleString("en-US")}</td>
         <td style="text-align:right">${Math.round((a.commission || 0) * 100)}%</td>
         <td style="text-align:right">${a.revenueEth.toFixed(4)} ETH</td></tr>`).join("")
     }</tbody></table>`;

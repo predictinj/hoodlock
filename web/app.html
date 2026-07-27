@@ -623,7 +623,13 @@
         </div>
 
         <div class="card" style="margin-bottom:12px">
-          <div class="card-head"><div><h3>Products</h3><div class="sub">REVENUE · USERS · ACTIVITY — PER PRODUCT AND TOTAL</div></div></div>
+          <div class="card-head"><div><h3>Products</h3><div class="sub" id="adProdSub">REVENUE · USERS · ACTIVITY — PER PRODUCT AND TOTAL</div></div></div>
+          <div class="chips" id="adProdRange" style="margin-bottom:10px">
+            <span class="chip-dur" data-range="1">1D</span>
+            <span class="chip-dur" data-range="7">7D</span>
+            <span class="chip-dur" data-range="30">30D</span>
+            <span class="chip-dur on" data-range="0">LIFETIME</span>
+          </div>
           <div class="tbl-scroll" id="adProdBox"><div class="empty"><div class="small">Loading…</div></div></div>
           <div id="adVestFees" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);align-items:center;gap:12px;flex-wrap:wrap">
             <span style="font-size:13px;color:var(--ink-2)">Vesting fees accrued in the contract: <b id="adVestFeesAmt" style="color:var(--ink)">—</b></span>

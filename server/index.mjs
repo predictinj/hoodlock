@@ -155,20 +155,20 @@ let lockRecCache = { at: 0, byOwner: new Map() };
 async function actionRecords() {
   if (Date.now() - lockRecCache.at < 60_000) return lockRecCache.byOwner;
   const byOwner = new Map();
-  const add = async (addr, lg, fee) => {
+  const add = async (addr, lg, fee, kind) => {
     const w = String(addr).toLowerCase();
     const ts = await blockTsOf(lg.blockNumber);
     if (!byOwner.has(w)) byOwner.set(w, []);
-    byOwner.get(w).push({ ts, fee });
+    byOwner.get(w).push({ ts, fee, kind });
   };
   const [locks, burns, vests] = await Promise.all([
     pub.getLogs({ address: LOCKER, event: LOCKED_EVENT, fromBlock: 0n, toBlock: "latest" }),
     BURNER ? pub.getLogs({ address: BURNER, event: BURNED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
     VESTING ? pub.getLogs({ address: VESTING, event: VESTING_CREATED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
   ]);
-  for (const lg of locks) await add(lg.args.owner, lg, FEE_ETH);
-  for (const lg of burns) await add(lg.args.burner, lg, BURN_FEE_ETH);
-  for (const lg of vests) await add(lg.args.creator, lg, VEST_FEE_ETH);
+  for (const lg of locks) await add(lg.args.owner, lg, FEE_ETH, "lock");
+  for (const lg of burns) await add(lg.args.burner, lg, BURN_FEE_ETH, "burn");
+  for (const lg of vests) await add(lg.args.creator, lg, VEST_FEE_ETH, "vest");
   lockRecCache = { at: Date.now(), byOwner };
   return byOwner;
 }
@@ -187,14 +187,20 @@ async function affiliateEarnings(code, ownerWallet) {
   const records = await actionRecords();
   const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE LOWER(code) = ?").all(code.toLowerCase());
   let lockers = 0, qualifyingLocks = 0, earnedFees = 0;
+  const by = { lock: 0, burn: 0, vest: 0 };
   for (const a of attrs) {
     const w = a.wallet.toLowerCase();
     if (w === ownerWallet.toLowerCase()) continue;   // block same-wallet self-referral
     const q = (records.get(w) || []).filter((r) => r.ts > a.ts);
-    if (q.length > 0) { lockers++; qualifyingLocks += q.length; earnedFees += q.reduce((s, r) => s + r.fee, 0); }
+    if (q.length > 0) {
+      lockers++; qualifyingLocks += q.length;
+      earnedFees += q.reduce((s, r) => s + r.fee, 0);
+      for (const r of q) by[r.kind] = (by[r.kind] || 0) + 1;
+    }
   }
   const rate = commissionFor(code);
-  return { lockers, qualifyingLocks, rate, lifetimeEarnedEth: rate * earnedFees };
+  return { lockers, qualifyingLocks, rate, lifetimeEarnedEth: rate * earnedFees,
+    locksCount: by.lock, burnsCount: by.burn, vestsCount: by.vest };
 }
 // A claim reserves its amount while pending, paid, OR sent-but-unconfirmed. The last
 // state is critical: if a payout tx broadcasts but we lose the receipt, the ETH may
@@ -383,12 +389,20 @@ app.get("/api/admin/affiliates", async (req, res) => {
   if (!validToken(req)) return res.status(401).json({ error: "unauthorized" });
   try {
     const affs = db.prepare("SELECT code, label, clicks FROM affiliates ORDER BY created_at DESC").all();
-    const byOwner = await lockCounts().catch(() => new Map());
+    const records = await actionRecords().catch(() => new Map());
     const out = affs.map((a) => {
-      const wallets = db.prepare("SELECT wallet FROM attributions WHERE code = ?").all(a.code).map((r) => r.wallet);
-      let lockers = 0, locks = 0;
-      for (const w of wallets) { const c = byOwner.get(w) || 0; if (c > 0) { lockers++; locks += c; } }
-      return { code: a.code, label: a.label || "", clicks: a.clicks, signups: wallets.length, lockers, locks, commission: commissionFor(a.code), revenueEth: locks * FEE_ETH };
+      const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE code = ?").all(a.code);
+      let lockers = 0, locks = 0, revenueEth = 0;
+      const by = { lock: 0, burn: 0, vest: 0 };
+      for (const at of attrs) {
+        const q = (records.get(String(at.wallet).toLowerCase()) || []).filter((r) => r.ts > at.ts);
+        if (q.length > 0) {
+          lockers++; locks += q.length;
+          for (const r of q) { by[r.kind] = (by[r.kind] || 0) + 1; revenueEth += r.fee; }
+        }
+      }
+      return { code: a.code, label: a.label || "", clicks: a.clicks, signups: attrs.length, lockers, locks,
+        locksCount: by.lock, burnsCount: by.burn, vestsCount: by.vest, commission: commissionFor(a.code), revenueEth };
     });
     res.json({ affiliates: out });
   } catch (e) { console.error("[hoodlock] server error:", e?.message || e); res.status(500).json({ error: "server error" }); }
@@ -454,14 +468,14 @@ app.get("/api/aff/me", async (req, res) => {
   if (!aff) return res.json({ hasCode: false });
   const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE LOWER(code) = ?").all(aff.code.toLowerCase());
   const rate = commissionFor(aff.code); // pure DB read — must NOT depend on the chain fetch below
-  const { lockers, qualifyingLocks, lifetimeEarnedEth } = await affiliateEarnings(aff.code, wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0 }));
+  const { lockers, qualifyingLocks, lifetimeEarnedEth, locksCount, burnsCount, vestsCount } = await affiliateEarnings(aff.code, wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0, locksCount: 0, burnsCount: 0, vestsCount: 0 }));
   const claimed = claimedFor(aff.code);
   const claimable = Math.max(0, lifetimeEarnedEth - claimed);
   const claims = db.prepare("SELECT amount_eth, status, tx_hash, requested_at, paid_at FROM claims WHERE LOWER(code) = ? ORDER BY id DESC LIMIT 20").all(aff.code.toLowerCase());
   res.json({
     hasCode: true, code: aff.code, clicks: aff.clicks,
     kind: aff.kind || "affiliate", apiKey: aff.api_key || null,
-    signups: attrs.length, lockers, qualifyingLocks,
+    signups: attrs.length, lockers, qualifyingLocks, locksCount, burnsCount, vestsCount,
     lifetimeEarnedEth, claimedEth: claimed, claimableEth: claimable,
     ethUsd: await ethUsd(), minClaimUsd: 10, commission: rate, feeEth: FEE_ETH,
     attributions: attrs.map((a) => ({ wallet: a.wallet, ts: a.ts })), claims,
@@ -614,11 +628,11 @@ app.get("/api/admin/public-affiliates", async (req, res) => {
     for (const a of affs) {
       const signups = db.prepare("SELECT COUNT(*) n FROM attributions WHERE LOWER(code)=?").get(a.code.toLowerCase()).n;
       const rate = commissionFor(a.code); // pure DB read — resilient to chain-fetch failures
-      const { lockers, qualifyingLocks, lifetimeEarnedEth } = await affiliateEarnings(a.code, a.owner_wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0 }));
+      const { lockers, qualifyingLocks, lifetimeEarnedEth, locksCount, burnsCount, vestsCount } = await affiliateEarnings(a.code, a.owner_wallet).catch(() => ({ lockers: 0, qualifyingLocks: 0, lifetimeEarnedEth: 0, locksCount: 0, burnsCount: 0, vestsCount: 0 }));
       const claimed = claimedFor(a.code);
       const claimable = Math.max(0, lifetimeEarnedEth - claimed);
       totalUnclaimedEth += claimable; totalEarnedEth += lifetimeEarnedEth; totalClaimedEth += claimed;
-      out.push({ code: a.code, owner: a.owner_wallet, clicks: a.clicks, signups, lockers, locks: qualifyingLocks,
+      out.push({ code: a.code, owner: a.owner_wallet, clicks: a.clicks, signups, lockers, locks: qualifyingLocks, locksCount, burnsCount, vestsCount,
         kind: a.kind || "affiliate", apiKey: a.api_key || null,
         commission: rate, earnedEth: lifetimeEarnedEth, claimedEth: claimed, claimableEth: claimable, createdAt: a.created_at });
     }
