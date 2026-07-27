@@ -37,6 +37,13 @@ const pub = createPublicClient({ chain: CHAIN, transport: rpcTransport });
 const LOCKER = getAddress(cfg.locker) as `0x${string}`;
 // The burner is optional — without config.burner the whole burn UI stays hidden.
 const BURNER = (cfg as any).burner && isAddress((cfg as any).burner) ? (getAddress((cfg as any).burner) as `0x${string}`) : null;
+// Vesting contract (admin card only for now — full vesting UI comes separately).
+const VESTING = (cfg as any).vesting && isAddress((cfg as any).vesting) ? (getAddress((cfg as any).vesting) as `0x${string}`) : null;
+const VESTING_ADMIN_ABI = [
+  { type: "function", name: "admin", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "pendingAdmin", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "acceptAdmin", stateMutability: "nonpayable", inputs: [], outputs: [] },
+] as const;
 const EXP = cfg.explorer;
 
 const ERC20 = [
@@ -1752,6 +1759,54 @@ function syncAdminNav() {
   if ($("view-admin").classList.contains("active")) loadAdmin();
 }
 // first-touch referral: if arrived via /r/<code>, tell the backend which wallet connected
+/* admin: vesting contract ownership card — one-time acceptAdmin() click.
+   The two-step transfer means the deployer started the handover; nothing is
+   final until the collector wallet accepts it here (or on Blockscout). */
+async function loadVestingAdminCard() {
+  const card = document.getElementById("adVestCard");
+  const box = document.getElementById("adVestBox");
+  if (!card || !box) return;
+  if (!VESTING) { card.style.display = "none"; return; }
+  const link = `<a href="${cfg.explorer}/address/${VESTING}" target="_blank" rel="noreferrer" style="font-family:var(--mono);font-size:11px">${VESTING.slice(0, 10)}…${VESTING.slice(-6)} ↗</a>`;
+  try {
+    const [adm, pending] = await Promise.all([
+      pub.readContract({ address: VESTING, abi: VESTING_ADMIN_ABI, functionName: "admin" }) as Promise<string>,
+      pub.readContract({ address: VESTING, abi: VESTING_ADMIN_ABI, functionName: "pendingAdmin" }) as Promise<string>,
+    ]);
+    const me = account.toLowerCase();
+    if (pending.toLowerCase() === me) {
+      box.innerHTML = `<div class="empty"><div class="big">Action needed: accept ownership</div>
+        <div class="small">The vesting contract ${link} is waiting for this wallet to become admin. One click, one signature — after this, only your wallet can change its fee settings.</div>
+        <button class="btn btn-neon" id="adVestAccept" style="margin-top:12px">Accept admin ownership</button>
+        <div class="small" id="adVestMsg" style="margin-top:8px"></div></div>`;
+      document.getElementById("adVestAccept")!.addEventListener("click", async () => {
+        const btn = document.getElementById("adVestAccept") as HTMLButtonElement;
+        const msg = document.getElementById("adVestMsg")!;
+        try {
+          btn.disabled = true;
+          msg.textContent = "Confirm in your wallet…";
+          const h = await send(VESTING, encodeFunctionData({ abi: VESTING_ADMIN_ABI, functionName: "acceptAdmin" }));
+          msg.textContent = "Waiting for the transaction to confirm…";
+          await waitTx(h);
+          msg.textContent = "";
+          loadVestingAdminCard();
+        } catch (e: any) {
+          btn.disabled = false;
+          msg.textContent = friendlyErr(e);
+        }
+      });
+    } else if (adm.toLowerCase() === me) {
+      box.innerHTML = `<div class="empty"><div class="big" style="color:var(--neon,#28c76f)">Ownership accepted ✓</div>
+        <div class="small">This wallet is the admin of the vesting contract ${link}. Nothing more to do.</div></div>`;
+    } else {
+      box.innerHTML = `<div class="empty"><div class="big">Not this wallet</div>
+        <div class="small">Vesting contract ${link} — admin is ${escape(adm.slice(0, 10))}…, pending ${escape(pending.slice(0, 10))}… Connect the wallet named as pending admin to accept.</div></div>`;
+    }
+  } catch {
+    box.innerHTML = `<div class="empty"><div class="small">Couldn't read the vesting contract — check your connection and reopen this page.</div></div>`;
+  }
+}
+
 function attributeRef() {
   let ref = "";
   try { ref = localStorage.getItem("hl_ref") || ""; } catch { /* */ }
@@ -1779,6 +1834,7 @@ async function loadAdmin() {
   }
   $("adminGate").innerHTML = "";
   $("adminBody").style.display = "";
+  loadVestingAdminCard();
 
   try {
     const [total, burnTotal] = await Promise.all([
