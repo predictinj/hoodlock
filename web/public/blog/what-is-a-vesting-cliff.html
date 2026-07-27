@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Is a Vesting Cliff? How Cliffs Protect Token Holders | HoodLock</title>
+<meta name="description" content="A vesting cliff is a waiting period before any tokens can be claimed. Here's how cliffs work mathematically, why 12 months became standard, and what a missing cliff signals.">
+<link rel="canonical" href="https://hoodlock.tech/blog/what-is-a-vesting-cliff">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="What Is a Vesting Cliff? How Cliffs Protect Token Holders | HoodLock"><meta property="og:description" content="A vesting cliff is a waiting period before any tokens can be claimed. Here's how cliffs work mathematically, why 12 months became standard, and what a missing cliff signals.">
+<meta property="og:url" content="https://hoodlock.tech/blog/what-is-a-vesting-cliff">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "What Is a Vesting Cliff? How Cliffs Protect Token Holders | HoodLock", "description": "A vesting cliff is a waiting period before any tokens can be claimed. Here's how cliffs work mathematically, why 12 months became standard, and what a missing cliff signals.", "datePublished": "2026-07-27", "dateModified": "2026-07-27", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/what-is-a-vesting-cliff"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What happens exactly on the cliff date?", "acceptedAnswer": {"@type": "Answer", "text": "Everything that accrued during the cliff period becomes claimable in one step, and linear release continues from there. The total amount released over the whole schedule is unchanged \u2014 only the timing of the first claim differs."}}, {"@type": "Question", "name": "Is a vesting cliff required?", "acceptedAnswer": {"@type": "Answer", "text": "No, a schedule can start releasing immediately. But for team and investor allocations, holders generally read the absence of a cliff as a weaker commitment, since insider tokens can begin moving right away."}}, {"@type": "Question", "name": "Can the cliff be changed after the schedule is created?", "acceptedAnswer": {"@type": "Answer", "text": "No. On HoodLock the start, cliff and end dates are all fixed at creation and cannot be edited, shortened or extended afterwards."}}, {"@type": "Question", "name": "How long should a cliff be?", "acceptedAnswer": {"@type": "Answer", "text": "Twelve months is the common convention for core team allocations, inherited from startup equity. Advisors more often see three to six months. What matters most is that the cliff is long enough to be a real commitment rather than a formality."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>What a vesting cliff is — and why <span class="serif">holders look for one.</span></h1>
+<div class="meta">Published 2026-07-27 · HoodLock Team</div>
+<p>A <b>cliff</b> is a period at the beginning of a vesting schedule during which nothing can be claimed. When the cliff date arrives, everything that accrued during that period unlocks at once, and the remainder continues releasing gradually until the end date.</p>
+
+<h2>How it works in numbers</h2>
+<p>Take 1,200,000 tokens vesting over 36 months with a 12-month cliff:</p>
+<ul>
+<li><b>Months 0–11:</b> nothing claimable. The tokens exist in the contract but cannot be moved.</li>
+<li><b>Month 12:</b> 400,000 tokens become claimable in a single step — the twelve months that accrued behind the cliff.</li>
+<li><b>Months 13–36:</b> roughly 33,333 tokens become claimable each month until the full amount is released.</li>
+</ul>
+<p>The total released is identical to a schedule with no cliff. What changes is <i>when</i> the first tokens can move, and that's the entire point.</p>
+
+<h2>What a cliff is actually protecting against</h2>
+<p>Without a cliff, a founder who leaves after six weeks still walks away with six weeks of tokens. That's a small amount, but the incentive it creates is the problem: it makes a short stay costless. A twelve-month cliff means anyone who leaves in the first year receives nothing at all, which aligns the people holding tokens with the people holding the project.</p>
+<p>For holders reading a token's distribution, the cliff answers a specific question: how soon can insider supply start hitting the market? A schedule with no cliff can begin selling on day one.</p>
+
+<h2>Why twelve months became the default</h2>
+<p>The convention came out of startup equity, where a one-year cliff on a four-year vest has been standard for decades, and crypto largely inherited it. It survives because it maps to something real — roughly the point at which you can tell whether someone is going to stay. Shorter cliffs appear for advisors, who are expected to contribute over months rather than years.</p>
+
+<h2>Reading a cliff on a proof page</h2>
+<p>On a HoodLock vesting proof page the cliff date is shown alongside the start and end, so anyone can see the shape of the schedule without a wallet. What to look for:</p>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>Cliff far from the start</b> — meaningful commitment.</li>
+<li><b>Cliff a few days after the start</b> — technically a cliff, practically none.</li>
+<li><b>No cliff on a large team allocation</b> — insider supply can move immediately.</li>
+<li><b>End date close to the start</b> — the total duration matters as much as the cliff.</li>
+</ul>
+</div>
+
+<h2>Setting one</h2>
+<p>The cliff has to fall between the start and end dates. On HoodLock it's part of the same form as the rest of the schedule, and like every other parameter it's fixed once created — see <a href="/blog/how-to-set-up-token-vesting">the setup guide</a> for the full flow, or <a href="/app/vesting">create a schedule</a> directly.</p>
+<h2>Common questions</h2>
+<h3>What happens exactly on the cliff date?</h3>
+<p>Everything that accrued during the cliff period becomes claimable in one step, and linear release continues from there. The total amount released over the whole schedule is unchanged — only the timing of the first claim differs.</p>
+<h3>Is a vesting cliff required?</h3>
+<p>No, a schedule can start releasing immediately. But for team and investor allocations, holders generally read the absence of a cliff as a weaker commitment, since insider tokens can begin moving right away.</p>
+<h3>Can the cliff be changed after the schedule is created?</h3>
+<p>No. On HoodLock the start, cliff and end dates are all fixed at creation and cannot be edited, shortened or extended afterwards.</p>
+<h3>How long should a cliff be?</h3>
+<p>Twelve months is the common convention for core team allocations, inherited from startup equity. Advisors more often see three to six months. What matters most is that the cliff is long enough to be a real commitment rather than a formality.</p>
+<div class="cta-box">
+  <h2 style="margin-top:0">Vesting with a cliff, enforced on-chain</h2>
+  <p>Set a start, a cliff and an end. The contract releases the rest — irrevocably.</p>
+  <a class="btn" href="/app/vesting">Create a schedule →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

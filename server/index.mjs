@@ -301,6 +301,13 @@ app.use((req, res, next) => {
   }
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "no-referrer");
+  // Only over HTTPS — sending HSTS on a plain-HTTP response is ignored, and on
+  // local dev it would pin localhost to https in the browser for a year.
+  if (req.secure || req.get("x-forwarded-proto") === "https") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  // No page here uses a camera, mic or location; deny them explicitly.
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
   next();
 });
 
@@ -740,6 +747,11 @@ async function tokenMeta(addr) {
 }
 
 const proofCache = new Map(); // "kind:id" -> { at, meta }
+/* A record that genuinely doesn't exist, as distinct from a read that failed.
+   Only the first may 404 — 404ing a real proof page because the RPC blipped
+   would tell Google to drop a page that exists. */
+const NOT_FOUND = Symbol("not-found");
+
 async function proofMeta(kind, id) {
   const key = `${kind}:${id}`;
   const hit = proofCache.get(key);
@@ -748,7 +760,7 @@ async function proofMeta(kind, id) {
   try {
     if (kind === "lock") {
       const [, token, amount, unlockTime, withdrawn] = await pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "locks", args: [BigInt(id)] });
-      if (!amount) return null;
+      if (!amount) { proofCache.set(key, { at: Date.now(), meta: NOT_FOUND }); return NOT_FOUND; }
       const t = await tokenMeta(token);
       const pct = t.supply > 0n ? (Number((amount * 10000n) / t.supply) / 100).toFixed(2) : null;
       const amt = fmtAmt(amount, t.decimals);
@@ -761,7 +773,7 @@ async function proofMeta(kind, id) {
       };
     } else if (kind === "burn" && BURNER) {
       const b = await pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "getBurn", args: [BigInt(id)] });
-      if (!b || !b.amount) return null;
+      if (!b || !b.amount) { proofCache.set(key, { at: Date.now(), meta: NOT_FOUND }); return NOT_FOUND; }
       const t = await tokenMeta(b.token);
       const pct = t.supply > 0n ? (Number((b.amount * 10000n) / t.supply) / 100).toFixed(2) : null;
       const amt = fmtAmt(b.amount, t.decimals);
@@ -773,7 +785,7 @@ async function proofMeta(kind, id) {
       };
     } else if (kind === "vesting" && VESTING) {
       const v = await pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "getSchedule", args: [BigInt(id)] });
-      if (!v || !v.total) return null;
+      if (!v || !v.total) { proofCache.set(key, { at: Date.now(), meta: NOT_FOUND }); return NOT_FOUND; }
       const t = await tokenMeta(v.token);
       const amt = fmtAmt(v.total, t.decimals);
       const end = dayLabel(v.end);
@@ -873,6 +885,9 @@ app.get("/proof/:kind/:id", async (req, res) => {
     proofMeta(kind, Number(id)).catch(() => null),
     new Promise((r) => setTimeout(() => r(null), 6_000)),
   ]);
+  // No such lock/burn/schedule → a real 404. A failed or slow read → still the
+  // app shell with a 200, because the page may well exist.
+  if (meta === NOT_FOUND) { res.status(404); return send(res, "404.html"); }
   return meta ? sendProof(res, meta) : send(res, "app.html");
 });
 app.get("/app", (req, res) => {
@@ -970,6 +985,11 @@ app.get("/sitemap.xml", async (_req, res) => {
       ["/blog/what-is-a-liquidity-lock", "monthly", "0.6"],
       ["/blog/how-to-burn-tokens-on-robinhood-chain", "monthly", "0.6"],
       ["/blog/token-locks-vs-vesting-vs-burning", "monthly", "0.6"],
+      ["/blog/how-to-check-if-liquidity-is-locked", "monthly", "0.7"],
+      ["/blog/rug-pull-red-flags-checklist", "monthly", "0.7"],
+      ["/blog/how-to-set-up-token-vesting", "monthly", "0.7"],
+      ["/blog/what-is-a-vesting-cliff", "monthly", "0.6"],
+      ["/blog/how-long-should-you-lock-liquidity", "monthly", "0.6"],
     ];
     const parts = statics.map(([p, cf, pr]) =>
       `  <url><loc>https://hoodlock.tech${p}</loc><lastmod>${today}</lastmod><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`);
@@ -992,12 +1012,33 @@ app.get("/embed", (_req, res) => send(res, "embed.html")); // framable (headers 
 app.get("/blog", (_req, res) => send(res, "blog/index.html"));
 app.get("/blog/:slug", (req, res) => {
   const slug = req.params.slug;
-  if (!/^[a-z0-9-]+$/.test(slug)) return send(res, "blog/index.html"); // no path traversal, only clean slugs
+  // A post that isn't there is a 404, not a silent bounce to the index — the
+  // index answering 200 for every made-up slug is unbounded duplicate content.
+  if (!/^[a-z0-9-]+$/.test(slug)) { res.status(404); return send(res, "404.html"); } // no path traversal
   const f = join(PUBLIC, "blog", slug + ".html");
-  return existsSync(f) ? res.sendFile(f) : send(res, "blog/index.html");
+  if (!existsSync(f)) { res.status(404); return send(res, "404.html"); }
+  return res.sendFile(f);
 });
+
+/* Unknown API routes fell through to the SPA catch-all and answered 200 with
+   HTML, which is confusing for anything expecting JSON. */
+app.use("/api", (_req, res) => res.status(404).json({ error: "not found" }));
+/* Vite puts a content hash in every /assets name, so those files can never
+   change under a given URL — cache them for a year. Everything else (HTML,
+   images, the sitemap) keeps revalidating, since those URLs are stable while
+   their contents are not. */
+app.use("/assets", express.static(join(PUBLIC, "assets"), {
+  immutable: true, maxAge: "365d", fallthrough: false,
+}));
 app.use(express.static(PUBLIC, { extensions: ["html"] }));
-app.use((_req, res) => send(res, "index.html"));
+
+/* Unknown paths used to render the landing page with a 200, which reads to a
+   crawler as a real page and to a browser as "this URL exists". Serve the app
+   shell so client routing still works, but say 404. */
+app.use((_req, res) => {
+  res.status(404);
+  send(res, "404.html");
+});
 
 app.listen(PORT, () => {
   console.log(`[hoodlock] listening on ${PORT}`);

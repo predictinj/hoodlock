@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Page not found — HoodLock</title>
+<meta name="description" content="That page doesn't exist on HoodLock. Browse locked tokens, create a lock, or read the guides." />
+<meta name="robots" content="noindex" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050807; --line:rgba(255,255,255,.065); --line-2:rgba(255,255,255,.12);
+    --neon:#00e05a; --ink:#eef4ef; --ink-2:#8fa396; --ink-3:#59695e;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;
+    --serif:'Instrument Serif',Georgia,serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;
+    min-height:100vh;display:flex;flex-direction:column}
+  a{color:inherit;text-decoration:none}
+  .nav{height:72px;display:flex;align-items:center;padding:0 32px;border-bottom:1px solid var(--line)}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16.5px;letter-spacing:-.03em}
+  .logo b{color:var(--neon)}
+  main{flex:1;display:grid;place-items:center;padding:80px 32px;position:relative;overflow:hidden}
+  main::before{content:'';position:absolute;top:-30%;left:50%;width:1000px;height:700px;transform:translateX(-50%);
+    pointer-events:none;background:radial-gradient(40% 45% at 50% 40%,rgba(0,224,90,.10),transparent 70%)}
+  .inner{position:relative;max-width:560px;text-align:center}
+  .code{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);
+    display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:26px}
+  .code::before{content:'';width:24px;height:1px;background:var(--neon);opacity:.8}
+  .code i{color:var(--neon);font-style:normal}
+  h1{font-size:clamp(38px,7vw,60px);font-weight:700;letter-spacing:-.035em;line-height:1.05}
+  h1 span{font-family:var(--serif);font-weight:400;font-style:italic;color:var(--neon)}
+  p{margin-top:20px;color:var(--ink-2);font-size:15.5px;line-height:1.65}
+  .acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:36px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:600;
+    letter-spacing:-.01em;border-radius:999px;padding:13px 26px;border:1px solid transparent;transition:.25s}
+  .btn-neon{background:var(--neon);color:#03130a}
+  .btn-neon:hover{transform:translateY(-1px);box-shadow:0 14px 40px -8px rgba(0,224,90,.6)}
+  .btn-line{border-color:var(--line-2);color:var(--ink);background:rgba(255,255,255,.02)}
+  .btn-line:hover{border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.05)}
+  .btn:focus-visible{outline:2px solid var(--neon);outline-offset:3px}
+  .more{margin-top:52px;padding-top:26px;border-top:1px solid var(--line);
+    display:flex;gap:8px 26px;justify-content:center;flex-wrap:wrap}
+  .more a{font-size:13.5px;color:var(--ink-2);transition:.2s}
+  .more a:hover{color:var(--neon)}
+  footer{padding:26px 32px;border-top:1px solid var(--line);text-align:center;
+    font-size:12.5px;color:var(--ink-3)}
+  @media (max-width:520px){ .nav{padding:0 20px} main{padding:56px 20px} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a></nav>
+<main>
+  <div class="inner">
+    <div class="code"><i>404</i> Not found</div>
+    <h1>Nothing <span>locked</span> here.</h1>
+    <p>This URL doesn't match a page, a lock, or a post. If you followed a proof link, check the id — every real lock, burn and vesting schedule has a permanent page that stays put.</p>
+    <div class="acts">
+      <a class="btn btn-neon" href="/app/explore">Browse locked tokens</a>
+      <a class="btn btn-line" href="/">Back to home</a>
+    </div>
+    <div class="more">
+      <a href="/app/locks">Lock tokens</a>
+      <a href="/app/vesting">Create vesting</a>
+      <a href="/blog">Guides</a>
+      <a href="/app/developers">Developer docs</a>
+    </div>
+  </div>
+</main>
+<footer>HoodLock — token locking, burning and vesting on Robinhood Chain.</footer>
+</body>
+</html>

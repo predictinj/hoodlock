@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Check if Liquidity Is Locked Before You Buy | HoodLock</title>
+<meta name="description" content="A five-minute check that tells you whether a token's liquidity is actually locked, who can move it, and when it unlocks — using on-chain data, not screenshots.">
+<link rel="canonical" href="https://hoodlock.tech/blog/how-to-check-if-liquidity-is-locked">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="How to Check if Liquidity Is Locked Before You Buy | HoodLock"><meta property="og:description" content="A five-minute check that tells you whether a token's liquidity is actually locked, who can move it, and when it unlocks — using on-chain data, not screenshots.">
+<meta property="og:url" content="https://hoodlock.tech/blog/how-to-check-if-liquidity-is-locked">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "How to Check if Liquidity Is Locked Before You Buy | HoodLock", "description": "A five-minute check that tells you whether a token's liquidity is actually locked, who can move it, and when it unlocks \u2014 using on-chain data, not screenshots.", "datePublished": "2026-07-27", "dateModified": "2026-07-27", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/how-to-check-if-liquidity-is-locked"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Can a liquidity lock be faked?", "acceptedAnswer": {"@type": "Answer", "text": "The lock itself can't be faked, because it's a transaction on a public chain \u2014 but the claim about it can. Screenshots, edited explorer pages and links to the wrong token are all common. Always verify from the token contract address yourself rather than from an image."}}, {"@type": "Question", "name": "What if I can't find any lock for a token?", "acceptedAnswer": {"@type": "Answer", "text": "Then assume the liquidity is not locked. Absence of a lock is not proof of bad intent, but it means nothing prevents the liquidity from being removed, and you should price that risk in."}}, {"@type": "Question", "name": "Does locked liquidity mean a token is safe?", "acceptedAnswer": {"@type": "Answer", "text": "No. A lock removes the classic rug pull, but a project can still have a mint function, concentrated holdings or simply fail. A lock is a strong signal about one specific risk, not a general safety rating."}}, {"@type": "Question", "name": "How much of the liquidity should be locked?", "acceptedAnswer": {"@type": "Answer", "text": "Look for a large majority of the LP supply. A lock covering a small fraction leaves most of the liquidity withdrawable, which defeats the purpose even though the project can truthfully say liquidity is locked."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>How to check if liquidity is <span class="serif">actually locked.</span></h1>
+<div class="meta">Published 2026-07-27 · HoodLock Team</div>
+<p>Every token page claims liquidity is locked. Very few show you where. The difference between a claim and a lock is a contract address you can read yourself, and checking it takes about five minutes.</p>
+
+<h2>Why a screenshot proves nothing</h2>
+<p>The most common "proof" of a lock is an image in a Telegram channel. An image can be edited, can show a different token, or can show a lock that was already withdrawn. It also can't tell you the one thing that matters most: whether anyone retains the power to move those tokens before the unlock date. Only the chain can answer that.</p>
+
+<h2>The five-minute check</h2>
+<ol>
+<li><b>Get the token contract address.</b> Take it from the project's own site or from the DEX pair — not from a chat message, where a lookalike address is a standard scam.</li>
+<li><b>Search it on a locker's explore page.</b> On HoodLock you can <a href="/app/explore">search any token or LP address</a> and see every lock, burn and vesting schedule tied to it, read live from the chain.</li>
+<li><b>Read the amount, not just the label.</b> "Liquidity locked" means little if 3% of the LP supply is locked and the rest sits in a team wallet. Compare the locked amount against total LP supply.</li>
+<li><b>Check the unlock date.</b> A lock expiring in three weeks is a countdown, not a commitment.</li>
+<li><b>Open the proof page and follow it to the block explorer.</b> The transaction either exists on-chain or it doesn't.</li>
+</ol>
+
+<h2>What "locked" has to actually mean</h2>
+<p>Not all lockers lock. Before you trust one, confirm three properties of the locker contract itself:</p>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>No admin path to the funds.</b> Some lockers include an owner function that can withdraw any position. If the locker's admin can move your tokens, the lock protects nobody.</li>
+<li><b>Extend-only unlock times.</b> If an unlock date can be shortened, it isn't a deadline — it's a suggestion.</li>
+<li><b>Verified source code.</b> If you can't read the locker's code on the block explorer, you're trusting a claim about a claim.</li>
+</ul>
+</div>
+<p>HoodLock's locker is verified on Blockscout, has no admin access over locked funds, and unlock times can only be pushed further out. You don't have to take that from us — the <a href="/app/developers">contract addresses are published</a> so you can check each property yourself.</p>
+
+<h2>Four things that should stop you</h2>
+<table>
+<tr><th>What you see</th><th>What it usually means</th></tr>
+<tr><td>Lock found, but tiny share of LP supply</td><td>Most liquidity is still withdrawable</td></tr>
+<tr><td>Unlock date within weeks of launch</td><td>The exit is scheduled, not prevented</td></tr>
+<tr><td>Lock exists but is marked withdrawn</td><td>It already ended; the proof is historical</td></tr>
+<tr><td>No lock found for the pair address</td><td>Liquidity is in a wallet, not a contract</td></tr>
+</table>
+
+<h2>Locked liquidity is one signal, not a verdict</h2>
+<p>A lock removes the fastest way to steal from holders. It does not remove a mint function, a concentrated holder, or a team that simply stops working. Treat it as one strong, verifiable data point — and check <a href="/blog/rug-pull-red-flags-checklist">the rest of the checklist</a> before deciding anything.</p>
+<h2>Common questions</h2>
+<h3>Can a liquidity lock be faked?</h3>
+<p>The lock itself can't be faked, because it's a transaction on a public chain — but the claim about it can. Screenshots, edited explorer pages and links to the wrong token are all common. Always verify from the token contract address yourself rather than from an image.</p>
+<h3>What if I can't find any lock for a token?</h3>
+<p>Then assume the liquidity is not locked. Absence of a lock is not proof of bad intent, but it means nothing prevents the liquidity from being removed, and you should price that risk in.</p>
+<h3>Does locked liquidity mean a token is safe?</h3>
+<p>No. A lock removes the classic rug pull, but a project can still have a mint function, concentrated holdings or simply fail. A lock is a strong signal about one specific risk, not a general safety rating.</p>
+<h3>How much of the liquidity should be locked?</h3>
+<p>Look for a large majority of the LP supply. A lock covering a small fraction leaves most of the liquidity withdrawable, which defeats the purpose even though the project can truthfully say liquidity is locked.</p>
+<div class="cta-box">
+  <h2 style="margin-top:0">Check any token in seconds</h2>
+  <p>Search a token or LP address and see every lock, burn and vesting schedule tied to it — no wallet needed.</p>
+  <a class="btn" href="/app/explore">Explore locks →</a>
+</div>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

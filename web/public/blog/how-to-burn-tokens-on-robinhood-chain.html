@@ -83,6 +83,21 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <h2>Burn or lock — which should you choose?</h2>
 <p>Burn when you want supply gone permanently. Lock when you want tokens provably out of circulation for a period but still recoverable at a known future date (LP, team allocations, reserves). Many projects do both: lock the LP, burn a share of supply. See our comparison: <a href="/blog/token-locks-vs-vesting-vs-burning">Token locks vs vesting vs burning</a>.</p>
 
+
+<h2>Common questions</h2>
+<h3>Can burned tokens ever be recovered?</h3>
+<p>No. Tokens sent to the dead address (0x…dEaD) are permanently irrecoverable by anyone — including the burner, the token team and HoodLock.</p>
+<h3>What does the proof-of-burn page show?</h3>
+<p>The amount burned, its percentage of total supply, the burner address, the UTC timestamp, and a link to the burn transaction on Blockscout — publicly viewable without a wallet.</p>
+<h3>Does the burn registry take custody of my tokens?</h3>
+<p>No. The burn is a single transferFrom directly from your wallet to the dead address in one transaction. The registry only records it.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/rug-pull-red-flags-checklist">Rug pull red flags: a checklist</a></li>
+<li><a href="/blog/how-to-set-up-token-vesting">How to set up token vesting</a></li>
+</ul>
+
 <div class="cta-box">
   <h2 style="margin-top:0">Lock tokens with on-chain proof</h2>
   <p>Flat 0.005 ETH fee · extend-only locks · no admin access to funds — verified on Robinhood Chain.</p>
