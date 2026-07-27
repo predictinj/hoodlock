@@ -173,7 +173,16 @@ $("menuBtn").addEventListener("click", () => {
   $("sbBackdrop").classList.toggle("show", open);
 });
 $("sbBackdrop").addEventListener("click", closeSidebar);
-document.querySelectorAll<HTMLElement>("[data-goto]").forEach((b) => b.addEventListener("click", () => go(b.dataset.goto!)));
+// Dashboard cards are real <a href> so they're crawlable and open in a new tab
+// on middle/ctrl-click — but a plain left-click routes in-app instead of
+// reloading the whole shell.
+document.querySelectorAll<HTMLElement>("[data-goto]").forEach((b) => b.addEventListener("click", (e) => {
+  const me = e as MouseEvent;
+  if (b.tagName === "A" && (me.metaKey || me.ctrlKey || me.shiftKey || me.button !== 0)) return;
+  e.preventDefault();
+  history.pushState(null, "", "/app/" + b.dataset.goto!);
+  go(b.dataset.goto!, false);
+}));
 
 /* ---------- wallet (EIP-6963 + WalletConnect) ---------- */
 type Eip1193 = { request(a: { method: string; params?: any[] }): Promise<any>; };
@@ -335,7 +344,7 @@ function disconnect() {
   ($("connectBtn") as HTMLButtonElement).textContent = "Connect Wallet";
   ($("lockBtn") as HTMLButtonElement).disabled = false;
   $("balHint").textContent = "";
-  $("yourLocksSub").textContent = "CONNECT WALLET TO MANAGE";
+  document.getElementById("yourLocksSub")?.replaceChildren("CONNECT WALLET TO MANAGE");
   renderMine(); updateSummary(); closeWalletModal(); syncAdminNav();
   try { localStorage.removeItem("hl_afftok"); localStorage.removeItem("hl_affexp"); localStorage.removeItem("hl_conn"); localStorage.removeItem("hl_acct"); } catch { /* */ }
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
@@ -662,7 +671,7 @@ $("lockBtn").addEventListener("click", async () => {
     }
     btn.disabled = false;
     invalidateEvents();      // refresh events so the new lock's tx + stats resolve
-    renderMine(); loadDashboard(); exploreLoaded = false;
+    renderMine(); exploreLoaded = false;
   } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); ($("lockBtn") as HTMLButtonElement).disabled = false; }
 });
 
@@ -936,7 +945,9 @@ async function burnsTableHTML(burns: BurnRow[], heading: string, variant: "mine"
 
 /* ---------- my locks ---------- */
 async function renderMine() {
-  const boxes = [$("yourLocksBox"), $("myLocksBox")];
+  // yourLocksBox lived on the old stats dashboard — filter so only real boxes are touched
+  const boxes = [document.getElementById("yourLocksBox"), document.getElementById("myLocksBox")]
+    .filter((b): b is HTMLElement => !!b);
   if (!account) {
     boxes.forEach((b) => b.innerHTML = `<div class="empty"><div class="big">No wallet connected</div><div class="small">Connect your wallet to see and manage your locks.</div></div>`);
     return;
@@ -949,7 +960,7 @@ async function renderMine() {
         ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [account as `0x${string}`] }) as Promise<bigint[]>).catch(() => [] as bigint[])
         : Promise.resolve([] as bigint[]),
     ]);
-    $("yourLocksSub").textContent = `${ids.length} LOCK${ids.length === 1 ? "" : "S"}${burnIds.length ? ` · ${burnIds.length} BURN${burnIds.length === 1 ? "" : "S"}` : ""} · ${short(account).toUpperCase()}`;
+    document.getElementById("yourLocksSub")?.replaceChildren(`${ids.length} LOCK${ids.length === 1 ? "" : "S"}${burnIds.length ? ` · ${burnIds.length} BURN${burnIds.length === 1 ? "" : "S"}` : ""} · ${short(account).toUpperCase()}`);
     const rows = (await Promise.all(ids.map((i) => readLock(Number(i))))).reverse();
     const burns = (await Promise.all(burnIds.map((i) => readBurn(Number(i))))).reverse();
     const burnsHTML = await burnsTableHTML(burns, "My burns — destroyed forever");
@@ -973,7 +984,7 @@ async function withdraw(id: number) {
     const h = await send(LOCKER, encodeFunctionData({ abi: LOCKER_ABI as any, functionName: "withdraw", args: [BigInt(id)] }));
     notify("Withdrawing — confirm in wallet, then wait for the tx…");
     await waitTx(h);
-    notify("Withdrawn ✓"); renderMine(); loadDashboard(); exploreLoaded = false;
+    notify("Withdrawn ✓"); renderMine(); exploreLoaded = false;
   } catch (e: any) { alert(e?.shortMessage || e?.message || "Withdraw failed"); }
 }
 let extendId = -1, extendBase = 0;
@@ -1180,255 +1191,12 @@ async function showBurnProof(id: number, push = true) {
   });
 }
 
-/* ---------- dashboard: stats, chart, activity ---------- */
-async function loadDashboard() {
-  try {
-    const total = Number(await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }));
-    $("statLocks").textContent = total.toLocaleString("en-US");
-    const logs = await loadLockedLogs();
-    if (logs.length) {
-      $("statWallets").textContent = new Set(logs.map((l) => l.owner.toLowerCase())).size.toLocaleString("en-US");
-    } else if (!total) { $("statWallets").textContent = "0"; }
-    // active = sample the latest 25 locks (exact when total <= 25)
-    const ids: number[] = []; for (let i = total - 1; i >= 0 && ids.length < 25; i--) ids.push(i);
-    const rows = await Promise.all(ids.map(readLock));
-    const now = Math.floor(Date.now() / 1000);
-    const active = rows.filter((r) => !r.withdrawn && r.unlockTime > now).length;
-    $("statActive").textContent = active.toLocaleString("en-US") + (total > ids.length ? "+" : "");
-    drawChartFromLogs(logs);
-    renderActivity(logs, rows);
-  } catch {
-    $("chartEmpty").style.display = "";
-    $("chartEmpty").textContent = "Couldn't reach Robinhood Chain — live chart unavailable.";
-    ($("locksChart").querySelector("svg") as SVGElement).style.display = "none";
-    $("activityFeed").innerHTML = `<div class="empty"><div class="small">Couldn't reach Robinhood Chain.</div></div>`;
-  }
-}
-
-/* cumulative locks chart from Locked events (sampled block timestamps) */
-let chartPoints: { t: number; n: number }[] = [];
-let chartPointsTvl: { t: number; n: number }[] = [];
-let chartRange = 30;
-let chartMode: "locks" | "tvl" = "locks";
-async function drawChartFromLogs(logs: LockedLog[]) {
-  const svg = $("locksChart").querySelector("svg") as SVGElement;
-  if (!logs.length) {
-    svg.style.display = "none"; $("chartEmpty").style.display = "";
-    $("chartEmpty").textContent = "No locks yet — the chart starts with the first lock.";
-    return;
-  }
-  // sample ≤ 16 event blocks (always first + last) for timestamps
-  const idxs = new Set<number>([0, logs.length - 1]);
-  for (let k = 1; k < 15; k++) idxs.add(Math.round((k * (logs.length - 1)) / 15));
-  const sorted = [...idxs].sort((a, b) => a - b);
-  const tsByIdx = new Map<number, number>();
-  await Promise.all(sorted.map(async (i) => {
-    const ts = await blockTs(logs[i].block);
-    if (ts !== null) tsByIdx.set(i, ts);
-  }));
-  const pts: { t: number; n: number }[] = [];
-  for (const i of sorted) { const ts = tsByIdx.get(i); if (ts !== undefined) pts.push({ t: ts, n: i + 1 }); }
-  pts.sort((a, b) => a.t - b.t);
-  pts.push({ t: Math.floor(Date.now() / 1000), n: logs.length });
-  chartPoints = pts;
-
-  // TVL-serien: kumulativt USD-värde av skapade lås, till DAGENS priser —
-  // djup-kapad PER TOKEN med samma politik som tilen (proportionell skalning).
-  try {
-    const uniq = [...new Set(logs.map((l) => l.token.toLowerCase()))];
-    const priceMap = new Map<string, number>();
-    const factorMap = new Map<string, number>();
-    await Promise.all(uniq.map(async (tok) => {
-      const meta = await tokMeta(tok);
-      const p = await tokenPriceUsd(pub as any, tok as `0x${string}`, meta.decimals);
-      priceMap.set(tok, p ?? 0);
-      if (p && p > 0) {
-        const totalAmt = logs.filter((l) => l.token.toLowerCase() === tok)
-          .reduce((a, l) => a + Number(l.amount) / 10 ** meta.decimals, 0);
-        const uncapped = totalAmt * p;
-        const cap = await tokenDepthCapUsd(pub as any, tok as `0x${string}`);
-        factorMap.set(tok, cap !== null && uncapped > 0 ? Math.min(1, cap / uncapped) : 0);
-      } else factorMap.set(tok, 0);
-    }));
-    const vals = logs.map((l) => {
-      const meta = metaCacheGet(l.token.toLowerCase());
-      const dec = meta ? meta.decimals : 18;
-      const tok = l.token.toLowerCase();
-      return (Number(l.amount) / 10 ** dec) * (priceMap.get(tok) ?? 0) * (factorMap.get(tok) ?? 0);
-    });
-    const cum: number[] = []; let acc = 0;
-    for (const v of vals) { acc += v; cum.push(acc); }
-    const tpts: { t: number; n: number }[] = [];
-    for (const i of sorted) { const ts = tsByIdx.get(i); if (ts !== undefined) tpts.push({ t: ts, n: cum[i] }); }
-    tpts.sort((a, b) => a.t - b.t);
-    tpts.push({ t: Math.floor(Date.now() / 1000), n: acc });
-    chartPointsTvl = tpts;
-  } catch { chartPointsTvl = []; }
-
-  renderChart();
-}
-function metaCacheGet(addr: string) { return metaCache.get(addr) ?? metaCache.get(getAddress(addr)) ?? null; }
-function activeSeries(): { t: number; n: number }[] { return chartMode === "tvl" ? chartPointsTvl : chartPoints; }
-function countAt(t: number): number {
-  const pts = activeSeries();
-  if (!pts.length) return 0;
-  if (t <= pts[0].t) return 0;
-  for (let i = pts.length - 1; i >= 0; i--) if (pts[i].t <= t) return pts[i].n;
-  return pts[pts.length - 1].n;
-}
-function renderChart() {
-  const svg = $("locksChart").querySelector("svg") as SVGElement;
-  const tip = $("chartTip");
-  const series0 = activeSeries();
-  if (!series0.length) return;
-  svg.style.display = ""; $("chartEmpty").style.display = "none";
-  const now = Math.floor(Date.now() / 1000);
-  const from = now - chartRange * 86400;
-  // series inside the window (with a boundary point at the left edge)
-  const inWin = series0.filter((p) => p.t >= from);
-  const series: { t: number; n: number }[] = [{ t: from, n: countAt(from) }, ...inWin];
-  if (series[series.length - 1].t < now) series.push({ t: now, n: countAt(now) });
-
-  const NS = "http://www.w3.org/2000/svg";
-  const el = (tag: string, attrs: Record<string, any>) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, String(attrs[k])); return e; };
-  svg.innerHTML = "";
-  const W = 640, H = 230, P = { t: 18, r: 14, b: 24, l: 42 };
-  const minN = 0, maxN = chartMode === "tvl" ? Math.max(1, series[series.length - 1].n * 1.15) : Math.max(2, Math.ceil(series[series.length - 1].n * 1.15));
-  const x = (t: number) => P.l + ((t - from) / (now - from)) * (W - P.l - P.r);
-  const y = (n: number) => P.t + (1 - (n - minN) / (maxN - minN)) * (H - P.t - P.b);
-  for (let g = 0; g < 4; g++) {
-    const v = chartMode === "tvl" ? minN + ((maxN - minN) * g) / 3 : Math.round(minN + ((maxN - minN) * g) / 3), gy = y(v);
-    svg.appendChild(el("line", { x1: P.l, x2: W - P.r, y1: gy, y2: gy, stroke: "rgba(255,255,255,.05)", "stroke-width": 1 }));
-    const tEl = el("text", { x: P.l - 9, y: gy + 3.5, "text-anchor": "end", fill: "#59695e", "font-size": 9.5, "font-family": "JetBrains Mono,monospace" });
-    tEl.textContent = chartMode === "tvl" ? fmtUsd(v) : String(v); svg.appendChild(tEl);
-  }
-  const defs = el("defs", {});
-  defs.innerHTML = `<linearGradient id="tf" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0aa84f" stop-opacity=".26"/><stop offset="1" stop-color="#0aa84f" stop-opacity="0"/></linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
-  svg.appendChild(defs);
-  // step-after path (counts jump at each lock)
-  let dLine = `M ${x(series[0].t)} ${y(series[0].n)}`;
-  for (let i = 1; i < series.length; i++) dLine += ` L ${x(series[i].t)} ${y(series[i - 1].n)} L ${x(series[i].t)} ${y(series[i].n)}`;
-  const dArea = dLine + ` L ${x(now)} ${H - P.b} L ${x(from)} ${H - P.b} Z`;
-  svg.appendChild(el("path", { d: dArea, fill: "url(#tf)" }));
-  svg.appendChild(el("path", { d: dLine, fill: "none", stroke: "#0aa84f", "stroke-width": 2, "stroke-linejoin": "round", filter: "url(#glow)" }));
-  svg.appendChild(el("circle", { cx: x(now), cy: y(series[series.length - 1].n), r: 3.5, fill: "#00e05a" }));
-  const cross = el("line", { y1: P.t, y2: H - P.b, stroke: "rgba(255,255,255,.2)", "stroke-width": 1, "stroke-dasharray": "3 3" }) as SVGLineElement;
-  cross.style.display = "none"; svg.appendChild(cross);
-  const hdot = el("circle", { r: 4, fill: "#00e05a", stroke: "#0a0f0c", "stroke-width": 2 }) as SVGCircleElement;
-  hdot.style.display = "none"; svg.appendChild(hdot);
-  (svg as any).onmousemove = (e: MouseEvent) => {
-    const r = (svg as any).getBoundingClientRect();
-    const t = from + ((e.clientX - r.left) / r.width) * (now - from);
-    const n = countAt(t);
-    cross.setAttribute("x1", String(x(t))); cross.setAttribute("x2", String(x(t))); cross.style.display = "block";
-    hdot.setAttribute("cx", String(x(t))); hdot.setAttribute("cy", String(y(n))); hdot.style.display = "block";
-    tip.querySelector(".tv")!.textContent = chartMode === "tvl" ? fmtUsd(n) : `${n} lock${n === 1 ? "" : "s"}`;
-    tip.querySelector(".tk")!.textContent = new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
-    tip.style.display = "block";
-    const tipX = (x(t) / W) * r.width, flip = tipX > r.width * 0.72;
-    tip.style.left = tipX + (flip ? -12 : 12) + "px";
-    tip.style.transform = flip ? "translateX(-100%)" : "none";
-    tip.style.top = (y(n) / H) * r.height - 12 + "px";
-  };
-  (svg as any).onmouseleave = () => { cross.style.display = "none"; hdot.style.display = "none"; tip.style.display = "none"; };
-}
-document.querySelectorAll<HTMLElement>("#chartModeRow .mode-btn").forEach((b) => b.addEventListener("click", () => {
-  document.querySelectorAll("#chartModeRow .mode-btn").forEach((x) => x.classList.remove("active"));
-  b.classList.add("active");
-  chartMode = (b.dataset.mode as "locks" | "tvl") ?? "locks";
-  $("chartTitle").textContent = chartMode === "tvl" ? "Value locked" : "Locks created";
-  $("chartSub").textContent = chartMode === "tvl" ? "CUMULATIVE · AT CURRENT PRICES" : "CUMULATIVE · FROM LOCKED EVENTS";
-  renderChart();
-}));
-document.querySelectorAll<HTMLElement>(".range-btn").forEach((b) => b.addEventListener("click", () => {
-  document.querySelectorAll(".range-btn").forEach((x) => x.classList.remove("active"));
-  b.classList.add("active"); chartRange = Number(b.dataset.range); renderChart();
-}));
-
-/* activity feed: latest Locked/Extended/Withdrawn events */
-async function renderActivity(lockedLogs: LockedLog[], sampledRows: LockRow[]) {
-  const feed = $("activityFeed");
-  try {
-    const [extLogs, wdLogs, burnLogs] = await Promise.all([
-      pub.getLogs({ address: LOCKER, event: EXTENDED_EVENT as any, fromBlock: 0n, toBlock: "latest" }).catch(() => []),
-      pub.getLogs({ address: LOCKER, event: WITHDRAWN_EVENT as any, fromBlock: 0n, toBlock: "latest" }).catch(() => []),
-      BURNER ? pub.getLogs({ address: BURNER, event: BURNED_EVENT as any, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : Promise.resolve([]),
-    ]);
-    type Ev = { kind: "lock" | "ext" | "wd" | "burn"; id: number; block: bigint; token?: string; amount?: bigint; unlockTime?: number };
-    const evs: Ev[] = [
-      ...lockedLogs.map((l) => ({ kind: "lock" as const, id: l.id, block: l.block, token: l.token, amount: l.amount, unlockTime: l.unlockTime })),
-      ...(extLogs as any[]).map((lg) => ({ kind: "ext" as const, id: Number(lg.args.id), block: lg.blockNumber as bigint, unlockTime: Number(lg.args.newUnlockTime) })),
-      ...(wdLogs as any[]).map((lg) => ({ kind: "wd" as const, id: Number(lg.args.id), block: lg.blockNumber as bigint, amount: lg.args.amount as bigint })),
-      ...(burnLogs as any[]).map((lg) => ({ kind: "burn" as const, id: Number(lg.args.id), block: lg.blockNumber as bigint, token: String(lg.args.token), amount: lg.args.amount as bigint })),
-    ].sort((a, b) => (a.block > b.block ? -1 : 1)).slice(0, 7);
-    if (!evs.length) { feed.innerHTML = `<div class="empty"><div class="small">No activity yet — the feed starts with the first lock.</div></div>`; return; }
-    const tokenOf = (id: number) => lockedLogs.find((l) => l.id === id)?.token || sampledRows.find((r) => r.id === id)?.token;
-    const items = await Promise.all(evs.map(async (ev) => {
-      const ts = await blockTs(ev.block);
-      const tok = ev.token || tokenOf(ev.id);   // burns carry their own token from the event
-      const m = tok ? await tokMeta(tok) : { symbol: `#${ev.id}`, decimals: 18 };
-      const sym = escape(m.symbol);
-      let ico = "lock", txt = "";
-      if (ev.kind === "lock") txt = `<b>${fmtNum(ev.amount!, m.decimals)} $${sym}</b> locked until ${dateLabel(ev.unlockTime!)}`;
-      else if (ev.kind === "ext") { ico = "ext"; txt = `Lock <b>#${ev.id}</b> extended to ${dateLabel(ev.unlockTime!)}`; }
-      else if (ev.kind === "burn") { ico = "burn"; txt = `<b>${fmtNum(ev.amount!, m.decimals)} $${sym}</b> burned forever`; }
-      else { ico = "wd"; txt = `<b>${fmtNum(ev.amount!, m.decimals)} $${sym}</b> withdrawn`; }
-      return { ico, kind: ev.kind, txt, sub: `${ev.kind === "burn" ? "BURN" : "LOCK"} #${ev.id}${tok ? " · " + short(tok).toUpperCase() : ""}`, t: ts ? relTime(ts) : "", id: ev.id };
-    }));
-    feed.innerHTML = items.map((a) => `
-      <div class="feed-item" style="cursor:pointer" ${a.kind === "burn" ? `data-burn-feed="${a.id}"` : `data-proof-feed="${a.id}"`}>
-        <span class="feed-ico ${a.ico === "ext" ? "ext" : a.ico === "wd" ? "wd" : a.ico === "burn" ? "burn" : ""}">${
-          a.ico === "ext" ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f5b731" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="8.5"/></svg>'
-          : a.ico === "wd" ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8fa396" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 20h16"/></svg>'
-          : a.ico === "burn" ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="bf${a.id}" x1="12" y1="23" x2="12" y2="1.5" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ff2d1a"/><stop offset=".5" stop-color="#ff6a2c"/><stop offset="1" stop-color="#ffc24a"/></linearGradient></defs><path fill="url(#bf${a.id})" d="M12 2c.6 2.9 2.4 4.1 3.6 6 .9 1.4 1.3 2.9 1.1 4.4 1-.4 1.7-1.3 2-2.5 1.1 1.8 1.2 4.1-.1 6C17.1 22 14.7 23.2 12 23.2c-4 0-7.2-3-7.2-7 0-2.6 1.4-4.8 2.9-6.5.2 1.2.9 2 1.9 2.3-1-2.7-.2-5.6 2.4-8z"/><path fill="#ffe7a6" d="M11.9 13.2c1.1.9 1.7 2 1.7 3.1 0 1.4-1 2.5-2.4 2.5-1.1 0-2.1-.9-2.1-2.1 0-1.4 1.5-2.4 2.8-3.5z"/></svg>`
-          : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e05a" stroke-width="2.2"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>'}</span>
-        <div class="fm">${a.txt}<div class="sub">${a.sub}</div></div><span class="t">${a.t}${a.t ? " AGO" : ""}</span>
-      </div>`).join("");
-    feed.querySelectorAll<HTMLElement>("[data-proof-feed]").forEach((el) => el.addEventListener("click", () => showLockProof(Number(el.dataset.proofFeed))));
-    feed.querySelectorAll<HTMLElement>("[data-burn-feed]").forEach((el) => el.addEventListener("click", () => showBurnProof(Number(el.dataset.burnFeed))));
-  } catch {
-    feed.innerHTML = `<div class="empty"><div class="small">Couldn't load activity.</div></div>`;
-  }
-}
+/* dashboard is now a product launcher (see #view-dashboard) — the stats,
+   chart and activity feed that lived here were removed with it. */
 
 /* ---------- TVL (klientside, djup-kapad — se tvl.ts) ---------- */
-async function loadTvl() {
-  try {
-    const [total, totalBurns] = await Promise.all([
-      pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }).then(Number),
-      BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "totalBurns" }).then(Number).catch(() => 0)) : Promise.resolve(0),
-    ]);
-    if (!total && !totalBurns) { $("statTvl").textContent = "$0"; return; }
-    const rows = await Promise.all(Array.from({ length: total }, (_, i) => i).map((i) => readLock(i).catch(() => null)));
-    const locks = rows.filter((r): r is LockRow => !!r);
-    // burned tokens count toward TVL too — value permanently removed from circulation
-    const burns = (await Promise.all(Array.from({ length: totalBurns }, (_, i) => i).map((i) => readBurn(i).catch(() => null)))).filter((b): b is BurnRow => !!b);
-    // vesting: the unclaimed remainder of every schedule is still held by the contract
-    let vests: { token: string; amount: bigint }[] = [];
-    if (VESTING) {
-      try {
-        const vTotal = await pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "totalSchedules" }).then(Number);
-        vests = (await Promise.all(Array.from({ length: vTotal }, (_, i) => i).map((i) => readVest(i).catch(() => null))))
-          .filter((v): v is VestRow => !!v && v.total > v.claimed)
-          .map((v) => ({ token: v.token, amount: v.total - v.claimed }));
-      } catch { /* vesting TVL is best-effort */ }
-    }
-    const items = [
-      ...locks.map((l) => ({ token: l.token, amount: l.amount, withdrawn: l.withdrawn })),
-      ...burns.map((b) => ({ token: b.token, amount: b.amount, withdrawn: false })),
-      ...vests.map((v) => ({ token: v.token, amount: v.amount, withdrawn: false })),
-    ];
-    const t = await computeTvl(pub as any, items);
-    $("statTvl").textContent = t.ethUsd > 0 ? fmtUsd(t.usd) : `${t.eth.toFixed(3)} ETH`;
-    $("statTvlSub").textContent = t.unpricedTokens > 0
-      ? `depth-capped · ${t.unpricedTokens} token${t.unpricedTokens === 1 ? "" : "s"} unpriced`
-      : "priced from DEX pools · depth-capped";
-  } catch { $("statTvl").textContent = "—"; }
-}
-loadTvl();
-setInterval(loadTvl, 60_000);
+// loadTvl() removed with the stats dashboard — the admin console computes
+// its own TVL directly via computeTvl().
 
 /* ---------- bakåt/framåt i historiken ---------- */
 window.addEventListener("popstate", () => {
@@ -2798,7 +2566,6 @@ if (VESTING && document.getElementById("vCreateBtn")) {
 
 /* ---------- boot ---------- */
 restoreConnection();
-loadDashboard();
 const _refParam = new URLSearchParams(location.search).get("ref");
 if (_refParam && /^[A-Za-z0-9_-]{3,32}$/.test(_refParam)) { try { localStorage.setItem("hl_ref", _refParam); } catch { /* */ } }
 // Clean proof paths (/proof/<kind>/<id>). The ?lock=/?burn=/?vesting= form is

@@ -92,6 +92,28 @@
   .page-head h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
   .page-head p{color:var(--ink-2);font-size:13.5px;margin-top:7px}
 
+
+  /* dashboard: a way to reach the products, not a stats page */
+  .dash{max-width:900px}
+  .dash-hd{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:28px}
+  .dash-hd h1{font-size:27px;font-weight:700;letter-spacing:-.035em}
+  .dash-hd p{color:var(--ink-2);font-size:13.5px;margin-top:7px}
+  .dash-chip{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+    color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:8px 15px;white-space:nowrap}
+  .dash-chip i{width:6px;height:6px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px var(--neon);animation:blink 2.4s infinite}
+  .dash-pri{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .dash-pri a{border:1px solid var(--line);border-radius:16px;padding:28px 26px;background:var(--card-2);transition:.24s;display:block}
+  .dash-pri a:hover{border-color:var(--neon);background:rgba(0,224,90,.05)}
+  .dash-pri b{font-size:21px;font-weight:600;letter-spacing:-.02em;display:block}
+  .dash-pri p{color:var(--ink-2);font-size:13.5px;margin-top:8px;line-height:1.55;max-width:330px}
+  .dash-pri .go{display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--neon)}
+  .dash-sec{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:14px}
+  .dash-sec a{border:1px solid var(--line);border-radius:12px;padding:16px 17px;background:var(--card);transition:.22s}
+  .dash-sec a:hover{border-color:var(--line-2);background:var(--card-2)}
+  .dash-sec b{font-size:14px;font-weight:500;display:block}
+  .dash-sec i{font-style:normal;color:var(--ink-3);font-size:12px;display:block;margin-top:3px}
+  @media(max-width:760px){.dash-pri{grid-template-columns:1fr}}
+
   /* tiles */
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
   .tile{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;overflow:hidden;transition:border-color .25s}
@@ -368,48 +390,34 @@
 
     <!-- DASHBOARD -->
     <section class="view active" id="view-dashboard">
-      <div class="page-head">
-        <div><h1>Everything locked<span class="serif">, live.</span></h1><p>All data read straight from the RobinhoodLocker contract. Everything on-chain.</p></div>
-        <button class="btn btn-neon" data-goto="locks">+ Create lock</button>
-      </div>
-      <div class="tiles">
-        <div class="tile"><div class="k">Value locked</div><div class="v g" id="statTvl">—</div><div class="d" id="statTvlSub">priced from DEX pools · depth-capped</div></div>
-        <div class="tile"><div class="k">Locks created</div><div class="v" id="statLocks">—</div><div class="d">all time · on-chain</div></div>
-        <div class="tile"><div class="k">Active locks</div><div class="v" id="statActive">—</div><div class="d">currently locked</div></div>
-        <div class="tile"><div class="k">Unique wallets</div><div class="v" id="statWallets">—</div><div class="d">have locked here</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-head">
-            <div><h3 id="chartTitle">Locks created</h3><div class="sub" id="chartSub">CUMULATIVE · FROM LOCKED EVENTS</div></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <div class="range-row" id="chartModeRow">
-                <button class="mode-btn active" data-mode="locks">LOCKS</button>
-                <button class="mode-btn" data-mode="tvl">TVL</button>
-              </div>
-              <div class="range-row">
-                <button class="range-btn" data-range="7">7D</button>
-                <button class="range-btn active" data-range="30">30D</button>
-                <button class="range-btn" data-range="90">90D</button>
-              </div>
-            </div>
+      <div class="dash">
+        <div class="dash-hd">
+          <div>
+            <h1>What would you like to do?</h1>
+            <p>Everything settles on Robinhood Chain and mints a proof page anyone can verify.</p>
           </div>
-          <div class="chart-wrap" id="locksChart">
-            <svg viewBox="0 0 640 230" preserveAspectRatio="none" aria-label="Cumulative locks created over time"></svg>
-            <div class="chart-tip" id="chartTip"><div class="tv"></div><div class="tk"></div></div>
-            <div class="chart-empty" id="chartEmpty" style="display:none"></div>
-          </div>
+          <span class="dash-chip"><i></i>CHAIN 4663 · LIVE</span>
         </div>
-        <div class="card">
-          <div class="card-head"><div><h3>Live activity</h3><div class="sub">LATEST ON-CHAIN EVENTS</div></div></div>
-          <div id="activityFeed"><div class="empty"><div class="small">Reading events from Robinhood Chain…</div></div></div>
+
+        <div class="dash-pri">
+          <a href="/app/locks" data-goto="locks">
+            <b>Lock tokens or LP</b>
+            <p>Held by contract until the date you choose. Extend-only, never shortenable.</p>
+            <span class="go">CREATE A LOCK →</span>
+          </a>
+          <a href="/app/vesting" data-goto="vesting">
+            <b>Set up vesting</b>
+            <p>Cliff plus linear release for team, investor and advisor allocations.</p>
+            <span class="go">SET UP VESTING →</span>
+          </a>
         </div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div><h3>Your locks</h3><div class="sub" id="yourLocksSub">CONNECT WALLET TO MANAGE</div></div>
+
+        <div class="dash-sec">
+          <a href="/app/locks" data-goto="locks"><b>Burn tokens</b><i>Permanent, with proof</i></a>
+          <a href="/app/explore" data-goto="explore"><b>Verify a lock</b><i>Anyone's, no wallet</i></a>
+          <a href="/app/affiliate" data-goto="affiliate"><b>Affiliate</b><i>Earn 30%</i></a>
+          <a href="/app/developers" data-goto="developers"><b>Developers</b><i>Embed, earn 50%</i></a>
         </div>
-        <div class="tbl-scroll" id="yourLocksBox"><div class="empty"><div class="big">No wallet connected</div><div class="small">Connect your wallet to see and manage your locks.</div></div></div>
       </div>
     </section>
 
