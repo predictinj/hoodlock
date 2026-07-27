@@ -2147,13 +2147,18 @@ function drawVCurve() {
     return;
   }
 
-  const x = (t: number) => L + ((t - d.start) / (d.end - d.start)) * (W - L - R);
+  // If the start is in the future the x-domain begins at TODAY, so the wait
+  // before vesting begins is visible as a flat zero segment instead of the
+  // TODAY marker silently disappearing.
+  const futureStart = d.start > now;
+  const domStart = Math.min(now, d.start);
+  const x = (t: number) => L + ((t - domStart) / (d.end - domStart)) * (W - L - R);
   const y = (frac: number) => y0 - frac * (y0 - y100);
   const cliffFrac = (d.cliff - d.start) / (d.end - d.start);
   const hasCliff = d.cliff > d.start;
-  const line = `M ${x(d.start)},${y(0)} L ${x(d.cliff)},${y(0)} L ${x(d.cliff)},${y(cliffFrac)} L ${x(d.end)},${y(1)}`;
-  const area = `${line} L ${x(d.end)},${y0} L ${x(d.start)},${y0} Z`;
-  const nowX = now > d.start && now < d.end ? x(now) : null;
+  const line = `M ${x(domStart)},${y(0)} L ${x(d.cliff)},${y(0)} L ${x(d.cliff)},${y(cliffFrac)} L ${x(d.end)},${y(1)}`;
+  const area = `${line} L ${x(d.end)},${y0} L ${x(domStart)},${y0} Z`;
+  const nowX = now >= domStart && now < d.end ? x(now) : null;
   // keep the two bottom date labels from colliding when the cliff sits near an edge
   const cliffX = x(d.cliff);
   const showCliffDate = hasCliff && cliffX > L + 72 && cliffX < W - R - 72;
@@ -2179,11 +2184,19 @@ function drawVCurve() {
     })() : ""}
     <circle cx="${x(d.end)}" cy="${y(1)}" r="3" fill="${NEON}"/>
     <text x="${W - R}" y="${T - 6}" font-family="var(--mono)" font-size="8" fill="${NEON}" text-anchor="end">ALL TOKENS FREE</text>
-    <text x="${L}" y="${H - 12}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="start">STARTS</text>
-    <text x="${L}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="start">${shortDate(d.start)}</text>
+    ${(() => {
+      // STARTS labels sit under the actual start point (clamped so they never
+      // run into the FULLY VESTED labels on the right).
+      const sx = Math.min(Math.max(x(d.start), L), W - R - 116);
+      const label = futureStart ? `STARTS IN ${remainingLabel(d.start - now).toUpperCase()}` : "STARTS";
+      return `
+      ${futureStart ? `<circle cx="${x(d.start)}" cy="${y0}" r="3" fill="${NEON}"/>` : ""}
+      <text x="${sx}" y="${H - 12}" font-family="var(--mono)" font-size="8" fill="${futureStart ? "#f5b731" : MUT}" text-anchor="start">${label}</text>
+      <text x="${sx}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="start">${shortDate(d.start)}</text>`;
+    })()}
     <text x="${W - R}" y="${H - 12}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="end">FULLY VESTED</text>
     <text x="${W - R}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="end">${shortDate(d.end)}</text>
-    ${nowX !== null ? `<line x1="${nowX}" y1="${y100}" x2="${nowX}" y2="${y0}" stroke="#f5b731" stroke-width="1" stroke-dasharray="3 3"/><text x="${nowX}" y="${T - 6}" font-family="var(--mono)" font-size="8" fill="#f5b731" text-anchor="middle">TODAY</text>` : ""}`;
+    ${nowX !== null ? `<line x1="${nowX}" y1="${y100}" x2="${nowX}" y2="${y0}" stroke="#f5b731" stroke-width="1" stroke-dasharray="3 3"/><text x="${Math.max(nowX, L + 2)}" y="${T - 6}" font-family="var(--mono)" font-size="8" fill="#f5b731" text-anchor="${nowX < L + 40 ? "start" : "middle"}">TODAY</text>` : ""}`;
 }
 
 function updateVSummary() {
