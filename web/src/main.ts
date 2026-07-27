@@ -2210,13 +2210,15 @@ function drawVCurve() {
       const sx = Math.min(Math.max(x(d.start), L), W - R - 116);
       const label = futureStart ? `STARTS IN ${remainingLabel(d.start - now).toUpperCase()}` : "STARTS";
       return `
-      ${futureStart ? `<circle cx="${x(d.start)}" cy="${y0}" r="3" fill="${NEON}"/>` : ""}
+      ${futureStart ? `
+      <line x1="${x(d.start)}" y1="${y100}" x2="${x(d.start)}" y2="${y0}" stroke="#f5b731" stroke-width="1" stroke-dasharray="3 3"/>
+      <circle cx="${x(d.start)}" cy="${y0}" r="3" fill="#f5b731"/>` : ""}
       <text x="${sx}" y="${H - 12}" font-family="var(--mono)" font-size="8" fill="${futureStart ? "#f5b731" : MUT}" text-anchor="start">${label}</text>
       <text x="${sx}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="start">${shortDate(d.start)}</text>`;
     })()}
     <text x="${W - R}" y="${H - 12}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="end">FULLY VESTED</text>
     <text x="${W - R}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="end">${shortDate(d.end)}</text>
-    ${nowX !== null ? `<line x1="${nowX}" y1="${y100}" x2="${nowX}" y2="${y0}" stroke="#f5b731" stroke-width="1" stroke-dasharray="3 3"/><text x="${Math.max(nowX, L + 2)}" y="${T - 6}" font-family="var(--mono)" font-size="8" fill="#f5b731" text-anchor="${nowX < L + 40 ? "start" : "middle"}">TODAY</text>` : ""}`;
+    ${nowX !== null && !futureStart ? `<line x1="${nowX}" y1="${y100}" x2="${nowX}" y2="${y0}" stroke="#f5b731" stroke-width="1" stroke-dasharray="3 3"/><text x="${Math.max(nowX, L + 2)}" y="${T - 6}" font-family="var(--mono)" font-size="8" fill="#f5b731" text-anchor="${nowX < L + 40 ? "start" : "middle"}">TODAY</text>` : ""}`;
 }
 
 function updateVSummary() {
@@ -2314,7 +2316,10 @@ async function vCreate() {
 }
 
 /* ---------- my schedules ---------- */
-const VEST_HEAD = `<thead><tr><th>Token</th><th>Total</th><th>Vested</th><th>Claimed</th><th>Claimable</th><th>Fully vested</th><th style="text-align:right">Actions</th></tr></thead>`;
+// Fixed column widths so "Vesting to you" and "Created by you" align exactly —
+// auto layout sized them differently (three action buttons vs one).
+const VEST_HEAD = `<thead><tr><th style="width:22%">Token</th><th style="width:11%">Total</th><th style="width:11%">Vested</th><th style="width:11%">Claimed</th><th style="width:12%">Claimable</th><th style="width:15%">Fully vested</th><th style="width:18%;text-align:right">Actions</th></tr></thead>`;
+const VEST_TABLE_OPEN = `<table style="table-layout:fixed;width:100%">`;
 /** Vesting row shaped exactly like an explore lock row: Token | Amount | Unlocks(→vested %) | TVL(unclaimed) | Status | Actions. */
 async function vestExploreRowHTML(v: VestRow): Promise<string> {
   const m = await tokMeta(v.token);
@@ -2380,10 +2385,10 @@ async function renderVestMine() {
     const createdRows = (await Promise.all(uniq(creIds).map((i) => readVest(i).catch(() => null))))
       .filter((v): v is VestRow => !!v).reverse();
     mineBox.innerHTML = mineRows.length
-      ? `<table>${VEST_HEAD}<tbody>${(await Promise.all(mineRows.map((v) => vestRowHTML(v, "recipient")))).join("")}</tbody></table>`
+      ? `${VEST_TABLE_OPEN}${VEST_HEAD}<tbody>${(await Promise.all(mineRows.map((v) => vestRowHTML(v, "recipient")))).join("")}</tbody></table>`
       : `<div class="empty"><div class="big">Nothing vesting to you yet</div><div class="small">When a project vests tokens to this wallet, they appear here.</div></div>`;
     createdBox.innerHTML = createdRows.length
-      ? `<table>${VEST_HEAD}<tbody>${(await Promise.all(createdRows.map((v) => vestRowHTML(v, "creator")))).join("")}</tbody></table>`
+      ? `${VEST_TABLE_OPEN}${VEST_HEAD}<tbody>${(await Promise.all(createdRows.map((v) => vestRowHTML(v, "creator")))).join("")}</tbody></table>`
       : `<div class="empty"><div class="small">No schedules created by this wallet yet.</div></div>`;
     wireVestActions(mineBox); wireVestActions(createdBox);
   } catch {
