@@ -2464,10 +2464,15 @@ if (VESTING && document.getElementById("vCreateBtn")) {
   // Manual edits clear that group's preset highlight — a lit "6M" chip next to
   // a hand-typed date misleads about what will actually be created (#0 post-mortem).
   const CHIP_GROUP: Record<string, string> = { vStart: "vStartPresets", vCliff: "vCliffPresets", vEnd: "vEndPresets" };
-  ["vStart", "vCliff", "vEnd"].forEach((id) => $(id).addEventListener("input", () => {
-    document.querySelectorAll(`#${CHIP_GROUP[id]} .chip-dur`).forEach((x) => x.classList.remove("on"));
-    updateVSummary();
-  }));
+  ["vStart", "vCliff", "vEnd"].forEach((id) => {
+    const clearChips = () => {
+      document.querySelectorAll(`#${CHIP_GROUP[id]} .chip-dur`).forEach((x) => x.classList.remove("on"));
+      updateVSummary();
+    };
+    // both events: "input" for typed segment edits, "change" for the native picker (Safari)
+    $(id).addEventListener("input", clearChips);
+    $(id).addEventListener("change", clearChips);
+  });
   document.querySelectorAll<HTMLElement>("#vStartPresets .chip-dur").forEach((c) => c.addEventListener("click", () => {
     document.querySelectorAll("#vStartPresets .chip-dur").forEach((x) => x.classList.remove("on")); c.classList.add("on");
     ($("vStart") as HTMLInputElement).value = localDT(new Date(Date.now() + Number(c.dataset.startdays) * 86400_000));
