@@ -61,6 +61,8 @@ const $ = (id: string) => document.getElementById(id)!;
 const short = (a: string) => a.slice(0, 6) + "…" + a.slice(-4);
 const fmt = (v: bigint, d: number) => { const s = formatUnits(v, d); return s.replace(/\.?0+$/, (m) => (m.includes(".") ? "" : m)); };
 const fmtNum = (v: bigint, d: number) => Number(formatUnits(v, d)).toLocaleString("en-US", { maximumFractionDigits: 4 });
+// Balance display: 2 decimals for normal amounts, more only when the balance is tiny (dust would show as 0).
+const fmtBal = (v: bigint, d: number) => { const n = Number(formatUnits(v, d)); return n.toLocaleString("en-US", { maximumFractionDigits: n >= 1 ? 2 : 6 }); };
 function escape(s: string) { return s.replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]!)); }
 function debounce<T extends (...a: any[]) => void>(fn: T, ms: number) { let t: any; return (...a: any[]) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 function remainingLabel(secLeft: number): string {
@@ -444,7 +446,7 @@ async function refreshToken() {
         ? (Number((bal * 10n ** 10n) / supply) / 1e8).toLocaleString("en-US", { maximumFractionDigits: 4 })
         : null;
       const pctPart = bal > 0n && pctStr !== null ? ` · <b>${pctStr}%</b> of supply` : "";
-      $("balHint").innerHTML = `You hold <b>${fmt(bal, Number(decimals))}</b> $${sym}${pctPart}`;
+      $("balHint").innerHTML = `You hold <b>${fmtBal(bal, Number(decimals))}</b> $${sym}${pctPart}`;
       $("maxBtn").style.display = bal > 0n ? "" : "none";
     }
     updateSummary();
@@ -2061,7 +2063,7 @@ async function vRefreshToken() {
     if (account) bal = await pub.readContract({ address: addr, abi: ERC20, functionName: "balanceOf", args: [account as `0x${string}`] }) as bigint;
     vTokenMeta = { addr, symbol: String(symbol), decimals: Number(decimals), bal };
     $("vTokenInfo").innerHTML = `<span style="color:var(--neon)">✓</span> <b>$${escape(String(symbol))}</b> · ${decimals} decimals`;
-    if (account) $("vBalHint").innerHTML = `You hold <b>${fmt(bal, Number(decimals))}</b> $${escape(String(symbol))}`;
+    if (account) $("vBalHint").innerHTML = `You hold <b>${fmtBal(bal, Number(decimals))}</b> $${escape(String(symbol))}`;
     updateVSummary();
   } catch { $("vTokenInfo").innerHTML = `<span class="badv">Couldn't read this token on Robinhood Chain.</span>`; }
 }
