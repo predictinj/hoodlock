@@ -12,6 +12,7 @@ import { makeLogReader, byTopic, addrArg, addrParam } from "./logs.mjs";
 import { makeOgRenderer, fontsReady } from "./og.mjs";
 import { tokenData, withRecords, renderTokenPage } from "./token.mjs";
 import { makeTokenIndex } from "./tokenindex.mjs";
+import { selectTokens } from "./gate.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -138,6 +139,13 @@ try {
     CREATE TABLE IF NOT EXISTS attributions (wallet TEXT PRIMARY KEY, code TEXT, ts INTEGER);
     CREATE TABLE IF NOT EXISTS connections (wallet TEXT PRIMARY KEY, first_ts INTEGER, last_ts INTEGER, hits INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS claims (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT, owner_wallet TEXT, amount_eth REAL, status TEXT, tx_hash TEXT, requested_at INTEGER, paid_at INTEGER);
+    /* Tokens that earned a page. Kept rather than recomputed, because the
+       explorer's token list is unstable between calls and a page dropping out
+       of the sitemap costs far more than carrying a quiet one. */
+    CREATE TABLE IF NOT EXISTS token_pages (
+      address TEXT PRIMARY KEY, symbol TEXT, slug TEXT,
+      first_seen INTEGER, last_pass INTEGER, last_check INTEGER,
+      misses INTEGER DEFAULT 0, liquidity REAL, volume24 REAL, holders INTEGER);
   `);
   // public affiliates: an affiliates row with an owner earns 30% (NULL = internal campaign)
   const cols = db.prepare("PRAGMA table_info(affiliates)").all().map((c) => c.name);
@@ -925,15 +933,85 @@ app.get("/og/:kind/:id.png", async (req, res) => {
   return res.end(png);
 });
 
-/* Token pages. Prototype: noindex and not in the sitemap until the quality
-   gate exists — the chain mints tens of thousands of tokens a day and almost
-   none of them deserve a page. */
+/* ---------- which tokens get a page ---------- */
+
+const slugFor = (symbol, address) =>
+  `${String(symbol || "token").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 20) || "token"}-${address.slice(0, 8)}`;
+
+/** Addresses currently published, read from the store rather than recomputed. */
+function publishedTokens() {
+  if (!db) return [];
+  try {
+    return db.prepare("SELECT address, symbol, slug, last_pass FROM token_pages WHERE misses < 3").all();
+  } catch { return []; }
+}
+function isPublished(address) {
+  if (!db) return null;
+  try { return db.prepare("SELECT slug, misses FROM token_pages WHERE address = ?").get(String(address).toLowerCase()) || null; }
+  catch { return null; }
+}
+
+/**
+ * Run the gate and record the outcome. A token that qualifies is kept even if
+ * a later run can't see it — the explorer's list swings between calls, and
+ * dropping a page out of the sitemap costs more than carrying a quiet one.
+ * Three consecutive misses is a real decline, not a flaky response.
+ */
+async function refreshTokenPages() {
+  if (!db) return { pass: 0, total: 0 };
+  const own = await tokenIndex.tokens();
+  const rows = await selectTokens({ explorer: cfg.explorer, ownTokens: own, log: (m) => console.log("[hoodlock] gate:", m) });
+  const now = Math.floor(Date.now() / 1000);
+  const up = db.prepare(`INSERT INTO token_pages (address, symbol, slug, first_seen, last_pass, last_check, misses, liquidity, volume24, holders)
+    VALUES (@address, @symbol, @slug, @now, @now, @now, 0, @liquidity, @volume24, @holders)
+    ON CONFLICT(address) DO UPDATE SET symbol=COALESCE(excluded.symbol, symbol), slug=COALESCE(excluded.slug, slug),
+      last_pass=@now, last_check=@now, misses=0, liquidity=@liquidity, volume24=@volume24, holders=@holders`);
+  const miss = db.prepare("UPDATE token_pages SET last_check=?, misses=misses+1 WHERE address=?");
+  let pass = 0;
+  for (const r of rows) {
+    if (r.pass) {
+      pass++;
+      up.run({ address: r.address, symbol: r.symbol || null, slug: slugFor(r.symbol, r.address),
+        now, liquidity: r.liquidityUsd || 0, volume24: r.volume24 || 0, holders: r.holders ?? null });
+    } else if (isPublished(r.address)) {
+      miss.run(now, r.address);
+    }
+  }
+  const live = publishedTokens().length;
+  console.log(`[hoodlock] gate: ${pass} qualified this run · ${live} pages published`);
+  return { pass, total: rows.length, live };
+}
+
+/** Fetch each published page once so the first visitor never pays for it. */
+async function warmTokenPages() {
+  const list = publishedTokens();
+  let ok = 0;
+  for (const t of list) {
+    try {
+      const recs = await tokenIndex.get(t.address);
+      const d = await tokenData({ address: t.address, explorer: cfg.explorer, recs });
+      if (d) { tokenCache.set(t.address, { at: Date.now(), meta: d }); ok++; }
+    } catch { /* skip; the page still renders on demand */ }
+    await new Promise((r) => setTimeout(r, 400)); // paced, so the explorer doesn't throttle us
+  }
+  console.log(`[hoodlock] token pages warm: ${ok}/${list.length}`);
+}
+
+/* Token pages. Indexable only once the gate has passed the token; everything
+   else resolves but carries noindex. */
 const tokenCache = new Map();  // address -> { at, meta } — explorer/DEX data only
 app.get("/token/:slug", async (req, res) => {
   const slug = String(req.params.slug || "");
+  // Published pages use a short, readable slug, so resolve those from the
+  // store first; a full address still works for direct links and anything the
+  // gate hasn't seen.
+  const known = db ? (() => {
+    try { return db.prepare("SELECT address, slug FROM token_pages WHERE slug = ?").get(slug) || null; }
+    catch { return null; }
+  })() : null;
   const m = /(0x[0-9a-fA-F]{40})$/.exec(slug);
-  if (!m) return next404(res);
-  const addr = m[1].toLowerCase();
+  if (!known && !m) return next404(res);
+  const addr = (known ? known.address : m[1]).toLowerCase();
   try {
     // Records come from the shared index and are always current to within its
     // refresh; only the explorer and DEX metadata is cached per token.
@@ -947,8 +1025,17 @@ app.get("/token/:slug", async (req, res) => {
       if (!d) return next404(res);
       tokenCache.set(addr, { at: Date.now(), meta: d });
     }
+    // Only tokens that cleared the gate are indexable. Anything else still
+    // resolves, so direct links and future bot replies work, but stays out of
+    // Google — the whole point of the gate is that most tokens must not be
+    // published.
+    const pub_ = isPublished(addr);
+    const canonicalSlug = pub_?.slug || slug;
+    if (pub_ && canonicalSlug !== slug) return res.redirect(301, `/token/${canonicalSlug}`);
     res.set("Cache-Control", "public, max-age=30");
-    return res.type("html").send(renderTokenPage(d, { slug, noindex: true }));
+    return res.type("html").send(renderTokenPage(d, {
+      slug: canonicalSlug, noindex: !pub_ || pub_.misses >= 3,
+    }));
   } catch (e) {
     console.log("[hoodlock] token page failed:", e?.message || e);
     return next404(res);
@@ -1103,6 +1190,13 @@ app.get("/sitemap.xml", async (_req, res) => {
     proof("lock", nLocks, "0.8");
     proof("burn", nBurns, "0.8");
     proof("vesting", nVests, "0.8");
+    // Token pages that cleared the gate. lastmod tracks the last time the gate
+    // saw the token, which is the signal Google uses to decide a recrawl is
+    // worth it — that is how a page flipping to "locked" gets picked up.
+    for (const t of publishedTokens()) {
+      const lm = t.last_pass ? new Date(t.last_pass * 1000).toISOString().slice(0, 10) : today;
+      parts.push(`  <url><loc>https://hoodlock.tech/token/${t.slug}</loc><lastmod>${lm}</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>`);
+    }
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${parts.join("\n")}\n</urlset>\n`;
     sitemapCache = { at: Date.now(), xml };
     res.type("application/xml").send(xml);
@@ -1154,5 +1248,13 @@ app.listen(PORT, () => {
   readLogs.warm([LOCKER, BURNER, VESTING])
     .then(() => tokenIndex.warm())
     .then((ix) => console.log(`[hoodlock] log cache warm · token index: ${ix.size} tokens`))
-    .catch(() => {});
+    .then(() => refreshTokenPages())
+    .then(() => warmTokenPages())
+    .catch((e) => console.log("[hoodlock] startup warm failed:", e?.message || e));
+
+  // Re-run the gate every six hours and re-warm what it kept. Both are paced
+  // and neither blocks a request.
+  setInterval(() => {
+    refreshTokenPages().then(() => warmTokenPages()).catch(() => {});
+  }, 6 * 60 * 60_000).unref?.();
 });
