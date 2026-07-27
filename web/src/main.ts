@@ -1461,9 +1461,19 @@ async function claimEarnings(me: any) {
 }
 
 /* ---------- developers (embed + API, 50% revenue share) ---------- */
+/* One script tag, one button per product. A launchpad wants all three at
+   launch — lock the LP, burn a slice, vest the team — so the mode rides on
+   the button rather than needing three integrations. */
 function devSnippet(apiKey: string): string {
-  return `<script src="${location.origin}/embed.js" data-key="${apiKey}"></scr` + `ipt>\n` +
-    `<button data-hoodlock data-token="0xYourTokenAddress">Lock with HoodLock</button>`;
+  const s = `<script src="${location.origin}/embed.js" data-key="${apiKey}"></scr` + `ipt>`;
+  return `${s}\n\n` +
+    `<!-- lock LP or team tokens -->\n` +
+    `<button data-hoodlock data-token="0xYourTokenAddress">Lock with HoodLock</button>\n\n` +
+    `<!-- burn supply, permanently -->\n` +
+    `<button data-hoodlock data-mode="burn" data-token="0xYourTokenAddress">Burn tokens</button>\n\n` +
+    `<!-- vest a team or investor allocation -->\n` +
+    `<button data-hoodlock data-mode="vesting" data-token="0xYourTokenAddress"\n` +
+    `        data-beneficiary="0xRecipient">Create vesting</button>`;
 }
 async function loadDevelopersPage() {
   const box = $("devBody");

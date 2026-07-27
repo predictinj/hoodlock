@@ -1,8 +1,11 @@
 /* HoodLock embed loader — drop this on any page:
  *   <script src="https://hoodlock.tech/embed.js" data-key="pk_dev_…"></script>
  *   <button data-hoodlock data-token="0x…">Lock with HoodLock</button>
- * or call window.HoodLock.open({ token, amount, unlockTime }).
- * Opens HoodLock's lock UI in a modal iframe and relays events back to the page. */
+ *   <button data-hoodlock data-mode="burn" data-token="0x…">Burn tokens</button>
+ *   <button data-hoodlock data-mode="vesting" data-token="0x…"
+ *           data-beneficiary="0x…">Create vesting</button>
+ * or call window.HoodLock.open({ mode, token, unlockTime, beneficiary }).
+ * Opens the matching HoodLock UI in a modal iframe and relays events back. */
 (function () {
   "use strict";
   if (window.HoodLock && window.HoodLock.__ready) return;
@@ -36,6 +39,9 @@
     params.set("key", key);
     if (opts.token) params.set("token", opts.token);
     if (opts.unlockTime) params.set("unlockTime", String(opts.unlockTime));
+    // lock (default), burn or vesting — the widget renders the matching form
+    if (opts.mode && /^(lock|burn|vesting)$/.test(opts.mode)) params.set("mode", opts.mode);
+    if (opts.beneficiary) params.set("beneficiary", opts.beneficiary);
 
     overlay = document.createElement("div");
     overlay.setAttribute("data-hoodlock-overlay", "");
@@ -61,7 +67,12 @@
     if (frame && e.source !== frame.contentWindow) return; // only our iframe
     if (d.type === "resize" && frame && d.height) { frame.style.height = Math.min(d.height + 4, Math.max(360, window.innerHeight - 32)) + "px"; }
     else if (d.type === "close") { close(); }
-    else if (d.type === "locked") { emit("locked", d); }
+    // A partner listening for "done" gets every product; the per-product names
+    // stay for anyone already wired to "locked".
+    else if (d.type === "locked" || d.type === "burned" || d.type === "vested") {
+      emit(d.type, d);
+      emit("done", d);
+    }
     else if (d.type === "error") { emit("error", d); }
     else if (d.type === "ready") { emit("ready", d); }
     else if (d.type === "connected") { emit("connected", d); }
@@ -73,7 +84,12 @@
       btn.setAttribute("data-hoodlock-wired", "1");
       btn.addEventListener("click", function (ev) {
         ev.preventDefault();
-        open({ token: btn.getAttribute("data-token") || "", unlockTime: btn.getAttribute("data-unlock") || "" });
+        open({
+          token: btn.getAttribute("data-token") || "",
+          unlockTime: btn.getAttribute("data-unlock") || "",
+          mode: btn.getAttribute("data-mode") || "",
+          beneficiary: btn.getAttribute("data-beneficiary") || "",
+        });
       });
     })(btns[i]);
   }
