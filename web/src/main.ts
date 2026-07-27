@@ -1502,8 +1502,8 @@ async function loadDevelopersPage() {
 function renderDevRegister() {
   const box = $("devBody");
   box.innerHTML = `<div class="card">
-    <div class="card-head"><div><h3>Become a HoodLock Partner</h3><div class="sub">EARN 50% OF EVERY LOCK FEE YOUR APP GENERATES</div></div></div>
-    <p class="hintline">Pick a developer handle. You'll get a public API key and an embed snippet.</p>
+    <div class="card-head"><div><h3>Become a HoodLock Partner</h3><div class="sub">EARN 50% OF EVERY LOCK, BURN AND VESTING FEE YOUR APP GENERATES</div></div></div>
+    <p class="hintline">Pick a developer handle. You'll get a public API key and an embed snippet covering locks, burns and vesting.</p>
     <div class="explore-bar">
       <div class="input-wrap"><input type="text" id="devCode" placeholder="your-app" spellcheck="false" maxlength="20" /></div>
       <button class="btn btn-neon" id="devCreateBtn" style="padding:11px 22px" disabled>Create developer key</button>
@@ -1542,10 +1542,10 @@ async function renderDevDashboard(me: any) {
       <div class="card-head"><div><h3>Your API key</h3><div class="sub">PUBLIC KEY — SAFE TO EMBED IN YOUR FRONTEND</div></div></div>
       <div class="explore-bar"><div class="input-wrap"><input type="text" readonly value="${escape(me.apiKey)}" /></div>
         <button class="btn btn-neon" id="devKeyCopy" style="padding:11px 22px">Copy</button></div>
-      <div class="hintline">This key only credits locks to you. It cannot move funds or access admin — payouts require your wallet signature.</div>
+      <div class="hintline">This key only credits locks, burns and vesting to you. It cannot move funds or access admin — payouts require your wallet signature.</div>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div class="card-head"><div><h3>Add the button to your site</h3><div class="sub">DROP-IN EMBED · OPENS THE LOCK UI ON YOUR PAGE</div></div></div>
+      <div class="card-head"><div><h3>Add the buttons to your site</h3><div class="sub">DROP-IN EMBED · LOCK, BURN AND VESTING UI ON YOUR PAGE</div></div></div>
       <pre class="code-block" id="devSnippet">${escape(snippet)}</pre>
       <button class="btn btn-line btn-sm" id="devSnippetCopy" style="margin-top:10px">Copy snippet</button>
     </div>
@@ -1564,14 +1564,26 @@ async function renderDevDashboard(me: any) {
       <div class="card-head"><div><h3>Integration docs</h3><div class="sub">EMBED · JS API · REST</div></div></div>
       <div class="dev-docs">
         <h4>1 · Embed button (recommended)</h4>
-        <p>Include the script once and add a button with <code>data-hoodlock</code>. Clicking it opens HoodLock's lock UI in a modal on your page.</p>
+        <p>Include the script once, then add a button with <code>data-hoodlock</code> for each product you want to offer. <code>data-mode</code> picks between <code>lock</code> (the default), <code>burn</code> and <code>vesting</code>; clicking opens that flow in a modal on your page.</p>
         <pre class="code-block">${escape(snippet)}</pre>
         <h4>2 · JavaScript API</h4>
         <p>Open programmatically and react to results:</p>
-        <pre class="code-block">HoodLock.open({ token: "0x…", unlockTime: 1790000000 });
-HoodLock.on("locked", ({ txHash, lockId }) =&gt; {
-  console.log("Locked!", lockId, txHash);
-});</pre>
+        <pre class="code-block">// lock (default)
+HoodLock.open({ token: "0x…", unlockTime: 1790000000 });
+
+// burn
+HoodLock.open({ mode: "burn", token: "0x…" });
+
+// vesting
+HoodLock.open({ mode: "vesting", token: "0x…", beneficiary: "0x…" });
+
+// one handler for every product…
+HoodLock.on("done", ({ type, txHash, id }) =&gt; {
+  console.log(type, id, txHash);   // "locked" | "burned" | "vested"
+});
+
+// …or listen per product
+HoodLock.on("locked", ({ txHash, id }) =&gt; console.log("Locked!", id, txHash));</pre>
         <h4>3 · REST API (build your own UI)</h4>
         <p><code>GET /api/dev/config?key=${escape(me.apiKey)}</code> → chain id, locker address, fee (wei), your commission.<br>
         <code>POST /api/dev/lock-intent</code> <code>{ key, token, amount, unlockTime }</code> → a prepared <code>{ to, data, value }</code> tx to submit from the user's wallet.<br>
