@@ -2012,31 +2012,6 @@ async function loadAdmin() {
     ] as any);
     $("adTvl").textContent = tvl.ethUsd > 0 ? fmtUsd(tvl.usd) : `${tvl.eth.toFixed(3)} ETH`;
 
-    // ── vesting fee collector (admin-gated on-chain via setFeeCollector) ──
-    if (VESTING) {
-      try {
-        const coll = await pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "feeCollector" }) as string;
-        $("adVestCfg").style.display = "";
-        $("adVestColl").textContent = coll;
-        ($("adVestCollBtn") as HTMLButtonElement).onclick = async () => {
-          const m4 = $("adVestCollMsg"); m4.className = "msg";
-          const raw = ($("adVestCollAddr") as HTMLInputElement).value.trim();
-          if (!isAddress(raw)) { m4.className = "msg bad"; m4.textContent = "Enter a valid wallet address (0x…)."; return; }
-          const next = getAddress(raw);
-          if (!window.confirm(`Change the vesting fee collector to ${next}?\n\nAll accrued and future vesting fees become withdrawable ONLY by that wallet. Make sure you control it.`)) return;
-          try {
-            m4.textContent = "Confirm in wallet…";
-            const h = await send(VESTING!, encodeFunctionData({ abi: VESTING_ABI as any, functionName: "setFeeCollector", args: [next] }));
-            m4.innerHTML = `Updating… <span class="spin"></span>`;
-            await waitTx(h);
-            m4.className = "msg ok"; m4.textContent = "Collector updated ✓";
-            ($("adVestCollAddr") as HTMLInputElement).value = "";
-            loadAdmin();
-          } catch (e: any) { m4.className = "msg bad"; m4.textContent = friendlyErr(e); }
-        };
-      } catch { /* leave hidden */ }
-    }
-
     // ── accrued vesting fees + withdraw (collector-gated on-chain) ──
     if (VESTING) {
       try {
