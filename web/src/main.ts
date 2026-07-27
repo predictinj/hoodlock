@@ -2377,7 +2377,7 @@ async function renderVestMine() {
   const mineBox = document.getElementById("vMineBox"), createdBox = document.getElementById("vCreatedBox");
   if (!mineBox || !createdBox || !VESTING) return;
   if (!account) {
-    mineBox.innerHTML = `<div class="empty"><div class="big">No wallet connected</div><div class="small">Connect your wallet to see and claim your vesting.</div></div>`;
+    mineBox.innerHTML = `<div class="empty"><div class="small">Connect your wallet to see and claim your vesting.</div></div>`;
     createdBox.innerHTML = `<div class="empty"><div class="small">Connect your wallet to see schedules you created.</div></div>`;
     return;
   }
