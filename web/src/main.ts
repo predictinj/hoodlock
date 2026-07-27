@@ -1831,52 +1831,39 @@ function syncAdminNav() {
   if ($("view-admin").classList.contains("active")) loadAdmin();
 }
 // first-touch referral: if arrived via /r/<code>, tell the backend which wallet connected
-/* admin: vesting contract ownership card — one-time acceptAdmin() click.
-   The two-step transfer means the deployer started the handover; nothing is
-   final until the collector wallet accepts it here (or on Blockscout). */
-async function loadVestingAdminCard() {
-  const card = document.getElementById("adVestCard");
-  const box = document.getElementById("adVestBox");
-  if (!card || !box) return;
-  if (!VESTING) { card.style.display = "none"; return; }
-  const link = `<a href="${cfg.explorer}/address/${VESTING}" target="_blank" rel="noreferrer" style="font-family:var(--mono);font-size:11px">${VESTING.slice(0, 10)}…${VESTING.slice(-6)} ↗</a>`;
-  try {
-    const [adm, pending] = await Promise.all([
-      pub.readContract({ address: VESTING, abi: VESTING_ADMIN_ABI, functionName: "admin" }) as Promise<string>,
-      pub.readContract({ address: VESTING, abi: VESTING_ADMIN_ABI, functionName: "pendingAdmin" }) as Promise<string>,
-    ]);
-    const me = account.toLowerCase();
-    if (pending.toLowerCase() === me) {
-      box.innerHTML = `<div class="empty"><div class="big">Action needed: accept ownership</div>
-        <div class="small">The vesting contract ${link} is waiting for this wallet to become admin. One click, one signature — after this, only your wallet can change its fee settings.</div>
-        <button class="btn btn-neon" id="adVestAccept" style="margin-top:12px">Accept admin ownership</button>
-        <div class="small" id="adVestMsg" style="margin-top:8px"></div></div>`;
-      document.getElementById("adVestAccept")!.addEventListener("click", async () => {
-        const btn = document.getElementById("adVestAccept") as HTMLButtonElement;
-        const msg = document.getElementById("adVestMsg")!;
-        try {
-          btn.disabled = true;
-          msg.textContent = "Confirm in your wallet…";
-          const h = await send(VESTING, encodeFunctionData({ abi: VESTING_ADMIN_ABI, functionName: "acceptAdmin" }));
-          msg.textContent = "Waiting for the transaction to confirm…";
-          await waitTx(h);
-          msg.textContent = "";
-          loadVestingAdminCard();
-        } catch (e: any) {
-          btn.disabled = false;
-          msg.textContent = friendlyErr(e);
-        }
-      });
-    } else if (adm.toLowerCase() === me) {
-      box.innerHTML = `<div class="empty"><div class="big" style="color:var(--neon,#28c76f)">Ownership accepted ✓</div>
-        <div class="small">This wallet is the admin of the vesting contract ${link}. Nothing more to do.</div></div>`;
-    } else {
-      box.innerHTML = `<div class="empty"><div class="big">Not this wallet</div>
-        <div class="small">Vesting contract ${link} — admin is ${escape(adm.slice(0, 10))}…, pending ${escape(pending.slice(0, 10))}… Connect the wallet named as pending admin to accept.</div></div>`;
-    }
-  } catch {
-    box.innerHTML = `<div class="empty"><div class="small">Couldn't read the vesting contract — check your connection and reopen this page.</div></div>`;
+/* admin activity chart — stacked daily bars (locks/burns/vesting), last 30 days */
+function drawAdminChart(acts: { ts: number; kind: string }[], now: number) {
+  const svg = document.getElementById("adChart"); if (!svg) return;
+  const DAYS = 30, W = 640, H = 170, L = 30, R = 6, T = 12, B = 22;
+  const day0 = Math.floor(now / 86400) - (DAYS - 1); // day index of the left-most bar
+  const buckets = Array.from({ length: DAYS }, () => ({ LOCK: 0, BURN: 0, VESTING: 0 } as Record<string, number>));
+  for (const a of acts) {
+    const d = Math.floor(a.ts / 86400) - day0;
+    if (d >= 0 && d < DAYS) buckets[d][a.kind] = (buckets[d][a.kind] || 0) + 1;
   }
+  const max = Math.max(1, ...buckets.map((b) => b.LOCK + b.BURN + b.VESTING));
+  const bw = (W - L - R) / DAYS;
+  const y = (n: number) => H - B - (n / max) * (H - T - B);
+  const COLORS: Record<string, string> = { LOCK: "var(--neon,#00e05a)", BURN: "#ff6b6b", VESTING: "#f5b731" };
+  let bars = "";
+  buckets.forEach((b, i) => {
+    let acc = 0;
+    const x = L + i * bw + 1;
+    for (const kind of ["LOCK", "BURN", "VESTING"]) {
+      const n = b[kind]; if (!n) continue;
+      const y1 = y(acc + n), y0b = y(acc);
+      bars += `<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${Math.max(1, y0b - y1).toFixed(1)}" fill="${COLORS[kind]}" rx="1"/>`;
+      acc += n;
+    }
+  });
+  const dLbl = (idx: number) => { const dte = new Date((day0 + idx) * 86400_000); return `${dte.getUTCDate()}/${dte.getUTCMonth() + 1}`; };
+  svg.innerHTML = `
+    <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--ink-3,#59695e)" stroke-width=".5" opacity=".5"/>
+    <text x="${L - 5}" y="${y(max) + 3}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="end">${max}</text>
+    <text x="${L - 5}" y="${H - B + 3}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="end">0</text>
+    ${bars}
+    <text x="${L}" y="${H - 8}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="start">${dLbl(0)}</text>
+    <text x="${W - R}" y="${H - 8}" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" text-anchor="end">${dLbl(DAYS - 1)}</text>`;
 }
 
 function attributeRef() {
@@ -1906,48 +1893,101 @@ async function loadAdmin() {
   }
   $("adminGate").innerHTML = "";
   $("adminBody").style.display = "";
-  loadVestingAdminCard();
 
   try {
-    const [total, burnTotal] = await Promise.all([
+    const [total, burnTotal, vestTotal] = await Promise.all([
       pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }).then(Number),
       BURNER ? pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "totalBurns" }).then(Number).catch(() => 0) : Promise.resolve(0),
+      VESTING ? pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "totalSchedules" }).then(Number).catch(() => 0) : Promise.resolve(0),
     ]);
     const feeEth = Number(formatUnits(lockFee, 18)) || 0;
     const burnFeeEth = Number(formatUnits(burnFee, 18)) || 0;
-    const revEth = total * feeEth + burnTotal * burnFeeEth;
+    const vestFeeEth = Number(formatUnits(vestingFee, 18)) || 0;
     const ethUsd = Number((typeof localStorage !== "undefined" && localStorage.getItem("hl_ethusd")) || 0);
-    $("adRevenue").textContent = revEth.toFixed(4) + " ETH";
-    $("adRevenueSub").textContent = ethUsd > 0 ? `≈ ${fmtUsd(revEth * ethUsd)} · ${feeEth} ETH/action` : `${feeEth} ETH per action`;
-    $("adLocks").textContent = total.toLocaleString("en-US");
-    $("adBurns").textContent = burnTotal.toLocaleString("en-US");
-
-    // pull every lock once for users / active / recent
-    const ids = Array.from({ length: total }, (_, i) => i);
-    const rows = (await Promise.all(ids.map((i) => readLock(i).catch(() => null)))).filter((r): r is LockRow => !!r);
     const now = Math.floor(Date.now() / 1000);
-    const users = new Set(rows.map((r) => r.owner.toLowerCase()));
-    $("adUsers").textContent = users.size.toLocaleString("en-US");
-    $("adActive").textContent = rows.filter((r) => !r.withdrawn && r.unlockTime > now).length.toLocaleString("en-US");
 
-    const tvl = await computeTvl(pub as any, rows);
+    // pull everything once — per-product stats, chart and recent activity all reuse these
+    const rows = (await Promise.all(Array.from({ length: total }, (_, i) => i).map((i) => readLock(i).catch(() => null)))).filter((r): r is LockRow => !!r);
+    const burnRows = (await Promise.all(Array.from({ length: burnTotal }, (_, i) => i).map((i) => readBurn(i).catch(() => null)))).filter((b): b is BurnRow => !!b);
+    const vestRows = (await Promise.all(Array.from({ length: vestTotal }, (_, i) => i).map((i) => readVest(i).catch(() => null)))).filter((v): v is VestRow => !!v);
+    const vestTs = new Map<number, number>();
+    await Promise.all(vestRows.map(async (v) => { const inf = await vestCreationInfo(v.id).catch(() => null); if (inf) vestTs.set(v.id, inf.ts); }));
+
+    // ── per-product breakdown + TOTAL ──
+    const lockUsers = new Set(rows.map((r) => r.owner.toLowerCase()));
+    const burnUsers = new Set(burnRows.map((b) => b.burner.toLowerCase()));
+    const vestUsers = new Set(vestRows.map((v) => v.creator.toLowerCase()));
+    const allUsers = new Set([...lockUsers, ...burnUsers, ...vestUsers]);
+    const revL = total * feeEth, revB = burnTotal * burnFeeEth, revV = vestTotal * vestFeeEth;
+    const revEth = revL + revB + revV;
+    const activeLocks = rows.filter((r) => !r.withdrawn && r.unlockTime > now).length;
+    const activeVest = vestRows.filter((v) => v.claimed < v.total).length;
+    const rev = (n: number) => `${n.toFixed(4)} ETH${ethUsd > 0 ? ` <span style="color:var(--ink-3);font-size:11px">≈ ${fmtUsd(n * ethUsd)}</span>` : ""}`;
+    $("adProdBox").innerHTML = `<table style="table-layout:fixed;width:100%"><thead><tr>
+        <th style="width:22%">Product</th><th style="width:14%">Count</th><th style="width:26%">Revenue</th><th style="width:20%">Unique users</th><th style="width:18%">Active</th></tr></thead><tbody>
+      <tr><td><b>Token Locks</b></td><td>${total}</td><td>${rev(revL)}</td><td>${lockUsers.size}</td><td>${activeLocks} locked</td></tr>
+      <tr><td><b>Burns</b></td><td>${burnTotal}</td><td>${rev(revB)}</td><td>${burnUsers.size}</td><td>—</td></tr>
+      <tr><td><b>Vesting</b></td><td>${vestTotal}</td><td>${rev(revV)}</td><td>${vestUsers.size}</td><td>${activeVest} vesting</td></tr>
+      <tr style="border-top:1px solid var(--line-2)"><td><b style="color:var(--neon)">TOTAL</b></td><td><b>${total + burnTotal + vestTotal}</b></td><td><b>${rev(revEth)}</b></td><td><b>${allUsers.size}</b></td><td>—</td></tr>
+      </tbody></table>`;
+
+    $("adRevenue").textContent = revEth.toFixed(4) + " ETH";
+    $("adRevenueSub").textContent = ethUsd > 0 ? `≈ ${fmtUsd(revEth * ethUsd)} · at current fees` : "at current fees";
+    $("adActions").textContent = (total + burnTotal + vestTotal).toLocaleString("en-US");
+    $("adUsers").textContent = allUsers.size.toLocaleString("en-US");
+
+    const tvl = await computeTvl(pub as any, [
+      ...rows.map((l) => ({ token: l.token, amount: l.amount, withdrawn: l.withdrawn })),
+      ...burnRows.map((b) => ({ token: b.token, amount: b.amount, withdrawn: false })),
+      ...vestRows.filter((v) => v.total > v.claimed).map((v) => ({ token: v.token, amount: v.total - v.claimed, withdrawn: false })),
+    ] as any);
     $("adTvl").textContent = tvl.ethUsd > 0 ? fmtUsd(tvl.usd) : `${tvl.eth.toFixed(3)} ETH`;
 
-    // recent users table (latest locks, newest first)
+    // ── accrued vesting fees + withdraw (collector-gated on-chain) ──
+    if (VESTING) {
+      try {
+        const accrued = await pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "accruedFees" }) as bigint;
+        const box = $("adVestFees");
+        if (accrued > 0n) {
+          box.style.display = "flex";
+          $("adVestFeesAmt").textContent = `${formatUnits(accrued, 18)} ETH`;
+          ($("adVestWithdraw") as HTMLButtonElement).onclick = async () => {
+            const m3 = $("adVestFeesMsg"); m3.className = "msg";
+            try {
+              m3.textContent = "Confirm in wallet…";
+              const h = await send(VESTING!, encodeFunctionData({ abi: VESTING_ABI as any, functionName: "withdrawFees" }));
+              m3.innerHTML = `Withdrawing… <span class="spin"></span>`;
+              await waitTx(h);
+              m3.className = "msg ok"; m3.textContent = "Withdrawn ✓";
+              loadAdmin();
+            } catch (e: any) { m3.className = "msg bad"; m3.textContent = friendlyErr(e); }
+          };
+        } else box.style.display = "none";
+      } catch { /* leave hidden */ }
+    }
+
+    // ── recent activity: locks + burns + vesting interleaved, newest first ──
     const logs = await loadLockedLogs();
-    const recent = [...logs].reverse().slice(0, 12);
-    const seen = new Set<string>();
-    const uniqueRecent = recent.filter((l) => { const k = l.owner.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
-    const body = (await Promise.all(uniqueRecent.map(async (l) => {
-      const ts = await blockTs(l.block);
-      const m2 = await tokMeta(l.token);
-      const cnt = rows.filter((r) => r.owner.toLowerCase() === l.owner.toLowerCase()).length;
-      return `<tr><td class="addr">${short(l.owner)}</td><td>${cnt} lock${cnt === 1 ? "" : "s"}</td><td>$${escape(m2.symbol)}</td><td>${ts ? dateLabel(ts) : "—"}</td>
-        <td style="text-align:right"><a class="btn btn-line btn-sm" href="${EXP}/address/${l.owner}" target="_blank" rel="noopener">Explorer</a></td></tr>`;
+    type Act = { wallet: string; token: string; ts: number; kind: string; color: string };
+    const acts: Act[] = [];
+    for (const l of logs) { const ts = await blockTs(l.block); if (ts) acts.push({ wallet: l.owner, token: l.token, ts, kind: "LOCK", color: "var(--neon)" }); }
+    burnRows.forEach((b) => acts.push({ wallet: b.burner, token: b.token, ts: b.timestamp, kind: "BURN", color: "#ff6b6b" }));
+    vestRows.forEach((v) => { const ts = vestTs.get(v.id); if (ts) acts.push({ wallet: v.creator, token: v.token, ts, kind: "VESTING", color: "#f5b731" }); });
+    acts.sort((a, b) => b.ts - a.ts);
+    const recent = acts.slice(0, 15);
+    const body = (await Promise.all(recent.map(async (a) => {
+      const m2 = await tokMeta(a.token);
+      return `<tr><td class="addr">${short(a.wallet)}</td>
+        <td><span style="font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:${a.color}">${a.kind}</span></td>
+        <td>$${escape(m2.symbol)}</td><td>${dateLabel(a.ts)}</td>
+        <td style="text-align:right"><a class="btn btn-line btn-sm" href="${EXP}/address/${a.wallet}" target="_blank" rel="noopener">Explorer</a></td></tr>`;
     }))).join("");
-    $("adUsersBox").innerHTML = uniqueRecent.length
-      ? `<table><thead><tr><th>Wallet</th><th>Locks</th><th>Latest token</th><th>First seen</th><th></th></tr></thead><tbody>${body}</tbody></table>`
-      : `<div class="empty"><div class="small">No locks yet.</div></div>`;
+    $("adUsersBox").innerHTML = recent.length
+      ? `<table><thead><tr><th>Wallet</th><th>Action</th><th>Token</th><th>When</th><th></th></tr></thead><tbody>${body}</tbody></table>`
+      : `<div class="empty"><div class="small">No activity yet.</div></div>`;
+
+    // ── activity chart: stacked daily bars, last 30 days ──
+    drawAdminChart(acts, now);
   } catch {
     $("adRevenue").textContent = "—";
   }

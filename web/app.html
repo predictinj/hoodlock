@@ -614,19 +614,32 @@
       <div id="adminGate"></div>
       <div id="adminBody" style="display:none">
         <div class="tiles">
-          <div class="tile"><div class="k">Gross revenue</div><div class="v g" id="adRevenue">—</div><div class="d" id="adRevenueSub">locks + burns × fee</div></div>
-          <div class="tile"><div class="k">Total locks</div><div class="v" id="adLocks">—</div><div class="d">all time</div></div>
-          <div class="tile"><div class="k">Total burns</div><div class="v" id="adBurns">—</div><div class="d">all time</div></div>
+          <div class="tile"><div class="k">Gross revenue · total</div><div class="v g" id="adRevenue">—</div><div class="d" id="adRevenueSub">all products × fee</div></div>
+          <div class="tile"><div class="k">Total actions</div><div class="v" id="adActions">—</div><div class="d">locks + burns + vesting</div></div>
+          <div class="tile"><div class="k">Unique users</div><div class="v" id="adUsers">—</div><div class="d">across all products</div></div>
           <div class="tile"><div class="k">Wallets connected</div><div class="v g" id="adConnected">—</div><div class="d" id="adConnectedSub">signed in to the app</div></div>
-          <div class="tile"><div class="k">Unique users</div><div class="v" id="adUsers">—</div><div class="d">wallets that locked</div></div>
+          <div class="tile"><div class="k">Value locked</div><div class="v g" id="adTvl">—</div><div class="d">locks + burns + unclaimed vesting</div></div>
           <div class="tile"><div class="k">Affiliate clicks</div><div class="v" id="adClicks">—</div><div class="d" id="adClicksSub">across all links</div></div>
-          <div class="tile"><div class="k">Value locked</div><div class="v g" id="adTvl">—</div><div class="d">depth-capped</div></div>
-          <div class="tile"><div class="k">Active locks</div><div class="v" id="adActive">—</div><div class="d">still locked</div></div>
         </div>
 
-        <div class="card" style="margin-bottom:12px" id="adVestCard">
-          <div class="card-head"><div><h3>Vesting contract</h3><div class="sub">ONE-TIME SETUP — ACCEPT ADMIN OWNERSHIP</div></div></div>
-          <div id="adVestBox"><div class="empty"><div class="small">Checking on-chain status…</div></div></div>
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><div><h3>Products</h3><div class="sub">REVENUE · USERS · ACTIVITY — PER PRODUCT AND TOTAL</div></div></div>
+          <div class="tbl-scroll" id="adProdBox"><div class="empty"><div class="small">Loading…</div></div></div>
+          <div id="adVestFees" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="font-size:13px;color:var(--ink-2)">Vesting fees accrued in the contract: <b id="adVestFeesAmt" style="color:var(--ink)">—</b></span>
+            <button class="btn btn-line btn-sm" id="adVestWithdraw">Withdraw to collector</button>
+            <span class="msg" id="adVestFeesMsg" style="margin:0"></span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><div><h3>Activity</h3><div class="sub">ACTIONS PER DAY · LAST 30 DAYS</div></div></div>
+          <svg id="adChart" viewBox="0 0 640 170" style="width:100%"></svg>
+          <div style="display:flex;gap:16px;margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--ink-2)">
+            <span><i style="display:inline-block;width:8px;height:8px;background:var(--neon);border-radius:2px;margin-right:5px"></i>LOCKS</span>
+            <span><i style="display:inline-block;width:8px;height:8px;background:#ff6b6b;border-radius:2px;margin-right:5px"></i>BURNS</span>
+            <span><i style="display:inline-block;width:8px;height:8px;background:#f5b731;border-radius:2px;margin-right:5px"></i>VESTING</span>
+          </div>
         </div>
 
         <div class="card" style="margin-bottom:12px">
@@ -653,7 +666,7 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><div><h3>Recent users</h3><div class="sub">LATEST WALLETS THAT LOCKED</div></div></div>
+          <div class="card-head"><div><h3>Recent users</h3><div class="sub">LATEST LOCKS · BURNS · VESTING</div></div></div>
           <div class="tbl-scroll" id="adUsersBox"><div class="empty"><div class="small">Loading…</div></div></div>
         </div>
       </div>
