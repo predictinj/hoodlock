@@ -1011,19 +1011,30 @@ async function loadExplore() {
   const box = $("exploreBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading latest activity… <span class="spin"></span></div></div>`;
   try {
-    const [totalLocks, totalBurns] = await Promise.all([
+    const [totalLocks, totalBurns, totalVests] = await Promise.all([
       pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }).then(Number),
       BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "totalBurns" }).then(Number).catch(() => 0)) : Promise.resolve(0),
+      VESTING ? (pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "totalSchedules" }).then(Number).catch(() => 0)) : Promise.resolve(0),
     ]);
-    if (!totalLocks && !totalBurns) { box.innerHTML = `<div class="empty"><div class="big">Nothing yet</div><div class="small">Be the first to lock or burn on Robinhood Chain.</div></div>`; exploreLoaded = true; return; }
+    if (!totalLocks && !totalBurns && !totalVests) { box.innerHTML = `<div class="empty"><div class="big">Nothing yet</div><div class="small">Be the first to lock, burn or vest on Robinhood Chain.</div></div>`; exploreLoaded = true; return; }
     const lockIds: number[] = []; for (let i = totalLocks - 1; i >= 0 && lockIds.length < 25; i--) lockIds.push(i);
     const burnIds: number[] = []; for (let i = totalBurns - 1; i >= 0 && burnIds.length < 25; i--) burnIds.push(i);
-    const [lockRows, burnRows] = await Promise.all([
+    const vestIds: number[] = []; for (let i = totalVests - 1; i >= 0 && vestIds.length < 25; i--) vestIds.push(i);
+    const [lockRows, burnRows, vestRows] = await Promise.all([
       Promise.all(lockIds.map(readLock)),
       Promise.all(burnIds.map(readBurn)),
+      Promise.all(vestIds.map((i) => readVest(i).catch(() => null))),
     ]);
-    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${await buildExploreRows(lockRows, burnRows)}</tbody></table>`;
-    wireActions(box);
+    const vests = vestRows.filter((v): v is VestRow => !!v);
+    const vestHTML = vests.length
+      ? `<div style="margin:14px 4px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3)">VESTING SCHEDULES</div>
+         <table>${VEST_HEAD}<tbody>${(await Promise.all(vests.map((v) => vestRowHTML(v, "creator")))).join("")}</tbody></table>`
+      : "";
+    const lockHTML = (totalLocks || totalBurns)
+      ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${await buildExploreRows(lockRows, burnRows)}</tbody></table>`
+      : "";
+    box.innerHTML = lockHTML + vestHTML;
+    wireActions(box); wireVestActions(box);
     exploreLoaded = true;
   } catch {
     box.innerHTML = `<div class="empty"><div class="big">Couldn't reach Robinhood Chain</div><div class="small">Check your connection and try again.</div></div>`;
