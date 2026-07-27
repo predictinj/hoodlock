@@ -2113,34 +2113,66 @@ function vDates(): { start: number; cliff: number; end: number } | null {
   return { start, cliff, end };
 }
 
+const shortDate = (sec: number) => {
+  const dte = new Date(sec * 1000);
+  return `${dte.getUTCDate()} ${["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][dte.getUTCMonth()]} '${String(dte.getUTCFullYear()).slice(2)}`;
+};
 function drawVCurve() {
   const svg = document.getElementById("vCurve"); if (!svg) return;
   const d = vDates();
   const now = Math.floor(Date.now() / 1000);
+  // Layout: left gutter for 0%/100%, bottom gutter for the date labels.
+  const W = 300, H = 116, L = 34, R = 10, T = 16, B = 24;
+  const MUT = "var(--ink-3,#59695e)", NEON = "var(--neon,#00e05a)";
+  const y0 = H - B, y100 = T;
+  const frame = `
+    <line x1="${L}" y1="${y100}" x2="${W - R}" y2="${y100}" stroke="${MUT}" stroke-width=".5" opacity=".35" stroke-dasharray="2 3"/>
+    <line x1="${L}" y1="${y0}" x2="${W - R}" y2="${y0}" stroke="${MUT}" stroke-width=".5" opacity=".6"/>
+    <text x="${L - 4}" y="${y100 + 3}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="end">100%</text>
+    <text x="${L - 4}" y="${y0 + 3}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="end">0%</text>`;
+
   if (!d || d.end <= d.start || d.cliff < d.start || d.cliff > d.end) {
-    // No (valid) dates picked yet — show a dimmed example curve so the user
-    // sees what the schedule will look like; it goes live once dates are set.
-    const W = 300, H = 90, PAD = 8;
-    const cx = PAD + 0.3 * (W - 2 * PAD);            // example cliff at 30%
-    const cy = H - PAD - 0.3 * (H - 2 * PAD);
-    svg.innerHTML = `
-      <path d="M ${PAD},${H - PAD} L ${cx},${H - PAD} L ${cx},${cy} L ${W - PAD},${PAD}"
-            fill="none" stroke="var(--neon,#00e05a)" stroke-width="2" stroke-linejoin="round"
-            stroke-dasharray="5 4" opacity=".35"/>
-      <text x="${cx}" y="${H - 1}" font-family="var(--mono)" font-size="8" fill="var(--ink-3,#59695e)" text-anchor="middle" opacity=".7">CLIFF</text>
-      <text x="${W / 2}" y="${PAD + 8}" font-family="var(--mono)" font-size="8" fill="var(--ink-3,#59695e)" text-anchor="middle" letter-spacing="2">EXAMPLE — PICK YOUR DATES</text>`;
+    // No (valid) dates yet — dimmed example so the user sees the shape they're
+    // configuring; it switches to their real schedule once dates are set.
+    const cx = L + 0.3 * (W - L - R);
+    const cy = y0 - 0.3 * (y0 - y100);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.innerHTML = `${frame}
+      <path d="M ${L},${y0} L ${cx},${y0} L ${cx},${cy} L ${W - R},${y100}"
+            fill="none" stroke="${NEON}" stroke-width="2" stroke-linejoin="round" stroke-dasharray="5 4" opacity=".35"/>
+      <text x="${cx}" y="${H - 12}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="middle" opacity=".7">CLIFF</text>
+      <text x="${L}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="start" opacity=".7">START</text>
+      <text x="${W - R}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="end" opacity=".7">FULLY VESTED</text>
+      <text x="${(L + W - R) / 2}" y="${T - 6}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="middle" letter-spacing="2">EXAMPLE — PICK YOUR DATES</text>`;
     return;
   }
-  const W = 300, H = 90, PAD = 8;
-  const x = (t: number) => PAD + ((t - d.start) / (d.end - d.start)) * (W - 2 * PAD);
-  const y = (frac: number) => H - PAD - frac * (H - 2 * PAD);
+
+  const x = (t: number) => L + ((t - d.start) / (d.end - d.start)) * (W - L - R);
+  const y = (frac: number) => y0 - frac * (y0 - y100);
   const cliffFrac = (d.cliff - d.start) / (d.end - d.start);
-  const path = `M ${x(d.start)},${y(0)} L ${x(d.cliff)},${y(0)} L ${x(d.cliff)},${y(cliffFrac)} L ${x(d.end)},${y(1)}`;
+  const hasCliff = d.cliff > d.start;
+  const line = `M ${x(d.start)},${y(0)} L ${x(d.cliff)},${y(0)} L ${x(d.cliff)},${y(cliffFrac)} L ${x(d.end)},${y(1)}`;
+  const area = `${line} L ${x(d.end)},${y0} L ${x(d.start)},${y0} Z`;
   const nowX = now > d.start && now < d.end ? x(now) : null;
-  svg.innerHTML = `
-    <path d="${path}" fill="none" stroke="var(--neon,#00e05a)" stroke-width="2" stroke-linejoin="round"/>
-    ${d.cliff > d.start ? `<text x="${x(d.cliff)}" y="${H - 1}" font-family="var(--mono)" font-size="8" fill="var(--ink-3,#59695e)" text-anchor="middle">CLIFF</text>` : ""}
-    ${nowX !== null ? `<line x1="${nowX}" y1="${PAD}" x2="${nowX}" y2="${H - PAD}" stroke="#f5b731" stroke-width="1" stroke-dasharray="3 3"/><text x="${nowX}" y="${PAD + 6}" font-family="var(--mono)" font-size="8" fill="#f5b731" text-anchor="middle">NOW</text>` : ""}`;
+  // keep the two bottom date labels from colliding when the cliff sits near an edge
+  const cliffX = x(d.cliff);
+  const showCliffDate = hasCliff && cliffX > L + 72 && cliffX < W - R - 72;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = `${frame}
+    <path d="${area}" fill="${NEON}" opacity=".07"/>
+    <path d="${line}" fill="none" stroke="${NEON}" stroke-width="2" stroke-linejoin="round"/>
+    ${hasCliff ? `
+      <line x1="${cliffX}" y1="${y(cliffFrac)}" x2="${cliffX}" y2="${y0}" stroke="${NEON}" stroke-width=".75" opacity=".45" stroke-dasharray="2 3"/>
+      <circle cx="${cliffX}" cy="${y(cliffFrac)}" r="3" fill="${NEON}"/>
+      <text x="${cliffX}" y="${y(cliffFrac) - 6}" font-family="var(--mono)" font-size="8" fill="${NEON}" text-anchor="middle">CLIFF · ${(cliffFrac * 100).toFixed(0)}% UNLOCKS</text>
+      ${showCliffDate ? `<text x="${cliffX}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="middle">${shortDate(d.cliff)}</text>` : ""}` : ""}
+    <circle cx="${x(d.end)}" cy="${y(1)}" r="3" fill="${NEON}"/>
+    <text x="${W - R}" y="${T - 6}" font-family="var(--mono)" font-size="8" fill="${NEON}" text-anchor="end">ALL TOKENS FREE</text>
+    <text x="${L}" y="${H - 12}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="start">STARTS</text>
+    <text x="${L}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="start">${shortDate(d.start)}</text>
+    <text x="${W - R}" y="${H - 12}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="end">FULLY VESTED</text>
+    <text x="${W - R}" y="${H - 2}" font-family="var(--mono)" font-size="8" fill="${MUT}" text-anchor="end">${shortDate(d.end)}</text>
+    ${nowX !== null ? `<line x1="${nowX}" y1="${y100}" x2="${nowX}" y2="${y0}" stroke="#f5b731" stroke-width="1" stroke-dasharray="3 3"/><text x="${nowX}" y="${T - 6}" font-family="var(--mono)" font-size="8" fill="#f5b731" text-anchor="middle">TODAY</text>` : ""}`;
 }
 
 function updateVSummary() {
@@ -2154,16 +2186,25 @@ function updateVSummary() {
   $("vsCliff").textContent = d ? (d.cliff > d.start ? dateTimeUTC(d.cliff) : "no cliff") : "—";
   $("vsEnd").textContent = d ? dateTimeUTC(d.end) : "—";
   // F-6: surface how much of the schedule is already liquid at creation time.
-  // Deterministic format — 0%, <0.1%, or one decimal — so the label never
-  // flips between 0.00%/0.0% as fields change.
+  // Audit fixes: (1) sub-0.1% reads as 0% — datetime-local is minute-precision,
+  // so a NOW-click always leaves a few seconds of "elapsed" time that used to
+  // surface as a confusing "<0.1%". (2) A backdated start with a FUTURE cliff
+  // is claimable-0 at creation but dumps the whole accrued chunk the moment
+  // the cliff passes — that jump is now disclosed instead of hidden by the 0%.
   let pre = "0%";
-  let preFrac = 0;
+  let warnFrac = 0;
   if (d && d.end > d.start) {
-    preFrac = now < d.cliff ? 0 : Math.max(0, Math.min(1, (now - d.start) / (d.end - d.start)));
-    const pct = preFrac * 100;
-    pre = pct === 0 ? "0%" : pct < 0.1 ? "<0.1%" : pct.toFixed(1) + "%";
+    const fracAt = (t: number) => t < d.cliff ? 0 : Math.max(0, Math.min(1, (t - d.start) / (d.end - d.start)));
+    const nowPct = fracAt(now) * 100;
+    pre = nowPct < 0.1 ? "0%" : nowPct.toFixed(1) + "%";
+    warnFrac = fracAt(now);
+    if (now < d.cliff) {
+      // nothing claimable yet — but how much unlocks the second the cliff hits?
+      const cliffPct = Math.max(0, Math.min(1, (d.cliff - d.start) / (d.end - d.start))) * 100;
+      if (cliffPct >= 0.1) { pre = `0% · ${cliffPct.toFixed(1)}% unlocks at cliff`; warnFrac = cliffPct / 100; }
+    }
   }
-  ($("vsPreVested") as HTMLElement).style.color = preFrac > 0.5 ? "#f5b731" : "";
+  ($("vsPreVested") as HTMLElement).style.color = warnFrac > 0.5 ? "#f5b731" : "";
   $("vsPreVested").textContent = pre;
   const n = BigInt(Math.max(rows.length, 1));
   $("vsFee").textContent = vestingFee > 0n ? `${formatUnits(vestingFee * n, 18)} ETH` : "free";
@@ -2209,7 +2250,7 @@ async function vCreate() {
     try {
       await waitTx(h);
       msg.className = "msg ok";
-      msg.innerHTML = `📈 Vesting created! <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a> — every schedule has a shareable proof under <b>Created by you</b>.`;
+      msg.innerHTML = `Vesting created! <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a>. Every schedule has a shareable proof under <b>Created by you</b>.`;
     } catch {
       msg.className = "msg";
       msg.innerHTML = `Transaction submitted — <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a>. Schedules should appear below shortly.`;
@@ -2281,16 +2322,46 @@ function wireVestActions(root: HTMLElement) {
       await waitTx(h); notify("Claimed ✓"); renderVestMine(); loadTvl();
     } catch (e: any) { alert(friendlyErr(e)); b.removeAttribute("disabled"); }
   }));
-  root.querySelectorAll<HTMLElement>("[data-vmove]").forEach((b) => b.addEventListener("click", async () => {
-    const to = prompt("Move this schedule to a new wallet.\n\nThe new address becomes the only one able to claim. This is public (an on-chain event) and cannot be undone by anyone else.\n\nNew wallet address:");
-    if (!to) return;
-    if (!isAddress(to.trim())) { alert("Not a valid address."); return; }
-    try {
-      const h = await send(VESTING!, encodeFunctionData({ abi: VESTING_ABI as any, functionName: "transferBeneficiary", args: [BigInt(b.dataset.vmove!), getAddress(to.trim())] }));
-      notify("Moving — confirm in wallet…"); await waitTx(h); notify("Schedule moved ✓"); renderVestMine();
-    } catch (e: any) { alert(friendlyErr(e)); }
-  }));
+  root.querySelectorAll<HTMLElement>("[data-vmove]").forEach((b) => b.addEventListener("click", () => openVMoveModal(Number(b.dataset.vmove))));
   root.querySelectorAll<HTMLElement>("[data-vproof]").forEach((b) => b.addEventListener("click", () => showVestingProof(Number(b.dataset.vproof))));
+}
+
+/* move modal — themed replacement for the old prompt() */
+let vMoveId = -1;
+async function openVMoveModal(id: number) {
+  vMoveId = id;
+  ($("vMoveAddr") as HTMLInputElement).value = "";
+  const msg = $("vMoveMsg"); msg.textContent = ""; msg.className = "msg";
+  $("vMoveCurrent").innerHTML = `Schedule <b>#${id}</b> — loading…`;
+  $("vMoveModal").classList.add("show");
+  try {
+    const v = await readVest(id);
+    const m = await tokMeta(v.token);
+    $("vMoveCurrent").innerHTML = `Schedule <b>#${id}</b> · <b>${fmtNum(v.total, m.decimals)} $${escape(m.symbol)}</b> currently vesting to <b>${short(v.beneficiary)}</b>. Pick the wallet that should receive it from now on.`;
+  } catch { $("vMoveCurrent").innerHTML = `Schedule <b>#${id}</b>`; }
+}
+function closeVMoveModal() { $("vMoveModal").classList.remove("show"); }
+if (document.getElementById("vMoveModal")) {
+  $("vMoveClose").addEventListener("click", closeVMoveModal);
+  $("vMoveCancel").addEventListener("click", closeVMoveModal);
+  $("vMoveModal").addEventListener("click", (e) => { if (e.target === $("vMoveModal")) closeVMoveModal(); });
+  $("vMoveConfirm").addEventListener("click", async () => {
+    const msg = $("vMoveMsg"); msg.className = "msg";
+    const raw = ($("vMoveAddr") as HTMLInputElement).value.trim();
+    if (!isAddress(raw)) { msg.className = "msg bad"; msg.textContent = "Enter a valid wallet address (0x…)."; return; }
+    const btn = $("vMoveConfirm") as HTMLButtonElement;
+    try {
+      btn.disabled = true;
+      msg.textContent = "Confirm in wallet…";
+      const h = await send(VESTING!, encodeFunctionData({ abi: VESTING_ABI as any, functionName: "transferBeneficiary", args: [BigInt(vMoveId), getAddress(raw)] }));
+      msg.innerHTML = `Moving… <span class="spin"></span>`;
+      await waitTx(h);
+      closeVMoveModal();
+      notify("Schedule moved ✓");
+      renderVestMine();
+    } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); }
+    finally { btn.disabled = false; }
+  });
 }
 
 function loadVestingView() {
@@ -2324,20 +2395,23 @@ async function showVestingProof(id: number, push = true) {
   const now = Math.floor(Date.now() / 1000);
   const vestedNow = vestedAt(v, now);
   const pctNow = v.total > 0n ? Number((vestedNow * 1000n) / v.total) / 10 : 0;
-  // F-6 (MANDATORY): how much was already liquid the moment this schedule was created.
-  // A backdated start can make a "vesting" schedule near-fully claimable on day one —
-  // this row makes that visible instead of letting the badge mislead.
-  let preRow = "";
-  if (info) {
-    const preVested = vestedAt(v, info.ts);
-    const prePct = v.total > 0n ? Number((preVested * 1000n) / v.total) / 10 : 0;
-    preRow = `<div class="p-row"><span class="k">Vested at creation</span><span class="v" ${prePct > 50 ? 'style="color:#f5b731"' : ""}>${prePct.toFixed(1)}% ${prePct > 50 ? "⚠ most of this schedule was already claimable when it was created" : ""}</span></div>`;
-  }
+  // F-6 note: the "Vested at creation" row was removed per owner 2026-07-27.
+  // The disclosure lives on through "Vested so far" (current liquid share —
+  // for a fresh backdated schedule effectively the same number) and the
+  // "Unlocks at cliff" row below.
   const status = v.claimed >= v.total
     ? `<span class="status withdrawn"><i></i>FULLY CLAIMED</span>`
     : now < v.cliff ? `<span class="status locked"><i></i>CLIFF · ${remainingLabel(v.cliff - now).toUpperCase()} LEFT</span>`
     : now >= v.end ? `<span class="status unlockable"><i></i>FULLY VESTED</span>`
-    : `<span class="status locked"><i></i>VESTING · ${pctNow.toFixed(1)}% VESTED</span>`;
+    : `<span class="status locked"><i></i>VESTING ACTIVE</span>`;
+  // Cliff-jump disclosure (audit): a backdated schedule with a future cliff is
+  // 0% claimable now but releases the whole accrued chunk the moment the cliff
+  // passes — show that jump so the proof can't understate what unlocks.
+  let cliffJumpRow = "";
+  if (now < v.cliff && v.end > v.start) {
+    const jumpPct = Math.max(0, Math.min(1, (v.cliff - v.start) / (v.end - v.start))) * 100;
+    if (jumpPct >= 0.1) cliffJumpRow = `<div class="p-row"><span class="k">Unlocks at cliff</span><span class="v" ${jumpPct > 50 ? 'style="color:#f5b731"' : ""}>${jumpPct.toFixed(1)}% of total ${jumpPct > 50 ? "⚠" : ""}</span></div>`;
+  }
   box.innerHTML = `
     <div class="proof-card">
       <span class="stamp">✓ ON-CHAIN VESTING</span>
@@ -2346,7 +2420,7 @@ async function showVestingProof(id: number, push = true) {
       <div class="p-row"><span class="k">Status</span><span class="v">${status}</span></div>
       <div class="p-row"><span class="k">Vested so far</span><span class="v g">${fmtNum(vestedNow, m.decimals)} (${pctNow.toFixed(1)}%)</span></div>
       <div class="p-row"><span class="k">Claimed</span><span class="v">${fmtNum(v.claimed, m.decimals)}</span></div>
-      ${preRow}
+      ${cliffJumpRow}
       <div class="p-row"><span class="k">Token</span><span class="v mono">${v.token}</span></div>
       <div class="p-row"><span class="k">Recipient</span><span class="v mono">${v.beneficiary}</span></div>
       <div class="p-row"><span class="k">Starts</span><span class="v">${dateTimeUTC(v.start)}</span></div>

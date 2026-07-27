@@ -103,6 +103,15 @@ prove the invariants at the bottom.
   the past and `end = now + 25h` is ~fully liquid at creation despite H3's
   guard. Legitimate (TGE backdating) — which is why the proof page's
   "% already vested at creation" is MANDATORY, not advisory.
+  **Owner override 2026-07-27:** the creation-time row was removed from the
+  proof page per owner decision. The disclosure is carried instead by
+  (a) "Vested so far" — the CURRENT liquid share, which for a freshly created
+  backdated schedule is effectively the same number — and (b) the
+  "Unlocks at cliff" row (added in the post-launch audit), which discloses the
+  step-unlock of a backdated schedule whose cliff is still in the future.
+  Rationale accepted: current-liquidity is what a viewer actually needs; the
+  creation-time snapshot only diverges from it as the schedule ages, by which
+  point the current number is the more honest one anyway.
 - **F-7 LOW — sequencer timestamp drift is immaterial** at vesting timescales.
 
 ## Invariants (Foundry must prove)

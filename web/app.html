@@ -694,6 +694,24 @@
   </div>
 </div>
 
+<!-- move vesting schedule modal -->
+<div id="vMoveModal" class="modal">
+  <div class="modal-card">
+    <div class="m-head"><h3>Move vesting schedule</h3><button id="vMoveClose" class="m-close">✕</button></div>
+    <div class="m-sub" id="vMoveCurrent"></div>
+    <div class="field" style="margin-bottom:0">
+      <label>New wallet address</label>
+      <div class="input-wrap"><input type="text" id="vMoveAddr" placeholder="0x…" spellcheck="false" autocomplete="off" /></div>
+      <div class="hintline">The new address becomes the only one able to claim. The move is public — it appears as an on-chain event on the proof page — and only the new wallet can move it again.</div>
+    </div>
+    <div class="wconn-acts" style="margin-top:18px">
+      <button id="vMoveCancel" class="btn btn-line">Cancel</button>
+      <button id="vMoveConfirm" class="btn btn-neon">Move schedule</button>
+    </div>
+    <div class="msg" id="vMoveMsg"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00e05a" stroke-width="2.4"><path d="M4 12.5L9.5 18 20 6.5"/></svg><span id="toastMsg"></span></div>
 
 <script type="module" src="/src/main.ts"></script>
