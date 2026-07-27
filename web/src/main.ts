@@ -2206,6 +2206,15 @@ function updateVSummary() {
   }
   ($("vsPreVested") as HTMLElement).style.color = warnFrac > 0.5 ? "#f5b731" : "";
   $("vsPreVested").textContent = pre;
+  // Live date validation — the same rules create() enforces, surfaced before signing.
+  const warn = document.getElementById("vDateWarn");
+  if (warn) {
+    if (!d) warn.textContent = "";
+    else if (d.end <= d.start) warn.textContent = "The fully-vested date must be after the start.";
+    else if (d.cliff > d.end) warn.textContent = "The cliff is after the fully-vested date — pick an earlier cliff or a later end.";
+    else if (d.end <= now + 24 * 3600) warn.textContent = "The schedule must run at least 24 hours from now.";
+    else warn.textContent = "";
+  }
   const n = BigInt(Math.max(rows.length, 1));
   $("vsFee").textContent = vestingFee > 0n ? `${formatUnits(vestingFee * n, 18)} ETH` : "free";
   const btn = $("vCreateBtn") as HTMLButtonElement;
@@ -2452,7 +2461,13 @@ if (VESTING && document.getElementById("vCreateBtn")) {
   });
   $("vTokenAddr").addEventListener("input", debounce(vRefreshToken, 400));
   wireTokenDropdown("vTokenAddr", "vTokDd", () => vRefreshToken());
-  ["vStart", "vCliff", "vEnd"].forEach((id) => $(id).addEventListener("input", updateVSummary));
+  // Manual edits clear that group's preset highlight — a lit "6M" chip next to
+  // a hand-typed date misleads about what will actually be created (#0 post-mortem).
+  const CHIP_GROUP: Record<string, string> = { vStart: "vStartPresets", vCliff: "vCliffPresets", vEnd: "vEndPresets" };
+  ["vStart", "vCliff", "vEnd"].forEach((id) => $(id).addEventListener("input", () => {
+    document.querySelectorAll(`#${CHIP_GROUP[id]} .chip-dur`).forEach((x) => x.classList.remove("on"));
+    updateVSummary();
+  }));
   document.querySelectorAll<HTMLElement>("#vStartPresets .chip-dur").forEach((c) => c.addEventListener("click", () => {
     document.querySelectorAll("#vStartPresets .chip-dur").forEach((x) => x.classList.remove("on")); c.classList.add("on");
     ($("vStart") as HTMLInputElement).value = localDT(new Date(Date.now() + Number(c.dataset.startdays) * 86400_000));
@@ -2473,15 +2488,10 @@ if (VESTING && document.getElementById("vCreateBtn")) {
     document.querySelectorAll("#vCliffPresets .chip-dur").forEach((x) => x.classList.remove("on")); c.classList.add("on");
     const days = Number(c.dataset.cliffdays || 0);
     const base = ensureStart();
-    const cliffEl = $("vCliff") as HTMLInputElement;
-    cliffEl.value = days > 0 ? localDT(new Date(base.getTime() + days * 86400_000)) : "";
-    // A cliff past the chosen end is impossible — extend the end to match
-    // (cliff == end is a valid pure cliff-lock) instead of blanking the curve.
-    const endEl = $("vEnd") as HTMLInputElement;
-    if (cliffEl.value && endEl.value && new Date(cliffEl.value) > new Date(endEl.value)) {
-      endEl.value = cliffEl.value;
-      document.querySelectorAll("#vEndPresets .chip-dur").forEach((x) => x.classList.remove("on"));
-    }
+    // NEVER silently mutate another field the user may have set by hand
+    // (schedule #0 post-mortem) — conflicts surface in the vDateWarn line
+    // instead, and create() refuses until they're resolved.
+    ($("vCliff") as HTMLInputElement).value = days > 0 ? localDT(new Date(base.getTime() + days * 86400_000)) : "";
     updateVSummary();
   }));
   document.querySelectorAll<HTMLElement>("#vEndPresets .chip-dur").forEach((c) => c.addEventListener("click", () => {

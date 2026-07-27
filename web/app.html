@@ -532,10 +532,10 @@
             <div class="input-wrap"><input type="datetime-local" id="vStart" /></div>
             <div class="chips" id="vStartPresets">
               <span class="chip-dur" data-startdays="0">NOW</span>
-              <span class="chip-dur" data-startdays="7">IN 7D</span>
-              <span class="chip-dur" data-startdays="30">IN 30D</span>
+              <span class="chip-dur" data-startdays="7">7D</span>
+              <span class="chip-dur" data-startdays="30">30D</span>
             </div>
-            <div class="hintline">May be in the past (e.g. your TGE date) — already-elapsed time becomes claimable immediately.</div>
+            <div class="hintline">May be in the past (e.g. your TGE date). already-elapsed time becomes claimable immediately.</div>
           </div>
           <div class="field">
             <label>Cliff <span class="hint">nothing claimable before this</span></label>
@@ -559,6 +559,7 @@
               <span class="chip-dur" data-enddays="730">2Y</span>
               <span class="chip-dur" data-enddays="1460">4Y</span>
             </div>
+            <div class="hintline" id="vDateWarn" style="color:#ff8a8a"></div>
           </div>
         </div>
         <div class="card summary">
