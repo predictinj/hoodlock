@@ -787,29 +787,32 @@ async function proofMeta(kind, id) {
   return meta;
 }
 
-/** Serve app.html with the proof page's own head tags patched in. */
-function sendProof(res, meta) {
+/**
+ * Serve app.html with page-specific head tags patched in, replacing the
+ * generic ones. Without this every /app/* view shipped the same title and no
+ * canonical, so Google saw five near-identical pages and picked one itself.
+ */
+function sendHead(res, meta) {
   let html = readFileSync(join(PUBLIC, "app.html"), "utf8");
-  const jsonld = {
-    "@context": "https://schema.org", "@type": "WebPage",
-    name: meta.title, description: meta.desc, url: meta.canonical,
-    isPartOf: { "@type": "WebSite", name: "HoodLock", url: "https://hoodlock.tech/" },
-  };
+  const blocks = (meta.jsonld || []).map(
+    (j) => `<script type="application/ld+json">${JSON.stringify(j)}</script>`,
+  ).join("\n");
   const head = `
 <title>${esc(meta.title)}</title>
 <meta name="description" content="${esc(meta.desc)}" />
 <link rel="canonical" href="${esc(meta.canonical)}" />
+${meta.noindex ? '<meta name="robots" content="noindex,nofollow" />' : ""}
 <meta property="og:title" content="${esc(meta.title)}" />
 <meta property="og:description" content="${esc(meta.desc)}" />
 <meta property="og:url" content="${esc(meta.canonical)}" />
 <meta name="twitter:title" content="${esc(meta.title)}" />
 <meta name="twitter:description" content="${esc(meta.desc)}" />
-<script type="application/ld+json">${JSON.stringify(jsonld)}</script>
-<noscript><h1>${esc(meta.heading)}</h1><p>${esc(meta.desc)}</p></noscript>`;
-  // drop the generic title/description/og-title/og-description, then inject ours
+${blocks}
+${meta.heading ? `<noscript><h1>${esc(meta.heading)}</h1><p>${esc(meta.desc)}</p></noscript>` : ""}`;
   html = html
     .replace(/<title>[\s\S]*?<\/title>/, "")
     .replace(/<meta name="description"[^>]*>/, "")
+    .replace(/<link rel="canonical"[^>]*>/, "")
     .replace(/<meta property="og:title"[^>]*>/, "")
     .replace(/<meta property="og:description"[^>]*>/, "")
     .replace(/<meta property="og:url"[^>]*>/, "")
@@ -817,6 +820,18 @@ function sendProof(res, meta) {
     .replace(/<meta name="twitter:description"[^>]*>/, "")
     .replace("</head>", head + "\n</head>");
   res.type("html").send(html);
+}
+
+/** Proof pages: one WebPage record describing that specific lock/burn/vest. */
+function sendProof(res, meta) {
+  return sendHead(res, {
+    ...meta,
+    jsonld: [{
+      "@context": "https://schema.org", "@type": "WebPage",
+      name: meta.title, description: meta.desc, url: meta.canonical,
+      isPartOf: { "@type": "WebSite", name: "HoodLock", url: "https://hoodlock.tech/" },
+    }],
+  });
 }
 
 /* ---------- static site with the same rewrites as serve.json ---------- */
@@ -843,9 +858,64 @@ app.get("/app", (req, res) => {
       return res.redirect(301, `/proof/${kind}/${raw}`);
     }
   }
-  send(res, "app.html");
+  sendHead(res, { ...VIEW_META[""], canonical: `${SITE}/app` });
 });
-app.get("/app/*", (_req, res) => send(res, "app.html"));
+/* Per-view head tags. Each product view is its own landing page in search, so
+   it needs its own title, description and canonical — they all shipped the
+   same generic set before, which is what duplicate-content filtering eats. */
+const SITE = "https://hoodlock.tech";
+const VIEW_META = {
+  "": {
+    title: "HoodLock — lock, burn & vest tokens on Robinhood Chain",
+    desc: "Lock liquidity, burn supply and vest team tokens on Robinhood Chain. Every action is on-chain and gets a shareable proof link.",
+    heading: "HoodLock",
+  },
+  locks: {
+    title: "Lock liquidity & team tokens on Robinhood Chain | HoodLock",
+    desc: "Lock LP or team tokens on Robinhood Chain for any period. The contract cannot release them early — holders get a public proof link to verify it themselves.",
+    heading: "Token locks",
+  },
+  vesting: {
+    title: "Token vesting on Robinhood Chain — irrevocable schedules | HoodLock",
+    desc: "Create linear vesting schedules for teams, advisors and investors on Robinhood Chain. Irrevocable once created, with an optional cliff and a public proof link.",
+    heading: "Token vesting",
+  },
+  explore: {
+    title: "Explore locked & vesting tokens on Robinhood Chain | HoodLock",
+    desc: "Browse every token lock, burn and vesting schedule on Robinhood Chain. Check what a project has actually locked before you buy.",
+    heading: "Explore locks",
+  },
+  developers: {
+    title: "Developer docs & contract addresses | HoodLock",
+    desc: "Contract addresses, ABIs and integration notes for the HoodLock locker, burner and vesting contracts on Robinhood Chain.",
+    heading: "Developers",
+  },
+  affiliate: {
+    title: "HoodLock affiliate program — earn on every lock, burn & vest",
+    desc: "Earn a commission on the fee from every lock, burn and vesting schedule created through your referral link. Paid in ETH on Robinhood Chain.",
+    heading: "Affiliate program",
+  },
+};
+/* Views with nothing to rank: the wallet-gated console, the two unshipped
+   products, and the in-app proof view that /proof/:kind/:id already covers. */
+const NOINDEX_VIEWS = { admin: "Admin console", airdrops: "Airdrops", streams: "Streams", proof: "Proof" };
+app.get("/app/*", (req, res) => {
+  const view = String(req.path).replace(/^\/app\/?/, "").replace(/\/+$/, "").toLowerCase();
+  if (NOINDEX_VIEWS[view]) {
+    return sendHead(res, {
+      title: `${NOINDEX_VIEWS[view]} — HoodLock`, desc: "HoodLock on Robinhood Chain.",
+      canonical: `${SITE}/app/${view}`, noindex: true,
+    });
+  }
+  // The router rewrites /app to /app/dashboard, so both are the same page —
+  // point them at one canonical rather than letting Google pick.
+  if (view === "dashboard") return sendHead(res, { ...VIEW_META[""], canonical: `${SITE}/app` });
+  const m = VIEW_META[view];
+  // Unknown /app/* paths still render the app (the router falls back to the
+  // launcher), so canonicalise them there instead of leaving a soft 404.
+  if (!m) return sendHead(res, { ...VIEW_META[""], canonical: `${SITE}/app`, noindex: true });
+  return sendHead(res, { ...m, canonical: `${SITE}/app/${view}` });
+});
 /* Dynamic sitemap: the static pages plus every proof page that exists on
    chain, so new locks/burns/vesting become indexable without a redeploy.
    Falls back to the static file if the chain is unreachable. */
