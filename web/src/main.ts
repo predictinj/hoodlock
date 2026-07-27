@@ -1033,13 +1033,14 @@ async function loadExplore() {
     ]);
     const vests = vestRows.filter((v): v is VestRow => !!v);
     const vestHTML = vests.length
-      ? `<div style="margin:14px 4px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3)">VESTING SCHEDULES</div>
+      ? `<div style="margin:4px 4px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3)">VESTING SCHEDULES</div>
          <table>${VEST_HEAD}<tbody>${(await Promise.all(vests.map((v) => vestRowHTML(v, "creator")))).join("")}</tbody></table>`
       : "";
     const lockHTML = (totalLocks || totalBurns)
-      ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${await buildExploreRows(lockRows, burnRows)}</tbody></table>`
+      ? `${vests.length ? `<div style="margin:16px 4px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3)">LOCKS &amp; BURNS</div>` : ""}
+         <table>${TABLE_HEAD_EXPLORE}<tbody>${await buildExploreRows(lockRows, burnRows)}</tbody></table>`
       : "";
-    box.innerHTML = lockHTML + vestHTML;
+    box.innerHTML = vestHTML + lockHTML;
     wireActions(box); wireVestActions(box);
     exploreLoaded = true;
   } catch {
