@@ -9,6 +9,7 @@ import { createPublicClient, createWalletClient, http, fallback, defineChain, ge
 import { privateKeyToAccount } from "viem/accounts";
 import { keccak256, toHex } from "viem";
 import { makeLogReader, byTopic, addrArg, addrParam } from "./logs.mjs";
+import { makeOgRenderer } from "./og.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -72,6 +73,7 @@ const T_BURNED = keccak256(toHex("Burned(uint256,address,address,uint256)"));
 const T_VESTING_CREATED = keccak256(toHex("VestingCreated(uint256,address,address,address,uint256,uint64,uint64,uint64)"));
 const readLogs = makeLogReader({ pub, explorer: cfg.explorer, ttlMs: 60_000,
   log: (m) => console.log("[hoodlock]", m) });
+const ogPng = makeOgRenderer({ log: (m) => console.log("[hoodlock]", m) });
 
 /** Every fee-bearing action with its payer and timestamp: [{wallet, ts, fee, kind}] */
 async function feeActions() {
@@ -770,6 +772,10 @@ async function proofMeta(kind, id) {
         desc: `${amt} $${t.symbol}${pct ? ` (${pct}% of supply)` : ""} is ${withdrawn ? "was locked" : "locked"} in a time-locked contract on Robinhood Chain until ${until}. Verify the lock yourself on-chain — HoodLock lock #${id}.`,
         canonical: `https://hoodlock.tech/proof/lock/${id}`,
         heading: `${amt} $${t.symbol} locked`,
+        // structured fields for the share card, which lays them out itself
+        card: { kind: "lock", symbol: t.symbol, amount: amt, pct,
+          line2: withdrawn ? `Was locked until ${until}` : `Locked until ${until}`,
+          status: withdrawn ? "WITHDRAWN" : "LOCKED" },
       };
     } else if (kind === "burn" && BURNER) {
       const b = await pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "getBurn", args: [BigInt(id)] });
@@ -782,6 +788,8 @@ async function proofMeta(kind, id) {
         desc: `${amt} $${t.symbol}${pct ? ` (${pct}% of supply)` : ""} was permanently burned on Robinhood Chain on ${dayLabel(b.timestamp)}. The tokens went to the dead address and can never be recovered — HoodLock burn #${id}.`,
         canonical: `https://hoodlock.tech/proof/burn/${id}`,
         heading: `${amt} $${t.symbol} burned forever`,
+        card: { kind: "burn", symbol: t.symbol, amount: amt, pct,
+          line2: `Burned forever on ${dayLabel(b.timestamp)}`, status: "IRREVERSIBLE" },
       };
     } else if (kind === "vesting" && VESTING) {
       const v = await pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "getSchedule", args: [BigInt(id)] });
@@ -795,6 +803,9 @@ async function proofMeta(kind, id) {
         desc: `${amt} $${t.symbol} is vesting on Robinhood Chain${hasCliff ? ` with a cliff on ${dayLabel(v.cliff)}` : ""}, fully released ${end}. Irrevocable and verifiable on-chain — HoodLock vesting #${id}.`,
         canonical: `https://hoodlock.tech/proof/vesting/${id}`,
         heading: `${amt} $${t.symbol} vesting`,
+        card: { kind: "vesting", symbol: t.symbol, amount: amt, pct: null,
+          line2: `Vesting until ${end}`,
+          status: hasCliff ? `CLIFF ${dayLabel(v.cliff)}` : "IRREVOCABLE" },
       };
     }
   } catch { meta = null; }
@@ -822,6 +833,12 @@ ${meta.noindex ? '<meta name="robots" content="noindex,nofollow" />' : ""}
 <meta property="og:url" content="${esc(meta.canonical)}" />
 <meta name="twitter:title" content="${esc(meta.title)}" />
 <meta name="twitter:description" content="${esc(meta.desc)}" />
+${meta.image ? `<meta property="og:image" content="${esc(meta.image)}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="${esc(meta.heading || meta.title)}" />
+<meta name="twitter:image" content="${esc(meta.image)}" />
+<meta name="twitter:card" content="summary_large_image" />` : ""}
 ${blocks}
 ${meta.heading ? `<noscript><h1>${esc(meta.heading)}</h1><p>${esc(meta.desc)}</p></noscript>` : ""}`;
   html = html
@@ -832,15 +849,26 @@ ${meta.heading ? `<noscript><h1>${esc(meta.heading)}</h1><p>${esc(meta.desc)}</p
     .replace(/<meta property="og:description"[^>]*>/, "")
     .replace(/<meta property="og:url"[^>]*>/, "")
     .replace(/<meta name="twitter:title"[^>]*>/, "")
-    .replace(/<meta name="twitter:description"[^>]*>/, "")
+    .replace(/<meta name="twitter:description"[^>]*>/, "");
+  if (meta.image) {
+    // every image tag, not just og:image — the shell also declares 1600x900
+    // dimensions, and a crawler reading those before ours gets the wrong size
+    html = html
+      .replace(/<meta property="og:image(:[a-z]+)?"[^>]*>/g, "")
+      .replace(/<meta name="twitter:image"[^>]*>/g, "")
+      .replace(/<meta name="twitter:card"[^>]*>/g, "");
+  }
+  html = html
     .replace("</head>", head + "\n</head>");
   res.type("html").send(html);
 }
 
 /** Proof pages: one WebPage record describing that specific lock/burn/vest. */
 function sendProof(res, meta) {
+  const m = /\/proof\/(lock|burn|vesting)\/(\d+)$/.exec(meta.canonical || "");
   return sendHead(res, {
     ...meta,
+    image: m && meta.card ? `https://hoodlock.tech/og/${m[1]}/${m[2]}.png` : undefined,
     jsonld: [{
       "@context": "https://schema.org", "@type": "WebPage",
       name: meta.title, description: meta.desc, url: meta.canonical,
@@ -868,6 +896,26 @@ app.get("/api/logs/:address", async (req, res) => {
       })),
     });
   } catch { res.status(502).json({ error: "logs unavailable" }); }
+});
+
+/* Share card for a proof page. Rendered from the same chain data the page
+   shows, cached in memory, and immutable per (kind,id) — the numbers on a
+   lock don't change, so crawlers and X can cache it hard. */
+app.get("/og/:kind/:id.png", async (req, res) => {
+  const { kind, id } = req.params;
+  if (!["lock", "burn", "vesting"].includes(kind) || !/^\d{1,9}$/.test(id)) {
+    return res.status(404).end();
+  }
+  const meta = await Promise.race([
+    proofMeta(kind, Number(id)).catch(() => null),
+    new Promise((r) => setTimeout(() => r(null), 8_000)),
+  ]);
+  if (!meta || meta === NOT_FOUND || !meta.card) return res.status(404).end();
+  const png = ogPng(`${kind}:${id}`, meta.card);
+  if (!png) return res.status(503).end();
+  res.set("Content-Type", "image/png");
+  res.set("Cache-Control", "public, max-age=86400");
+  return res.end(png);
 });
 
 /* ---------- static site with the same rewrites as serve.json ---------- */
