@@ -2117,7 +2117,20 @@ function drawVCurve() {
   const svg = document.getElementById("vCurve"); if (!svg) return;
   const d = vDates();
   const now = Math.floor(Date.now() / 1000);
-  if (!d || d.end <= d.start || d.cliff < d.start || d.cliff > d.end) { svg.innerHTML = ""; return; }
+  if (!d || d.end <= d.start || d.cliff < d.start || d.cliff > d.end) {
+    // No (valid) dates picked yet — show a dimmed example curve so the user
+    // sees what the schedule will look like; it goes live once dates are set.
+    const W = 300, H = 90, PAD = 8;
+    const cx = PAD + 0.3 * (W - 2 * PAD);            // example cliff at 30%
+    const cy = H - PAD - 0.3 * (H - 2 * PAD);
+    svg.innerHTML = `
+      <path d="M ${PAD},${H - PAD} L ${cx},${H - PAD} L ${cx},${cy} L ${W - PAD},${PAD}"
+            fill="none" stroke="var(--neon,#00e05a)" stroke-width="2" stroke-linejoin="round"
+            stroke-dasharray="5 4" opacity=".35"/>
+      <text x="${cx}" y="${H - 1}" font-family="var(--mono)" font-size="8" fill="var(--ink-3,#59695e)" text-anchor="middle" opacity=".7">CLIFF</text>
+      <text x="${W / 2}" y="${PAD + 8}" font-family="var(--mono)" font-size="8" fill="var(--ink-3,#59695e)" text-anchor="middle" letter-spacing="2">EXAMPLE — PICK YOUR DATES</text>`;
+    return;
+  }
   const W = 300, H = 90, PAD = 8;
   const x = (t: number) => PAD + ((t - d.start) / (d.end - d.start)) * (W - 2 * PAD);
   const y = (frac: number) => H - PAD - frac * (H - 2 * PAD);
@@ -2367,18 +2380,35 @@ if (VESTING && document.getElementById("vCreateBtn")) {
     ($("vStart") as HTMLInputElement).value = localDT(new Date(Date.now() + Number(c.dataset.startdays) * 86400_000));
     updateVSummary();
   }));
+  // Cliff/end presets are relative to the start — if the user hasn't picked a
+  // start yet, fill it with NOW so the choice always yields a valid, drawable
+  // schedule instead of silently blanking the curve.
+  const ensureStart = (): Date => {
+    const el = $("vStart") as HTMLInputElement;
+    if (!el.value) {
+      el.value = localDT(new Date());
+      document.querySelectorAll("#vStartPresets .chip-dur").forEach((x) => x.classList.toggle("on", x.getAttribute("data-startdays") === "0"));
+    }
+    return new Date(el.value);
+  };
   document.querySelectorAll<HTMLElement>("#vCliffPresets .chip-dur").forEach((c) => c.addEventListener("click", () => {
     document.querySelectorAll("#vCliffPresets .chip-dur").forEach((x) => x.classList.remove("on")); c.classList.add("on");
     const days = Number(c.dataset.cliffdays || 0);
-    const startVal = ($("vStart") as HTMLInputElement).value;
-    const base = startVal ? new Date(startVal) : new Date();
-    ($("vCliff") as HTMLInputElement).value = days > 0 ? localDT(new Date(base.getTime() + days * 86400_000)) : "";
+    const base = ensureStart();
+    const cliffEl = $("vCliff") as HTMLInputElement;
+    cliffEl.value = days > 0 ? localDT(new Date(base.getTime() + days * 86400_000)) : "";
+    // A cliff past the chosen end is impossible — extend the end to match
+    // (cliff == end is a valid pure cliff-lock) instead of blanking the curve.
+    const endEl = $("vEnd") as HTMLInputElement;
+    if (cliffEl.value && endEl.value && new Date(cliffEl.value) > new Date(endEl.value)) {
+      endEl.value = cliffEl.value;
+      document.querySelectorAll("#vEndPresets .chip-dur").forEach((x) => x.classList.remove("on"));
+    }
     updateVSummary();
   }));
   document.querySelectorAll<HTMLElement>("#vEndPresets .chip-dur").forEach((c) => c.addEventListener("click", () => {
     document.querySelectorAll("#vEndPresets .chip-dur").forEach((x) => x.classList.remove("on")); c.classList.add("on");
-    const startVal = ($("vStart") as HTMLInputElement).value;
-    const base = startVal ? new Date(startVal) : new Date();
+    const base = ensureStart();
     ($("vEnd") as HTMLInputElement).value = localDT(new Date(base.getTime() + Number(c.dataset.enddays) * 86400_000));
     updateVSummary();
   }));
