@@ -30,19 +30,43 @@ const FEE_ABI = [{ type: "function", name: "fee", stateMutability: "view", input
 const LOCK_ABI = [{ type: "function", name: "lock", stateMutability: "payable", inputs: [
   { name: "token", type: "address" }, { name: "amount", type: "uint256" }, { name: "unlockTime", type: "uint256" } ], outputs: [{ type: "uint256" }] }];
 
+// burns and vesting count toward affiliate/developer commission too
+const BURNER = cfg.burner && isAddress(cfg.burner) ? getAddress(cfg.burner) : null;
+const VESTING = cfg.vesting && isAddress(cfg.vesting) ? getAddress(cfg.vesting) : null;
+const BURNED_EVENT = { type: "event", name: "Burned", inputs: [
+  { name: "id", type: "uint256", indexed: true }, { name: "burner", type: "address", indexed: true },
+  { name: "token", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false } ] };
+const VESTING_CREATED_EVENT = { type: "event", name: "VestingCreated", inputs: [
+  { name: "id", type: "uint256", indexed: true }, { name: "token", type: "address", indexed: true },
+  { name: "beneficiary", type: "address", indexed: true }, { name: "creator", type: "address", indexed: false },
+  { name: "total", type: "uint256", indexed: false }, { name: "start", type: "uint64", indexed: false },
+  { name: "cliff", type: "uint64", indexed: false }, { name: "end", type: "uint64", indexed: false } ] };
+
 let FEE_ETH = 0.005; // sane default; refreshed from chain at boot
 let FEE_WEI = 5000000000000000n; // 0.005 ETH default
+let BURN_FEE_ETH = 0.005, VEST_FEE_ETH = 0.005;
 pub.readContract({ address: LOCKER, abi: FEE_ABI, functionName: "fee" })
   .then((f) => { FEE_WEI = BigInt(f); FEE_ETH = Number(f) / 1e18; })
   .catch(() => { /* keep default */ });
+if (BURNER) pub.readContract({ address: BURNER, abi: FEE_ABI, functionName: "fee" })
+  .then((f) => { BURN_FEE_ETH = Number(f) / 1e18; }).catch(() => { /* keep default */ });
+if (VESTING) pub.readContract({ address: VESTING, abi: FEE_ABI, functionName: "fee" })
+  .then((f) => { VEST_FEE_ETH = Number(f) / 1e18; }).catch(() => { /* keep default */ });
 
-// owner -> number of locks, cached 60s (drives affiliate revenue attribution)
+// paying wallet -> number of fee-bearing actions (locks + burns + vesting), cached 60s
 let lockCache = { at: 0, byOwner: new Map() };
 async function lockCounts() {
   if (Date.now() - lockCache.at < 60_000) return lockCache.byOwner;
-  const logs = await pub.getLogs({ address: LOCKER, event: LOCKED_EVENT, fromBlock: 0n, toBlock: "latest" });
   const byOwner = new Map();
-  for (const lg of logs) { const o = String(lg.args.owner).toLowerCase(); byOwner.set(o, (byOwner.get(o) || 0) + 1); }
+  const add = (addr) => { const o = String(addr).toLowerCase(); byOwner.set(o, (byOwner.get(o) || 0) + 1); };
+  const [locks, burns, vests] = await Promise.all([
+    pub.getLogs({ address: LOCKER, event: LOCKED_EVENT, fromBlock: 0n, toBlock: "latest" }),
+    BURNER ? pub.getLogs({ address: BURNER, event: BURNED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
+    VESTING ? pub.getLogs({ address: VESTING, event: VESTING_CREATED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
+  ]);
+  for (const lg of locks) add(lg.args.owner);
+  for (const lg of burns) add(lg.args.burner);
+  for (const lg of vests) add(lg.args.creator);
   lockCache = { at: Date.now(), byOwner };
   return byOwner;
 }
@@ -125,17 +149,26 @@ async function blockTsOf(bn) {
   blockTsCache.set(k, ts);
   return ts;
 }
+// per-wallet fee-bearing actions {ts, feeEth} across locks + burns + vesting,
+// cached 60s — commission is fee-weighted since the products charge different fees
 let lockRecCache = { at: 0, byOwner: new Map() };
-async function lockRecords() {
+async function actionRecords() {
   if (Date.now() - lockRecCache.at < 60_000) return lockRecCache.byOwner;
-  const logs = await pub.getLogs({ address: LOCKER, event: LOCKED_EVENT, fromBlock: 0n, toBlock: "latest" });
   const byOwner = new Map();
-  for (const lg of logs) {
-    const owner = String(lg.args.owner).toLowerCase();
+  const add = async (addr, lg, fee) => {
+    const w = String(addr).toLowerCase();
     const ts = await blockTsOf(lg.blockNumber);
-    if (!byOwner.has(owner)) byOwner.set(owner, []);
-    byOwner.get(owner).push(ts);
-  }
+    if (!byOwner.has(w)) byOwner.set(w, []);
+    byOwner.get(w).push({ ts, fee });
+  };
+  const [locks, burns, vests] = await Promise.all([
+    pub.getLogs({ address: LOCKER, event: LOCKED_EVENT, fromBlock: 0n, toBlock: "latest" }),
+    BURNER ? pub.getLogs({ address: BURNER, event: BURNED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
+    VESTING ? pub.getLogs({ address: VESTING, event: VESTING_CREATED_EVENT, fromBlock: 0n, toBlock: "latest" }).catch(() => []) : [],
+  ]);
+  for (const lg of locks) await add(lg.args.owner, lg, FEE_ETH);
+  for (const lg of burns) await add(lg.args.burner, lg, BURN_FEE_ETH);
+  for (const lg of vests) await add(lg.args.creator, lg, VEST_FEE_ETH);
   lockRecCache = { at: Date.now(), byOwner };
   return byOwner;
 }
@@ -147,19 +180,21 @@ function commissionFor(code) {
   return Number.isFinite(r) && r >= 0 && r <= 1 ? r : COMMISSION;
 }
 
-// rate × fee × locks by attributed wallets that happened AFTER attribution (excl. self)
+// rate × Σ(fee) over locks + burns + vesting by attributed wallets, AFTER attribution (excl. self).
+// JSON field names (lockers/qualifyingLocks) kept for dashboard compatibility — they now
+// mean "referred users with ≥1 action" and "qualifying actions".
 async function affiliateEarnings(code, ownerWallet) {
-  const records = await lockRecords();
+  const records = await actionRecords();
   const attrs = db.prepare("SELECT wallet, ts FROM attributions WHERE LOWER(code) = ?").all(code.toLowerCase());
-  let lockers = 0, qualifyingLocks = 0;
+  let lockers = 0, qualifyingLocks = 0, earnedFees = 0;
   for (const a of attrs) {
     const w = a.wallet.toLowerCase();
     if (w === ownerWallet.toLowerCase()) continue;   // block same-wallet self-referral
-    const q = (records.get(w) || []).filter((t) => t > a.ts).length;
-    if (q > 0) { lockers++; qualifyingLocks += q; }
+    const q = (records.get(w) || []).filter((r) => r.ts > a.ts);
+    if (q.length > 0) { lockers++; qualifyingLocks += q.length; earnedFees += q.reduce((s, r) => s + r.fee, 0); }
   }
   const rate = commissionFor(code);
-  return { lockers, qualifyingLocks, rate, lifetimeEarnedEth: rate * FEE_ETH * qualifyingLocks };
+  return { lockers, qualifyingLocks, rate, lifetimeEarnedEth: rate * earnedFees };
 }
 // A claim reserves its amount while pending, paid, OR sent-but-unconfirmed. The last
 // state is critical: if a payout tx broadcasts but we lose the receipt, the ETH may

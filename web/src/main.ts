@@ -1541,7 +1541,7 @@ async function affLocksTable(me: any): Promise<string> {
   }
   return rows.length
     ? `<table><thead><tr><th>Token</th><th>Amount</th><th>Locked</th><th>Fee</th><th style="text-align:right">Your ${Math.round((me.commission || 0) * 100)}%</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
-    : `<div class="empty"><div class="small">No referred locks yet — share your link to start earning.</div></div>`;
+    : `<div class="empty"><div class="small">No referred activity yet — share your link to start earning.</div></div>`;
 }
 async function renderAffDashboard(me: any) {
   const box = $("affBody");
@@ -1566,7 +1566,7 @@ async function renderAffDashboard(me: any) {
     <div class="card" style="margin-bottom:12px">
       <div class="card-head"><div><h3>Claim earnings</h3><div class="sub">PAID IN ETH TO ${short(account).toUpperCase()}</div></div>
         <button class="btn btn-neon" id="affClaimBtn" ${canClaim ? "" : "disabled"}>Claim ${me.claimableEth.toFixed(4)} ETH</button></div>
-      <div class="hintline" id="affClaimMsg">${canClaim ? "" : (me.claimableEth > 0 ? `You can claim once your balance reaches $${me.minClaimUsd}.` : "Earn from referred locks to unlock claiming.")}</div>
+      <div class="hintline" id="affClaimMsg">${canClaim ? "" : (me.claimableEth > 0 ? `You can claim once your balance reaches $${me.minClaimUsd}.` : "Earn from referred activity to unlock claiming.")}</div>
       ${me.claims && me.claims.length ? `<div class="tbl-scroll" style="margin-top:10px"><table><thead><tr><th>Amount</th><th>Status</th><th>Date</th><th style="text-align:right">Tx</th></tr></thead><tbody>${me.claims.map((c: any) => `<tr><td>${c.amount_eth.toFixed(4)} ETH</td><td><span class="status ${stTag(c.status)}"><i></i>${(c.status === "sent_unconfirmed" ? "processing" : c.status).toUpperCase()}</span></td><td>${dateLabel(c.paid_at || c.requested_at)}</td><td style="text-align:right">${/^0x[0-9a-fA-F]{64}$/.test(c.tx_hash || "") ? `<a href="${EXP}/tx/${encodeURIComponent(c.tx_hash)}" target="_blank" rel="noopener">view</a>` : "—"}</td></tr>`).join("")}</tbody></table></div>` : ""}
     </div>
     <div class="card">
@@ -1672,7 +1672,7 @@ async function renderDevDashboard(me: any) {
     <div class="tiles">
       <div class="tile"><div class="k">Lifetime earnings</div><div class="v g">${me.lifetimeEarnedEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(me.lifetimeEarnedEth * me.ethUsd) : "50% of generated fees"}</div></div>
       <div class="tile"><div class="k">Claimable now</div><div class="v">${me.claimableEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(claimableUsd) : ""} · min $${me.minClaimUsd}</div></div>
-      <div class="tile"><div class="k">Locks generated</div><div class="v">${me.qualifyingLocks.toLocaleString("en-US")}</div><div class="d">from ${me.lockers.toLocaleString("en-US")} users</div></div>
+      <div class="tile"><div class="k">Actions generated</div><div class="v">${me.qualifyingLocks.toLocaleString("en-US")}</div><div class="d">from ${me.lockers.toLocaleString("en-US")} users</div></div>
       <div class="tile"><div class="k">Commission rate</div><div class="v g">${Math.round((me.commission || 0) * 100)}%</div><div class="d">your share per lock</div></div>
     </div>
     <div class="card" style="margin-bottom:12px">
