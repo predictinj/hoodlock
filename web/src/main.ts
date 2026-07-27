@@ -2096,9 +2096,18 @@ function vRowHTML(addr = "", amt = "") {
   </div>`;
 }
 function vAddRow(addr = "", amt = "") { $("vRows").insertAdjacentHTML("beforeend", vRowHTML(addr, amt)); wireVRows(); updateVSummary(); }
+/** The ✕ does nothing on the last remaining row — hide it until there are 2+. */
+function syncVRowDels() {
+  const rows = document.querySelectorAll<HTMLElement>("#vRows .v-row");
+  rows.forEach((r) => {
+    const b = r.querySelector<HTMLElement>(".vRowDel");
+    if (b) b.style.display = rows.length > 1 ? "" : "none";
+  });
+}
 function wireVRows() {
-  document.querySelectorAll<HTMLElement>("#vRows .vRowDel").forEach((b) => { b.onclick = () => { if (document.querySelectorAll("#vRows .v-row").length > 1) { b.closest(".v-row")!.remove(); updateVSummary(); } }; });
+  document.querySelectorAll<HTMLElement>("#vRows .vRowDel").forEach((b) => { b.onclick = () => { if (document.querySelectorAll("#vRows .v-row").length > 1) { b.closest(".v-row")!.remove(); syncVRowDels(); updateVSummary(); } }; });
   document.querySelectorAll<HTMLInputElement>("#vRows input").forEach((i) => { i.oninput = debounce(updateVSummary, 300); });
+  syncVRowDels();
 }
 function vReadRows(): { addr: `0x${string}`; amt: string }[] {
   const out: { addr: `0x${string}`; amt: string }[] = [];
