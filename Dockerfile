@@ -27,7 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 make g+
   && rm -rf /var/lib/apt/lists/*
 COPY server/package.json ./
 RUN npm install --no-audit --no-fund --omit=dev
-COPY server/index.mjs ./
+# every server module, not just the entrypoint — index.mjs imports logs.mjs
+COPY server/*.mjs ./
 # the static build + the chain config the server needs (single source of truth)
 COPY --from=build /app/web/dist ./public
 COPY web/src/config.json ./config.json
