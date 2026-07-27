@@ -786,11 +786,20 @@ async function blockTs(bn: bigint): Promise<number | null> {
 const metaCache = new Map<string, { symbol: string; decimals: number }>();
 async function tokMeta(addr: string) {
   if (metaCache.has(addr)) return metaCache.get(addr)!;
-  const [symbol, decimals] = await Promise.all([
-    pub.readContract({ address: addr as `0x${string}`, abi: ERC20, functionName: "symbol" }).catch(() => "TOKEN"),
-    pub.readContract({ address: addr as `0x${string}`, abi: ERC20, functionName: "decimals" }).catch(() => 18),
-  ]);
-  const m = { symbol: String(symbol), decimals: Number(decimals) }; metaCache.set(addr, m); return m;
+  try {
+    const [symbol, decimals] = await Promise.all([
+      pub.readContract({ address: addr as `0x${string}`, abi: ERC20, functionName: "symbol" }),
+      pub.readContract({ address: addr as `0x${string}`, abi: ERC20, functionName: "decimals" }),
+    ]);
+    const m = { symbol: String(symbol), decimals: Number(decimals) };
+    metaCache.set(addr, m); // cache VERIFIED reads only
+    return m;
+  } catch {
+    // Transient RPC failure (the public Robinhood RPC rate-limits) — show the
+    // fallback for this render but do NOT cache it, so the next render retries
+    // instead of the token being stuck as "$TOKEN" for the whole session.
+    return { symbol: "TOKEN", decimals: 18 };
+  }
 }
 
 /* ---------- per-token USD-pris (cache för tabellrader) ---------- */
