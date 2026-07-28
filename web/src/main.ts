@@ -1590,7 +1590,6 @@ async function renderDevDashboard(me: any) {
         <h4>1 · Embed button (recommended)</h4>
         <p>Include the script once, then add a button with <code>data-hoodlock</code> for each product you want to offer. <code>data-mode</code> picks between <code>lock</code> (the default), <code>burn</code> and <code>vesting</code>; clicking opens that flow in a modal on your page.</p><p class="hintline">Every attribute except <code>data-hoodlock</code> is optional, and the buttons are independent — a lock-only integration is one button with no attributes at all. You earn on whichever products you add.</p><table class="dev-attrs"><thead><tr><th>Attribute</th><th>Required</th><th>What it does</th></tr></thead><tbody><tr><td><code>data-hoodlock</code></td><td>yes</td><td>Marks the button. Nothing else is needed for a lock.</td></tr><tr><td><code>data-mode</code></td><td>no</td><td><code>lock</code> (default), <code>burn</code> or <code>vesting</code>.</td></tr><tr><td><code>data-token</code></td><td>no</td><td>Contract address of the token. Pre-fills the field and makes it read-only, so the user can't pick a different token. Leave it out and they choose from their own wallet.</td></tr><tr><td><code>data-beneficiary</code></td><td>no</td><td>Vesting only. Pre-fills who receives the tokens; the user can still edit it.</td></tr><tr><td><code>data-unlock</code></td><td>no</td><td>Lock only. Pre-fills the unlock date, as a Unix timestamp in seconds.</td></tr></tbody></table><p class="hintline">Values like <code>\${token.address}</code> above are placeholders — insert them from your own data at render time, since they differ per page. They are not literal strings to paste.</p>
         <pre class="code-block" id="devSnippet">${escape(snippet)}</pre>
-        <button class="btn btn-line btn-sm" id="devSnippetCopy" style="margin-top:10px">Copy snippet</button>
         <h4>2 · JavaScript API</h4>
         <p>Open programmatically and react to results:</p>
         <pre class="code-block">// lock (default)
@@ -1629,7 +1628,6 @@ HoodLock.on("locked", ({ txHash, id }) =&gt; console.log("Locked!", id, txHash))
       </div>
     </div>`;
   ($("devKeyCopy") as HTMLButtonElement).addEventListener("click", async () => { try { await navigator.clipboard.writeText(me.apiKey); notify("API key copied"); } catch { prompt("Copy your API key:", me.apiKey); } });
-  ($("devSnippetCopy") as HTMLButtonElement).addEventListener("click", async () => { try { await navigator.clipboard.writeText(snippet); notify("Snippet copied"); } catch { prompt("Copy the snippet:", snippet); } });
   ($("affClaimBtn") as HTMLButtonElement).addEventListener("click", () => claimDev(me));
 }
 async function claimDev(me: any) {

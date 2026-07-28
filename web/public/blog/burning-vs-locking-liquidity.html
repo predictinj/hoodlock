@@ -56,6 +56,8 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <div class="meta">Published 2026-07-27 · HoodLock Team</div>
 <p>Both remove the ability to pull liquidity. They differ in whether that removal is permanent, and the choice has consequences most teams don't think through until they need the option they gave away.</p>
 
+<div class="box"><p style="margin-bottom:0"><b>How this works on Robinhood Chain.</b> Liquidity here lives in Uniswap v3 and v4 positions, which are NFTs rather than the ERC-20 "LP tokens" older chains use. HoodLock locks ERC-20 tokens, so it cannot hold one of those positions today — token locks, burns and vesting all work as described, but locking liquidity itself is not something we can do on this chain yet. The general explanation below still applies to how liquidity locking works elsewhere.</p></div>
+
 <h2>Side by side</h2>
 <table>
 <tr><th></th><th>Burning LP</th><th>Locking LP</th></tr>

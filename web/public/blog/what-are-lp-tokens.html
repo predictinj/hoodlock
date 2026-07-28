@@ -56,6 +56,8 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <div class="meta">Published 2026-07-27 · HoodLock Team</div>
 <p>When you add liquidity to a decentralised exchange, you don't hand tokens over and receive nothing back. You get <b>LP tokens</b> — a receipt representing your share of that pool. Understanding what they are makes almost everything else about liquidity locking obvious.</p>
 
+<div class="box"><p style="margin-bottom:0"><b>How this works on Robinhood Chain.</b> Liquidity here lives in Uniswap v3 and v4 positions, which are NFTs rather than the ERC-20 "LP tokens" older chains use. HoodLock locks ERC-20 tokens, so it cannot hold one of those positions today — token locks, burns and vesting all work as described, but locking liquidity itself is not something we can do on this chain yet. The general explanation below still applies to how liquidity locking works elsewhere.</p></div>
+
 <h2>The mechanics</h2>
 <p>A liquidity pool holds two assets, typically a project token and ETH. When you deposit both sides, the pool mints LP tokens to you representing your proportional claim. Deposit 10% of the pool's value and you hold 10% of the LP token supply.</p>
 <p>To get your liquidity back, you return the LP tokens and the pool burns them, sending you your share of both assets. That's the entire relationship: <b>LP tokens are the key to withdrawing the pool.</b></p>
@@ -95,9 +97,9 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 </ul>
 
 <div class="cta-box">
-  <h2 style="margin-top:0">Lock your LP with public proof</h2>
-  <p>Pick the LP token from your wallet, choose a date, share the proof link.</p>
-  <a class="btn" href="/app/locks">Lock LP tokens →</a>
+  <h2 style="margin-top:0">Lock tokens with public proof</h2>
+  <p>Pick a token from your wallet, choose a date, share the proof link. LP positions on this chain are NFTs and aren't supported yet.</p>
+  <a class="btn" href="/app/locks">Lock tokens →</a>
 </div>
 </main>
 <footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>

@@ -56,6 +56,8 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <div class="meta">Published 2026-07-27 · HoodLock Team</div>
 <p>Every token page claims liquidity is locked. Very few show you where. The difference between a claim and a lock is a contract address you can read yourself, and checking it takes about five minutes.</p>
 
+<div class="box"><p style="margin-bottom:0"><b>How this works on Robinhood Chain.</b> Liquidity here lives in Uniswap v3 and v4 positions, which are NFTs rather than the ERC-20 "LP tokens" older chains use. HoodLock locks ERC-20 tokens, so it cannot hold one of those positions today — token locks, burns and vesting all work as described, but locking liquidity itself is not something we can do on this chain yet. The general explanation below still applies to how liquidity locking works elsewhere.</p></div>
+
 <h2>Why a screenshot proves nothing</h2>
 <p>The most common "proof" of a lock is an image in a Telegram channel. An image can be edited, can show a different token, or can show a lock that was already withdrawn. It also can't tell you the one thing that matters most: whether anyone retains the power to move those tokens before the unlock date. Only the chain can answer that.</p>
 
@@ -101,7 +103,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <p>Look for a large majority of the LP supply. A lock covering a small fraction leaves most of the liquidity withdrawable, which defeats the purpose even though the project can truthfully say liquidity is locked.</p>
 <div class="cta-box">
   <h2 style="margin-top:0">Check any token in seconds</h2>
-  <p>Search a token or LP address and see every lock, burn and vesting schedule tied to it — no wallet needed.</p>
+  <p>Search a token address and see every lock, burn and vesting schedule tied to it — no wallet needed.</p>
   <a class="btn" href="/app/explore">Explore locks →</a>
 </div>
 </main>

@@ -4,14 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>HoodLock - liquidity & token locker for Robinhood Chain</title>
-<meta name="description" content="Lock LP or tokens on Robinhood Chain and prove it on-chain. Trustless, verifiable, first on Robinhood Chain." />
+<meta name="description" content="Lock team and treasury tokens, burn supply and vest allocations on Robinhood Chain — every action gets a verifiable on-chain proof." />
 <link rel="icon" href="/favicon.ico" sizes="any" />
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <meta property="og:site_name" content="HoodLock" />
 <meta property="og:title" content="HoodLock — lock tokens, build trust" />
-<meta property="og:description" content="The safest liquidity & token locker on Robinhood Chain. Lock LP or tokens until a date you choose and share a verifiable on-chain proof." />
+<meta property="og:description" content="Token locks, burns and vesting on Robinhood Chain. Lock until a date you choose and share a verifiable on-chain proof." />
 <meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg" />
 <meta property="og:image:width" content="1600" />
 <meta property="og:image:height" content="900" />
@@ -25,18 +25,7 @@
 <meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg" />
 <link rel="canonical" href="https://hoodlock.tech/" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[
-{"@type":"WebSite","@id":"https://hoodlock.tech/#website","name":"HoodLock","url":"https://hoodlock.tech/","publisher":{"@id":"https://hoodlock.tech/#org"},"description":"The safest liquidity & token locker on Robinhood Chain — lock LP or tokens until a chosen date and share a verifiable on-chain proof."},
-{"@type":"Organization","@id":"https://hoodlock.tech/#org","name":"HoodLock","url":"https://hoodlock.tech/","logo":"https://hoodlock.tech/apple-touch-icon.png","description":"Token and liquidity locking, burning and vesting infrastructure for Robinhood Chain.","sameAs":["https://x.com/HoodLockRH"]},
-{"@type":"SoftwareApplication","@id":"https://hoodlock.tech/#app","name":"HoodLock","url":"https://hoodlock.tech/app","applicationCategory":"FinanceApplication","operatingSystem":"Web","publisher":{"@id":"https://hoodlock.tech/#org"},"description":"Lock LP and team tokens, burn supply and create irrevocable vesting schedules on Robinhood Chain. Every action produces a shareable on-chain proof page.","featureList":["Token and LP locking with extend-only unlock dates","Verifiable burn records","Linear token vesting with optional cliff","Public proof pages for every lock, burn and schedule"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free to use; a flat network fee in ETH is charged per lock, burn or vesting schedule."}},
-{"@type":"FAQPage","@id":"https://hoodlock.tech/#faq","mainEntity":[
-{"@type":"Question","name":"How do I lock liquidity on Robinhood Chain?","acceptedAnswer":{"@type":"Answer","text":"Open the app, connect the wallet holding the LP or team tokens, pick the token and amount, and choose an unlock date. You approve the token, confirm the lock, and the contract holds the tokens until that date. The whole thing takes under a minute and ends with a proof link you can share."}},
-{"@type":"Question","name":"Can HoodLock or the project unlock tokens early?","acceptedAnswer":{"@type":"Answer","text":"No. The locker contract has no owner powers over locked funds — not for us, not for the project that created the lock. Withdrawal is restricted to the lock owner and only after the unlock time has passed. Unlock dates can be pushed further out, never pulled earlier."}},
-{"@type":"Question","name":"What does it cost to lock tokens?","acceptedAnswer":{"@type":"Answer","text":"A flat fee in ETH per lock, shown in the app before you confirm. There is no percentage cut of the tokens you lock, and no recurring charge — the amount you lock is the amount you get back."}},
-{"@type":"Question","name":"How can buyers verify a lock is real?","acceptedAnswer":{"@type":"Answer","text":"Every lock, burn and vesting schedule gets a permanent proof page listing the token, amount, dates and the contract holding it, all read live from Robinhood Chain. Anyone can open it without a wallet, and it links straight to the verified contract on Blockscout so nothing has to be taken on trust."}},
-{"@type":"Question","name":"What is the difference between locking and vesting?","acceptedAnswer":{"@type":"Answer","text":"A lock holds the full amount until one date, then releases all of it at once — the usual choice for LP. Vesting releases tokens gradually over a period, optionally after a cliff, which suits team and advisor allocations. Vesting schedules are irrevocable once created."}},
-{"@type":"Question","name":"What happens when the unlock date passes?","acceptedAnswer":{"@type":"Answer","text":"Nothing automatic — the tokens simply become withdrawable by the lock owner, who has to send a transaction to claim them. There is no deadline to do so and no way for anyone else to take them, so tokens left past the unlock date stay safe in the contract."}}
-]}]}
+{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "@id": "https://hoodlock.tech/#website", "name": "HoodLock", "url": "https://hoodlock.tech/", "publisher": {"@id": "https://hoodlock.tech/#org"}, "description": "Token locking, burning and vesting on Robinhood Chain \u2014 lock until a chosen date and share a verifiable on-chain proof."}, {"@type": "Organization", "@id": "https://hoodlock.tech/#org", "name": "HoodLock", "url": "https://hoodlock.tech/", "logo": "https://hoodlock.tech/apple-touch-icon.png", "description": "Token and liquidity locking, burning and vesting infrastructure for Robinhood Chain.", "sameAs": ["https://x.com/HoodLockRH"]}, {"@type": "SoftwareApplication", "@id": "https://hoodlock.tech/#app", "name": "HoodLock", "url": "https://hoodlock.tech/app", "applicationCategory": "FinanceApplication", "operatingSystem": "Web", "publisher": {"@id": "https://hoodlock.tech/#org"}, "description": "Lock team and treasury tokens, burn supply and create irrevocable vesting schedules on Robinhood Chain. Every action produces a shareable on-chain proof page.", "featureList": ["Token locking with extend-only unlock dates", "Verifiable burn records", "Linear token vesting with optional cliff", "Public proof pages for every lock, burn and schedule"], "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free to use; a flat network fee in ETH is charged per lock, burn or vesting schedule."}}, {"@type": "FAQPage", "@id": "https://hoodlock.tech/#faq", "mainEntity": [{"@type": "Question", "name": "How do I lock liquidity on Robinhood Chain?", "acceptedAnswer": {"@type": "Answer", "text": "Liquidity on Robinhood Chain lives in Uniswap v3 and v4 positions, which are NFTs rather than ERC-20 LP tokens, so HoodLock cannot hold one yet. What you can lock today is any ERC-20 — team supply, treasury or the project token itself. Connect the wallet holding them, pick the amount and an unlock date, approve, and confirm. It takes under a minute and ends with a proof link you can share."}}, {"@type": "Question", "name": "Can HoodLock or the project unlock tokens early?", "acceptedAnswer": {"@type": "Answer", "text": "No. The locker contract has no owner powers over locked funds \u2014 not for us, not for the project that created the lock. Withdrawal is restricted to the lock owner and only after the unlock time has passed. Unlock dates can be pushed further out, never pulled earlier."}}, {"@type": "Question", "name": "What does it cost to lock tokens?", "acceptedAnswer": {"@type": "Answer", "text": "A flat fee in ETH per lock, shown in the app before you confirm. There is no percentage cut of the tokens you lock, and no recurring charge \u2014 the amount you lock is the amount you get back."}}, {"@type": "Question", "name": "How can buyers verify a lock is real?", "acceptedAnswer": {"@type": "Answer", "text": "Every lock, burn and vesting schedule gets a permanent proof page listing the token, amount, dates and the contract holding it, all read live from Robinhood Chain. Anyone can open it without a wallet, and it links straight to the verified contract on Blockscout so nothing has to be taken on trust."}}, {"@type": "Question", "name": "What is the difference between locking and vesting?", "acceptedAnswer": {"@type": "Answer", "text": "A lock holds the full amount until one date, then releases all of it at once \u2014 the usual choice for LP. Vesting releases tokens gradually over a period, optionally after a cliff, which suits team and advisor allocations. Vesting schedules are irrevocable once created."}}, {"@type": "Question", "name": "What happens when the unlock date passes?", "acceptedAnswer": {"@type": "Answer", "text": "Nothing automatic \u2014 the tokens simply become withdrawable by the lock owner, who has to send a transaction to claim them. There is no deadline to do so and no way for anyone else to take them, so tokens left past the unlock date stay safe in the contract."}}]}]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -345,7 +334,7 @@
   <div class="wrap">
     <div class="hero-badge reveal"><i></i>Verified contract &nbsp;·&nbsp; <b>no admin access to funds</b></div>
     <h1 class="reveal d1">Lock liquidity.<br><span class="serif">Prove it.</span></h1>
-    <p class="hero-sub reveal d2">The token infrastructure of Robinhood Chain. Lock LP or any token with <b>on-chain, shareable proof</b>.</p>
+    <p class="hero-sub reveal d2">The token infrastructure of Robinhood Chain. Lock any token with <b>on-chain, shareable proof</b>.</p>
     <div class="hero-actions reveal d3">
       <a class="btn btn-neon btn-lg" href="/app/locks">Start locking</a>
       <a class="btn btn-line btn-lg" href="/app/explore">Verify a lock</a>
@@ -425,8 +414,8 @@
     </div>
     <div class="bento">
       <a class="cell c-locks reveal" href="/app/locks">
-        <h3>Token & LP Locks <span class="b-tag live">Live</span></h3>
-        <p>Lock any Robinhood token or LP until a date you choose. Every lock mints a public proof page your community can verify in one click.</p>
+        <h3>Token Locks <span class="b-tag live">Live</span></h3>
+        <p>Lock any Robinhood token until a date you choose. Every lock mints a public proof page your community can verify in one click.</p>
         <div class="viz lockviz">
           <!-- populated with the latest real lock by landing.ts -->
           <div class="proof-mini">
@@ -545,7 +534,7 @@
     <div class="faq-list">
       <details class="faq-q">
         <summary>How do I lock liquidity on Robinhood Chain?</summary>
-        <p>Open the app, connect the wallet holding the LP or team tokens, pick the token and amount, and choose an unlock date. You approve the token, confirm the lock, and the contract holds the tokens until that date. The whole thing takes under a minute and ends with a proof link you can share.</p>
+        <p>Liquidity on Robinhood Chain lives in Uniswap v3 and v4 positions, which are NFTs rather than ERC-20 LP tokens, so HoodLock cannot hold one yet. What you can lock today is any ERC-20 — team supply, treasury or the project token itself. Connect the wallet holding them, pick the amount and an unlock date, approve, and confirm. It takes under a minute and ends with a proof link you can share.</p>
       </details>
       <details class="faq-q">
         <summary>Can HoodLock or the project unlock tokens early?</summary>
@@ -561,7 +550,7 @@
       </details>
       <details class="faq-q">
         <summary>What is the difference between locking and vesting?</summary>
-        <p>A lock holds the full amount until one date, then releases all of it at once — the usual choice for LP. Vesting releases tokens gradually over a period, optionally after a cliff, which suits team and advisor allocations. Vesting schedules are irrevocable once created.</p>
+        <p>A lock holds the full amount until one date, then releases all of it at once. Vesting releases tokens gradually over a period, optionally after a cliff, which suits team and advisor allocations. Vesting schedules are irrevocable once created.</p>
       </details>
       <details class="faq-q">
         <summary>What happens when the unlock date passes?</summary>

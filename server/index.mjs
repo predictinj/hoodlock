@@ -351,7 +351,7 @@ app.get("/r/:code", (req, res) => {
 <meta property="og:site_name" content="HoodLock">
 <meta property="og:type" content="website">
 <meta property="og:title" content="HoodLock — trustless liquidity & token locks">
-<meta property="og:description" content="Lock LP or tokens on Robinhood Chain and share a verifiable on-chain proof.">
+<meta property="og:description" content="Token locks, burns and vesting on Robinhood Chain, each with a verifiable on-chain proof.">
 <meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
 <meta property="og:image:width" content="1600"><meta property="og:image:height" content="900">
 <meta name="twitter:card" content="summary_large_image">
@@ -1250,7 +1250,7 @@ const VIEW_META = {
   },
   locks: {
     title: "Lock liquidity & team tokens on Robinhood Chain | HoodLock",
-    desc: "Lock LP or team tokens on Robinhood Chain for any period. The contract cannot release them early — holders get a public proof link to verify it themselves.",
+    desc: "Lock team and treasury tokens on Robinhood Chain for any period. The contract cannot release them early — holders get a public proof link to verify it themselves.",
     heading: "Token locks",
   },
   vesting: {

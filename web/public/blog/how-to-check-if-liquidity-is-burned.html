@@ -56,6 +56,8 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <div class="meta">Published 2026-07-27 · HoodLock Team</div>
 <p>On Robinhood Chain, as everywhere else, people use "burned" and "locked" as if they mean the same thing. They don't, and the difference changes what you're actually protected against. Burned liquidity is gone permanently. Locked liquidity comes back on a date. Both can be verified in about the same amount of time.</p>
 
+<div class="box"><p style="margin-bottom:0"><b>How this works on Robinhood Chain.</b> Liquidity here lives in Uniswap v3 and v4 positions, which are NFTs rather than the ERC-20 "LP tokens" older chains use. HoodLock locks ERC-20 tokens, so it cannot hold one of those positions today — token locks, burns and vesting all work as described, but locking liquidity itself is not something we can do on this chain yet. The general explanation below still applies to how liquidity locking works elsewhere.</p></div>
+
 <h2>The difference in one line</h2>
 <p>Burning LP tokens sends them to an address nobody controls, so the liquidity can never be withdrawn by anyone, ever. Locking LP tokens puts them in a time-locked contract that releases them to the owner on a specific date. A burn is permanent; a lock is a deadline.</p>
 
