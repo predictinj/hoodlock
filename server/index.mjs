@@ -55,6 +55,11 @@ const FEE_ABI = [{ type: "function", name: "fee", stateMutability: "view", input
 // lock(token, amount, unlockTime) — for the developer lock-intent (prepared tx)
 const LOCK_ABI = [{ type: "function", name: "lock", stateMutability: "payable", inputs: [
   { name: "token", type: "address" }, { name: "amount", type: "uint256" }, { name: "unlockTime", type: "uint256" } ], outputs: [{ type: "uint256" }] }];
+const BURN_WRITE_ABI = [{ type: "function", name: "burn", stateMutability: "payable", inputs: [
+  { name: "token", type: "address" }, { name: "amount", type: "uint256" } ], outputs: [{ type: "uint256" }] }];
+const VEST_WRITE_ABI = [{ type: "function", name: "create", stateMutability: "payable", inputs: [
+  { name: "token", type: "address" }, { name: "beneficiary", type: "address" }, { name: "amount", type: "uint256" },
+  { name: "start", type: "uint64" }, { name: "cliff", type: "uint64" }, { name: "end", type: "uint64" } ], outputs: [{ type: "uint256" }] }];
 
 // burns and vesting count toward affiliate/developer commission too
 const BURNER = cfg.burner && isAddress(cfg.burner) ? getAddress(cfg.burner) : null;
@@ -678,6 +683,55 @@ app.post("/api/dev/lock-intent", (req, res) => {
   if (unlockTime <= BigInt(nowSec())) return res.status(400).json({ error: "unlockTime must be in the future" });
   const data = encodeFunctionData({ abi: LOCK_ABI, functionName: "lock", args: [getAddress(token), amount, unlockTime] });
   res.json({ to: LOCKER, data, value: FEE_WEI.toString(), chainId: cfg.chainId, note: "Submit from the user's wallet, then POST /api/dev/attribute with their address." });
+});
+
+/* Shared front half of every intent: a valid key, a token, and an amount. */
+function intentBase(req, res) {
+  if (!db) { res.status(503).json({ error: "db unavailable" }); return null; }
+  if (limited(req, res, 60)) return null;
+  const dev = devByKey(req.body?.key);
+  if (!dev) { res.status(404).json({ error: "unknown key" }); return null; }
+  const token = String(req.body?.token || "");
+  if (!isAddress(token)) { res.status(400).json({ error: "bad token address" }); return null; }
+  let amount;
+  try { amount = BigInt(req.body.amount); }
+  catch { res.status(400).json({ error: "amount must be an integer string in the token's smallest unit" }); return null; }
+  if (amount <= 0n) { res.status(400).json({ error: "amount must be > 0" }); return null; }
+  return { token: getAddress(token), amount };
+}
+const APPROVE_NOTE = "Approve the token for `to` first, then submit this from the user's wallet and POST /api/dev/attribute with their address.";
+
+/* prepared burn tx */
+app.post("/api/dev/burn-intent", (req, res) => {
+  if (!BURNER) return res.status(404).json({ error: "burning is not available on this chain" });
+  const base = intentBase(req, res);
+  if (!base) return;
+  const data = encodeFunctionData({ abi: BURN_WRITE_ABI, functionName: "burn", args: [base.token, base.amount] });
+  res.json({ to: BURNER, data, value: String(BigInt(Math.round(BURN_FEE_ETH * 1e18))),
+    chainId: cfg.chainId, note: APPROVE_NOTE });
+});
+
+/* prepared vesting tx. The contract's own rules are checked here so a doomed
+   transaction never reaches the user's wallet for signing. */
+app.post("/api/dev/vesting-intent", (req, res) => {
+  if (!VESTING) return res.status(404).json({ error: "vesting is not available on this chain" });
+  const base = intentBase(req, res);
+  if (!base) return;
+  const beneficiary = String(req.body?.beneficiary || "");
+  if (!isAddress(beneficiary)) return res.status(400).json({ error: "bad beneficiary address" });
+  let start, cliff, end;
+  try {
+    start = BigInt(req.body.start ?? nowSec());
+    end = BigInt(req.body.end);
+    cliff = BigInt(req.body.cliff ?? start);
+  } catch { return res.status(400).json({ error: "start, cliff and end must be unix seconds" }); }
+  if (end <= start) return res.status(400).json({ error: "end must be after start" });
+  if (end - start < 86400n) return res.status(400).json({ error: "vesting must run for at least 24 hours" });
+  if (cliff < start || cliff > end) return res.status(400).json({ error: "cliff must fall between start and end" });
+  const data = encodeFunctionData({ abi: VEST_WRITE_ABI, functionName: "create",
+    args: [base.token, getAddress(beneficiary), base.amount, start, cliff, end] });
+  res.json({ to: VESTING, data, value: String(BigInt(Math.round(VEST_FEE_ETH * 1e18))),
+    chainId: cfg.chainId, note: `${APPROVE_NOTE} Schedules are irrevocable once created.` });
 });
 
 /* admin: review + manually pay claims */

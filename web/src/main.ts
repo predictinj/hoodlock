@@ -1609,9 +1609,9 @@ HoodLock.on("done", ({ type, txHash, id }) =&gt; {
 
 // …or listen per product
 HoodLock.on("locked", ({ txHash, id }) =&gt; console.log("Locked!", id, txHash));</pre>
-        <h4>3 · REST API (build your own UI — locks only)</h4>
+        <h4>3 · REST API (build your own UI)</h4>
         <p><code>GET /api/dev/config?key=${escape(me.apiKey)}</code> → chain id, RPC, explorer, all three contract addresses, the fee for each product, and your commission. These endpoints send CORS headers, so they work from your own frontend as well as your server.<br>
-        <code>POST /api/dev/lock-intent</code> <code>{ key, token, amount, unlockTime }</code> → a prepared <code>{ to, data, value }</code> tx to submit from the user's wallet. There is no burn or vesting equivalent yet — use the embed for those, or build the call yourself from the addresses <code>/api/dev/config</code> returns.<br>
+        Each intent returns a prepared <code>{ to, data, value, chainId }</code> transaction to submit from the user's wallet. Approve the token for <code>to</code> first.<br><code>POST /api/dev/lock-intent</code> <code>{ key, token, amount, unlockTime }</code><br><code>POST /api/dev/burn-intent</code> <code>{ key, token, amount }</code><br><code>POST /api/dev/vesting-intent</code> <code>{ key, token, beneficiary, amount, end }</code> — optional <code>start</code> (defaults to now) and <code>cliff</code> (defaults to start). The contract's own rules are checked here, so a schedule that would revert never reaches a signature prompt.<br>
         <code>POST /api/dev/attribute</code> <code>{ key, wallet }</code> → credit the connecting wallet to you (call it when the user connects).</p>
         <h4>4 · Network and contracts</h4>
         <p>Everything runs on <b>Robinhood Chain</b>, chain id <code>${CHAIN.id}</code>. The embed asks the
