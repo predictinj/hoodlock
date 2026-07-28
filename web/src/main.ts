@@ -1573,11 +1573,6 @@ async function renderDevDashboard(me: any) {
         <button class="btn btn-neon" id="devKeyCopy" style="padding:11px 22px">Copy</button></div>
       <div class="hintline">This key only credits locks, burns and vesting to you. It cannot move funds or access admin — payouts require your wallet signature.</div>
     </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-head"><div><h3>Add the buttons to your site</h3><div class="sub">DROP-IN EMBED · LOCK, BURN AND VESTING UI ON YOUR PAGE</div></div></div>
-      <pre class="code-block" id="devSnippet">${escape(snippet)}</pre>
-      <button class="btn btn-line btn-sm" id="devSnippetCopy" style="margin-top:10px">Copy snippet</button>
-    </div>
     <div class="tiles">
       <div class="tile"><div class="k">Lifetime earnings</div><div class="v g">${me.lifetimeEarnedEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(me.lifetimeEarnedEth * me.ethUsd) : "50% of generated fees"}</div></div>
       <div class="tile"><div class="k">Claimable now</div><div class="v">${me.claimableEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(claimableUsd) : ""} · min $${me.minClaimUsd}</div></div>
@@ -1594,7 +1589,8 @@ async function renderDevDashboard(me: any) {
       <div class="dev-docs">
         <h4>1 · Embed button (recommended)</h4>
         <p>Include the script once, then add a button with <code>data-hoodlock</code> for each product you want to offer. <code>data-mode</code> picks between <code>lock</code> (the default), <code>burn</code> and <code>vesting</code>; clicking opens that flow in a modal on your page.</p><p class="hintline">Every attribute except <code>data-hoodlock</code> is optional, and the buttons are independent — a lock-only integration is one button with no attributes at all. You earn on whichever products you add.</p><table class="dev-attrs"><thead><tr><th>Attribute</th><th>Required</th><th>What it does</th></tr></thead><tbody><tr><td><code>data-hoodlock</code></td><td>yes</td><td>Marks the button. Nothing else is needed for a lock.</td></tr><tr><td><code>data-mode</code></td><td>no</td><td><code>lock</code> (default), <code>burn</code> or <code>vesting</code>.</td></tr><tr><td><code>data-token</code></td><td>no</td><td>Contract address of the token. Pre-fills the field and makes it read-only, so the user can't pick a different token. Leave it out and they choose from their own wallet.</td></tr><tr><td><code>data-beneficiary</code></td><td>no</td><td>Vesting only. Pre-fills who receives the tokens; the user can still edit it.</td></tr><tr><td><code>data-unlock</code></td><td>no</td><td>Lock only. Pre-fills the unlock date, as a Unix timestamp in seconds.</td></tr></tbody></table><p class="hintline">Values like <code>\${token.address}</code> above are placeholders — insert them from your own data at render time, since they differ per page. They are not literal strings to paste.</p>
-        <pre class="code-block">${escape(snippet)}</pre>
+        <pre class="code-block" id="devSnippet">${escape(snippet)}</pre>
+        <button class="btn btn-line btn-sm" id="devSnippetCopy" style="margin-top:10px">Copy snippet</button>
         <h4>2 · JavaScript API</h4>
         <p>Open programmatically and react to results:</p>
         <pre class="code-block">// lock (default)
@@ -1613,10 +1609,21 @@ HoodLock.on("done", ({ type, txHash, id }) =&gt; {
 
 // …or listen per product
 HoodLock.on("locked", ({ txHash, id }) =&gt; console.log("Locked!", id, txHash));</pre>
-        <h4>3 · REST API (build your own UI)</h4>
-        <p><code>GET /api/dev/config?key=${escape(me.apiKey)}</code> → chain id, locker address, fee (wei), your commission.<br>
-        <code>POST /api/dev/lock-intent</code> <code>{ key, token, amount, unlockTime }</code> → a prepared <code>{ to, data, value }</code> tx to submit from the user's wallet.<br>
+        <h4>3 · REST API (build your own UI — locks only)</h4>
+        <p><code>GET /api/dev/config?key=${escape(me.apiKey)}</code> → chain id, RPC, explorer, all three contract addresses, the fee for each product, and your commission. These endpoints send CORS headers, so they work from your own frontend as well as your server.<br>
+        <code>POST /api/dev/lock-intent</code> <code>{ key, token, amount, unlockTime }</code> → a prepared <code>{ to, data, value }</code> tx to submit from the user's wallet. There is no burn or vesting equivalent yet — use the embed for those, or build the call yourself from the addresses <code>/api/dev/config</code> returns.<br>
         <code>POST /api/dev/attribute</code> <code>{ key, wallet }</code> → credit the connecting wallet to you (call it when the user connects).</p>
+        <h4>4 · Network and contracts</h4>
+        <p>Everything runs on <b>Robinhood Chain</b>, chain id <code>${CHAIN.id}</code>. The embed asks the
+        user's wallet to switch, and adds the network if they don't have it — you don't need to handle that.</p>
+        <table class="dev-attrs"><thead><tr><th>Contract</th><th>Address</th></tr></thead><tbody>
+          <tr><td>Locker</td><td><a href="${EXP}/address/${LOCKER}?tab=contract" target="_blank" rel="noopener"><code>${LOCKER}</code></a></td></tr>
+          ${BURNER ? `<tr><td>Burner</td><td><a href="${EXP}/address/${BURNER}?tab=contract" target="_blank" rel="noopener"><code>${BURNER}</code></a></td></tr>` : ""}
+          ${VESTING ? `<tr><td>Vesting</td><td><a href="${EXP}/address/${VESTING}?tab=contract" target="_blank" rel="noopener"><code>${VESTING}</code></a></td></tr>` : ""}
+        </tbody></table>
+        <p class="hintline">All three are verified on Blockscout, and none of them gives us access to locked
+        funds — read the withdrawal function yourself before you send anyone to them.</p>
+
         <h4>How you get paid</h4>
         <p>You earn <b>${Math.round((me.commission || 0) * 100)}%</b> of the ${me.feeEth} ETH fee on every lock created by a wallet you brought in. Only genuinely new wallets count (first-touch), and only locks made after they're attributed. Claim to your wallet here once your balance reaches $${me.minClaimUsd}.</p>
       </div>

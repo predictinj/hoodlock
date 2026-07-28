@@ -617,11 +617,41 @@ app.post("/api/dev/register", (req, res) => {
 });
 
 /* public config for a key — lets partners build their own UI */
+/* The developer key is public by design — it is meant to sit in a partner's
+   frontend — so these endpoints have to be callable from their origin. The
+   docs tell integrators to call /api/dev/attribute when a user connects, and
+   without this the browser blocks exactly that. */
+app.use("/api/dev", (req, res, next) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  if (req.method === "OPTIONS") return res.status(204).end();
+  next();
+});
+
 app.get("/api/dev/config", (req, res) => {
   if (!db) return res.status(503).json({ error: "db unavailable" });
   const dev = devByKey(req.query.key);
   if (!dev) return res.status(404).json({ error: "unknown key" });
-  res.json({ chainId: cfg.chainId, locker: LOCKER, feeWei: FEE_WEI.toString(), feeEth: FEE_ETH, commission: commissionFor(dev.code), code: dev.code });
+  // All three products, not just the locker — a partner building their own UI
+  // for burns or vesting had no way to find those addresses.
+  res.json({
+    chainId: cfg.chainId,
+    rpc: cfg.rpc,
+    explorer: cfg.explorer,
+    locker: LOCKER,
+    burner: BURNER,
+    vesting: VESTING,
+    feeWei: FEE_WEI.toString(), feeEth: FEE_ETH,   // lock fee, kept for compatibility
+    fees: {
+      lock: FEE_WEI.toString(),
+      burn: BURNER ? String(BigInt(Math.round(BURN_FEE_ETH * 1e18))) : null,
+      vesting: VESTING ? String(BigInt(Math.round(VEST_FEE_ETH * 1e18))) : null,
+    },
+    feesEth: { lock: FEE_ETH, burn: BURNER ? BURN_FEE_ETH : null, vesting: VESTING ? VEST_FEE_ETH : null },
+    commission: commissionFor(dev.code),
+    code: dev.code,
+  });
 });
 
 /* attribute a connecting wallet to the developer (fresh-wallet first-touch, shared guards) */
