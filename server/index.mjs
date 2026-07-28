@@ -842,9 +842,32 @@ async function tokenMeta(addr) {
     pub.readContract({ address: addr, abi: ERC20_READ_ABI, functionName: "decimals" }).catch(() => 18),
     pub.readContract({ address: addr, abi: ERC20_READ_ABI, functionName: "totalSupply" }).catch(() => 0n),
   ]);
-  const m = { symbol: String(symbol), decimals: Number(decimals), supply };
+  // Every Uniswap v2 pair token is called "UNI-V2", so a proof page for an LP
+  // lock would read "$UNI-V2" and say nothing about which pool it covers.
+  let sym = String(symbol);
+  if (/^(UNI-V2|SLP)$/i.test(sym)) sym = (await pairLabel(addr)) || sym;
+  const m = { symbol: sym, decimals: Number(decimals), supply };
   tokMetaCache.set(k, m);
   return m;
+}
+
+const PAIR_READ_ABI = [
+  { type: "function", name: "token0", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "token1", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+];
+/** "WETH/HOODIE LP" for a v2 pair, null for anything else. */
+async function pairLabel(addr) {
+  try {
+    const [t0, t1] = await Promise.all([
+      pub.readContract({ address: addr, abi: PAIR_READ_ABI, functionName: "token0" }),
+      pub.readContract({ address: addr, abi: PAIR_READ_ABI, functionName: "token1" }),
+    ]);
+    const [s0, s1] = await Promise.all([
+      pub.readContract({ address: t0, abi: ERC20_READ_ABI, functionName: "symbol" }).catch(() => null),
+      pub.readContract({ address: t1, abi: ERC20_READ_ABI, functionName: "symbol" }).catch(() => null),
+    ]);
+    return s0 && s1 ? `${s0}/${s1} LP` : null;
+  } catch { return null; }
 }
 
 const proofCache = new Map(); // "kind:id" -> { at, meta }

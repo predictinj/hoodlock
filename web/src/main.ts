@@ -931,13 +931,36 @@ function tokMeta(addr: string) {
   metaInflight.set(addr, p);
   return p;
 }
+/* Every Uniswap v2 pair token is called "UNI-V2", so an LP lock displayed as
+   "$UNI-V2" tells a holder nothing about which pool was locked. Resolving the
+   two sides turns it into something readable. */
+const PAIR_ABI = [
+  { type: "function", name: "token0", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "token1", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+] as const;
+async function pairLabel(addr: string): Promise<string | null> {
+  try {
+    const [t0, t1] = await Promise.all([
+      pub.readContract({ address: addr as `0x${string}`, abi: PAIR_ABI, functionName: "token0" }),
+      pub.readContract({ address: addr as `0x${string}`, abi: PAIR_ABI, functionName: "token1" }),
+    ]);
+    const [s0, s1] = await Promise.all([
+      pub.readContract({ address: t0 as `0x${string}`, abi: ERC20, functionName: "symbol" }).catch(() => null),
+      pub.readContract({ address: t1 as `0x${string}`, abi: ERC20, functionName: "symbol" }).catch(() => null),
+    ]);
+    return s0 && s1 ? `${s0}/${s1} LP` : null;
+  } catch { return null; }   // not a pair, which is the common case
+}
+
 async function readTokMeta(addr: string) {
   try {
     const [symbol, decimals] = await Promise.all([
       pub.readContract({ address: addr as `0x${string}`, abi: ERC20, functionName: "symbol" }),
       pub.readContract({ address: addr as `0x${string}`, abi: ERC20, functionName: "decimals" }),
     ]);
-    const m = { symbol: String(symbol), decimals: Number(decimals) };
+    let sym = String(symbol);
+    if (/^UNI-V2$/i.test(sym) || /^SLP$/i.test(sym)) sym = (await pairLabel(addr)) || sym;
+    const m = { symbol: sym, decimals: Number(decimals) };
     metaCache.set(addr, m); // cache VERIFIED reads only
     return m;
   } catch {
