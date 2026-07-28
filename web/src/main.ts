@@ -1495,10 +1495,14 @@ function devSnippet(apiKey: string): string {
   const s = `<script src="${location.origin}/embed.js" data-key="${apiKey}"></scr` + `ipt>`;
   return `${s}\n\n` +
     `<!-- Add only the products you want. Each button works on its own. -->\n\n` +
-    `<button data-hoodlock data-token="0xYourTokenAddress">Lock tokens</button>\n\n` +
-    `<button data-hoodlock data-mode="burn" data-token="0xYourTokenAddress">Burn tokens</button>\n\n` +
-    `<button data-hoodlock data-mode="vesting" data-token="0xYourTokenAddress"\n` +
-    `        data-beneficiary="0xRecipient">Create vesting</button>`;
+    `<!-- Lock is the default mode, so this is the whole integration: -->\n` +
+    `<button data-hoodlock>Lock tokens</button>\n\n` +
+    `<!-- Pass a token address to pre-fill it and stop the user changing it.\n` +
+    `     Insert it from your own data — it is different on every page: -->\n` +
+    `<button data-hoodlock data-token="\${token.address}">Lock \${token.symbol}</button>\n\n` +
+    `<button data-hoodlock data-mode="burn" data-token="\${token.address}">Burn tokens</button>\n\n` +
+    `<button data-hoodlock data-mode="vesting" data-token="\${token.address}"\n` +
+    `        data-beneficiary="\${teamWallet}">Create vesting</button>`;
 }
 async function loadDevelopersPage() {
   const box = $("devBody");
@@ -1589,7 +1593,7 @@ async function renderDevDashboard(me: any) {
       <div class="card-head"><div><h3>Integration docs</h3><div class="sub">EMBED · JS API · REST</div></div></div>
       <div class="dev-docs">
         <h4>1 · Embed button (recommended)</h4>
-        <p>Include the script once, then add a button with <code>data-hoodlock</code> for each product you want to offer. <code>data-mode</code> picks between <code>lock</code> (the default), <code>burn</code> and <code>vesting</code>; clicking opens that flow in a modal on your page.</p><p class="hintline">The buttons are independent — keep only the ones you need. A burn-only integration is a single button, and you earn on it either way.</p>
+        <p>Include the script once, then add a button with <code>data-hoodlock</code> for each product you want to offer. <code>data-mode</code> picks between <code>lock</code> (the default), <code>burn</code> and <code>vesting</code>; clicking opens that flow in a modal on your page.</p><p class="hintline">Every attribute except <code>data-hoodlock</code> is optional, and the buttons are independent — a lock-only integration is one button with no attributes at all. You earn on whichever products you add.</p><table class="dev-attrs"><thead><tr><th>Attribute</th><th>Required</th><th>What it does</th></tr></thead><tbody><tr><td><code>data-hoodlock</code></td><td>yes</td><td>Marks the button. Nothing else is needed for a lock.</td></tr><tr><td><code>data-mode</code></td><td>no</td><td><code>lock</code> (default), <code>burn</code> or <code>vesting</code>.</td></tr><tr><td><code>data-token</code></td><td>no</td><td>Contract address of the token. Pre-fills the field and makes it read-only, so the user can't pick a different token. Leave it out and they choose from their own wallet.</td></tr><tr><td><code>data-beneficiary</code></td><td>no</td><td>Vesting only. Pre-fills who receives the tokens; the user can still edit it.</td></tr><tr><td><code>data-unlock</code></td><td>no</td><td>Lock only. Pre-fills the unlock date, as a Unix timestamp in seconds.</td></tr></tbody></table><p class="hintline">Values like <code>\${token.address}</code> above are placeholders — insert them from your own data at render time, since they differ per page. They are not literal strings to paste.</p>
         <pre class="code-block">${escape(snippet)}</pre>
         <h4>2 · JavaScript API</h4>
         <p>Open programmatically and react to results:</p>
