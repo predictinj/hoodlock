@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locking Tokens Launched on ArrowPad | HoodLock</title>
+<meta name="description" content="ArrowPad puts all 1B supply in the pool with no owner and no team allocation. Nothing is left to lock at launch — which makes what accrues afterwards the whole question.">
+<link rel="canonical" href="https://hoodlock.tech/blog/lock-tokens-launched-on-arrowpad">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Locking Tokens Launched on ArrowPad | HoodLock"><meta property="og:description" content="ArrowPad puts all 1B supply in the pool with no owner and no team allocation. Nothing is left to lock at launch — which makes what accrues afterwards the whole question.">
+<meta property="og:url" content="https://hoodlock.tech/blog/lock-tokens-launched-on-arrowpad">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Locking Tokens Launched on ArrowPad | HoodLock", "description": "ArrowPad puts all 1B supply in the pool with no owner and no team allocation. Nothing is left to lock at launch \u2014 which makes what accrues afterwards the whole question.", "datePublished": "2026-07-28", "dateModified": "2026-07-28", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/lock-tokens-launched-on-arrowpad"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does ArrowPad lock liquidity?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Launching deploys the token, creates a Uniswap V3 pool and locks the LP NFT permanently in a contract with no withdrawal capability, all in one transaction."}}, {"@type": "Question", "name": "Do ArrowPad creators get an allocation?", "acceptedAnswer": {"@type": "Answer", "text": "No. All 1 billion tokens enter the pool immediately, with no presale and no team allocation. Creators earn 80% of every swap fee instead, encoded as an immutable value."}}, {"@type": "Question", "name": "What should an ArrowPad creator lock?", "acceptedAnswer": {"@type": "Answer", "text": "Nothing exists to lock at launch. What accrues afterwards can be locked or vested: swap fee revenue, tokens bought from the pool, and any treasury built from either."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>Locking tokens launched on <span class="serif">ArrowPad.</span></h1>
+<div class="meta">Published 2026-07-28 · HoodLock Team</div>
+<p>ArrowPad takes the structural route: a single transaction deploys the token, opens a Uniswap V3 pool,
+and locks the LP NFT permanently. The contracts have <i>"no owner, no upgrade path, no privileged
+functions"</i>, all 1 billion tokens enter the pool immediately with no presale or team allocation, and
+the 80/20 creator/protocol fee split is an immutable constant rather than a setting. Source is verified
+on the explorer at deployment.</p>
+
+<h2>Structural, not promised</h2>
+<p>The distinction ArrowPad draws is worth borrowing when you describe your own token. A promise is a
+team saying it won't do something. A structural guarantee is a contract in which the function doesn't
+exist. Holders can tell the difference if you point them at it —
+<a href="/blog/how-to-verify-a-token-contract-on-blockscout">reading the contract on Blockscout</a> shows
+which one you have.</p>
+<p>This is also the standard HoodLock is built to: locks and vesting schedules are enforced by contract,
+unlock dates can be extended but never shortened, and vesting is irrevocable once created. Nobody is
+asked to trust an intention.</p>
+
+<h2>So what is there to lock?</h2>
+<p>At launch, nothing — and that is the honest answer. No supply is reserved, the pool holds everything,
+and the LP NFT is already locked. A post telling an ArrowPad creator to lock their allocation would be
+describing a launchpad that doesn't work this way.</p>
+<p>What accrues afterwards is a different matter:</p>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>Fee revenue</b> — 80% of every swap fee, accumulating in an ordinary wallet, growing with volume,
+governed by nothing.</li>
+<li><b>Tokens you bought</b> from your own pool at market price.</li>
+<li><b>A treasury</b>, if the project builds one from either of the above.</li>
+</ul>
+</div>
+<p>All three are ERC-20 balances. If any of them grows into a position a holder would notice on the
+holder list, committing it to a date is the move — and on a token whose launch was already clean,
+it is the only remaining question.</p>
+
+<h2>Doing it</h2>
+<ol>
+<li>Copy the contract address from your token's page on ArrowPad.</li>
+<li>Open <a href="/app/locks">HoodLock</a> with the wallet holding the tokens.</li>
+<li>Pick the token, the amount and a date. For vesting, add the beneficiary and an optional cliff.</li>
+<li>Approve, confirm, and share the proof link.</li>
+</ol>
+<p>Flat 0.005 ETH either way, no percentage of the tokens, and a proof page that reads live from the
+chain and opens without a wallet.</p>
+
+<h2>The pool itself</h2>
+<p>ArrowPad locks the Uniswap V3 LP NFT in a contract with no withdrawal capability. HoodLock's locker
+holds ERC-20 tokens, so it neither can nor needs to do anything with that position — it is already
+locked more firmly than a term lock would be.</p>
+<h2>Common questions</h2>
+<h3>Does ArrowPad lock liquidity?</h3>
+<p>Yes. Launching deploys the token, creates a Uniswap V3 pool and locks the LP NFT permanently in a contract with no withdrawal capability, all in one transaction.</p>
+<h3>Do ArrowPad creators get an allocation?</h3>
+<p>No. All 1 billion tokens enter the pool immediately, with no presale and no team allocation. Creators earn 80% of every swap fee instead, encoded as an immutable value.</p>
+<h3>What should an ArrowPad creator lock?</h3>
+<p>Nothing exists to lock at launch. What accrues afterwards can be locked or vested: swap fee revenue, tokens bought from the pool, and any treasury built from either.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/how-to-verify-a-token-contract-on-blockscout">How to read a token contract on Blockscout</a></li>
+<li><a href="/blog/locking-treasury-and-ecosystem-funds">Locking treasury and ecosystem funds</a></li>
+<li><a href="/blog/lock-tokens-launched-on-robinlaunch">Locking tokens launched on Robinlaunch</a></li>
+<li><a href="/blog/custodial-vs-non-custodial-locking">Custodial vs non-custodial locking</a></li>
+</ul>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Lock it, share the proof</h2>
+  <p>Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.</p>
+  <a class="btn" href="/app/locks">Lock tokens →</a>
+</div>
+<p class="dim" style="font-size:12.5px;color:var(--ink3);border-top:1px solid var(--line);margin-top:30px;padding-top:14px">
+HoodLock is not affiliated with ArrowPad or with Robinhood Markets, Inc. Platform mechanics described
+here come from ArrowPad's own published material as of 2026-07-28 and change over time — verify them at
+<a href="https://arrowpad.fun" target="_blank" rel="noopener">arrowpad.fun</a> and on-chain before relying on them.</p>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

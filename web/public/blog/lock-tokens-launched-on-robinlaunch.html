@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locking Tokens Launched on Robinlaunch | HoodLock</title>
+<meta name="description" content="Robinlaunch locks LP forever on both its bonding curve and Direct Pool routes, and pays creators up to 90% of fees. The fee wallet is the part nothing governs.">
+<link rel="canonical" href="https://hoodlock.tech/blog/lock-tokens-launched-on-robinlaunch">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Locking Tokens Launched on Robinlaunch | HoodLock"><meta property="og:description" content="Robinlaunch locks LP forever on both its bonding curve and Direct Pool routes, and pays creators up to 90% of fees. The fee wallet is the part nothing governs.">
+<meta property="og:url" content="https://hoodlock.tech/blog/lock-tokens-launched-on-robinlaunch">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Locking Tokens Launched on Robinlaunch | HoodLock", "description": "Robinlaunch locks LP forever on both its bonding curve and Direct Pool routes, and pays creators up to 90% of fees. The fee wallet is the part nothing governs.", "datePublished": "2026-07-28", "dateModified": "2026-07-28", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/lock-tokens-launched-on-robinlaunch"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does Robinlaunch lock liquidity?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, permanently, on both routes. Bonding-curve tokens graduate to Uniswap V3 at 2.5 ETH with LP locked forever at the burn address, and Direct Pool launches have liquidity locked from day one."}}, {"@type": "Question", "name": "How much do Robinlaunch creators earn in fees?", "acceptedAnswer": {"@type": "Answer", "text": "70% of the 0.7% per-transaction fee on the bonding-curve route, and up to 90% of fees on the Direct Pool route. That revenue lands liquid in an ordinary wallet."}}, {"@type": "Question", "name": "What does it cost to launch on Robinlaunch?", "acceptedAnswer": {"@type": "Answer", "text": "0.0002 ETH plus gas for a bonding-curve launch. The Direct Pool route creates an instant Uniswap V3 market without requiring seed ETH from the creator."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>Locking tokens launched on <span class="serif">Robinlaunch.</span></h1>
+<div class="meta">Published 2026-07-28 · HoodLock Team</div>
+<p>Robinlaunch runs two routes on Robinhood Chain, both ending with liquidity locked permanently at the
+burn address.</p>
+<div class="box">
+<ul style="margin-bottom:0">
+<li><b>Bonding curve</b> — 0.0002 ETH to launch, creators take 70% of the 0.7% per-transaction fee, and the
+token graduates to Uniswap V3 at 2.5 ETH raised.</li>
+<li><b>Direct Pool</b> — an instant Uniswap V3 market with no seed ETH required, single-sided, liquidity
+locked from day one, and up to 90% of fees to the creator.</li>
+</ul>
+</div>
+
+<h2>The liquidity question is already answered</h2>
+<p>Both routes lock LP forever, so there is no unlock date and no team decision behind it. Say so — and
+say which route you took, because a Direct Pool launch means the market existed at full depth from
+block one rather than being built up along a curve, and that is a materially different starting point
+for anyone reading your chart.</p>
+
+<h2>Up to 90% of fees is a large number</h2>
+<p>It is also the part of a Robinlaunch token that nothing governs. Fee revenue lands liquid, grows with
+volume, and shows up on the holder list as an address whose balance keeps climbing. On a token doing
+real volume, the creator fee wallet routinely becomes a larger position than any allocation would have
+been — and unlike an allocation, nobody announced it.</p>
+<p>Locking or vesting accrued fee revenue is uncommon enough that doing it is legible on its own. It
+converts a growing balance into a committed one, with a date attached and a page anyone can open.
+<a href="/blog/locking-treasury-and-ecosystem-funds">How to structure it</a> without giving up the
+ability to actually spend on the project.</p>
+
+<h2>And the tokens you bought</h2>
+<p>A creator buy on the curve, or from your own Direct Pool, sits in an ordinary wallet.
+<a href="/blog/how-to-read-token-holder-distribution">The holder list shows it</a> whether you mention it
+or not, so mentioning it costs nothing and buys some credit.</p>
+
+<h2>Doing it</h2>
+<ol>
+<li>Copy the contract address from your token's page on Robinlaunch.</li>
+<li>Open <a href="/app/locks">HoodLock</a> with the wallet holding the tokens.</li>
+<li>Pick the token, the amount and a date. For vesting, add the beneficiary and an optional cliff.</li>
+<li>Approve, confirm, and share the proof link.</li>
+</ol>
+<p>Flat 0.005 ETH either way, no percentage of the tokens, and a proof page that reads live from the
+chain and opens without a wallet.</p>
+
+<h2>What can't be locked</h2>
+<p>Both Robinlaunch routes end on Uniswap V3, where a liquidity position is an NFT rather than an
+ERC-20 LP token. HoodLock's locker holds ERC-20s, so those positions can't be locked with it — though
+Robinlaunch has already locked them permanently. Tokens themselves are ERC-20 and can be locked or
+vested normally.</p>
+<h2>Common questions</h2>
+<h3>Does Robinlaunch lock liquidity?</h3>
+<p>Yes, permanently, on both routes. Bonding-curve tokens graduate to Uniswap V3 at 2.5 ETH with LP locked forever at the burn address, and Direct Pool launches have liquidity locked from day one.</p>
+<h3>How much do Robinlaunch creators earn in fees?</h3>
+<p>70% of the 0.7% per-transaction fee on the bonding-curve route, and up to 90% of fees on the Direct Pool route. That revenue lands liquid in an ordinary wallet.</p>
+<h3>What does it cost to launch on Robinlaunch?</h3>
+<p>0.0002 ETH plus gas for a bonding-curve launch. The Direct Pool route creates an instant Uniswap V3 market without requiring seed ETH from the creator.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/locking-treasury-and-ecosystem-funds">Locking treasury and ecosystem funds</a></li>
+<li><a href="/blog/how-to-read-token-holder-distribution">Reading holder distribution on Robinhood Chain</a></li>
+<li><a href="/blog/lock-tokens-launched-on-arrowpad">Locking tokens launched on ArrowPad</a></li>
+<li><a href="/blog/how-to-set-up-token-vesting">How to set up token vesting that holds</a></li>
+</ul>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Lock it, share the proof</h2>
+  <p>Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.</p>
+  <a class="btn" href="/app/locks">Lock tokens →</a>
+</div>
+<p class="dim" style="font-size:12.5px;color:var(--ink3);border-top:1px solid var(--line);margin-top:30px;padding-top:14px">
+HoodLock is not affiliated with Robinlaunch or with Robinhood Markets, Inc. Platform mechanics described
+here come from Robinlaunch's own published material as of 2026-07-28 and change over time — verify them at
+<a href="https://robinlaunch.fun" target="_blank" rel="noopener">robinlaunch.fun</a> and on-chain before relying on them.</p>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

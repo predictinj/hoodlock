@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locking Tokens Launched on hood.fun | HoodLock</title>
+<meta name="description" content="hood.fun locks graduated liquidity permanently — the locker has no withdraw function at all. What that doesn't cover is whatever you bought on the curve.">
+<link rel="canonical" href="https://hoodlock.tech/blog/lock-tokens-launched-on-hood-fun">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Locking Tokens Launched on hood.fun | HoodLock"><meta property="og:description" content="hood.fun locks graduated liquidity permanently — the locker has no withdraw function at all. What that doesn't cover is whatever you bought on the curve.">
+<meta property="og:url" content="https://hoodlock.tech/blog/lock-tokens-launched-on-hood-fun">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Locking Tokens Launched on hood.fun | HoodLock", "description": "hood.fun locks graduated liquidity permanently \u2014 the locker has no withdraw function at all. What that doesn't cover is whatever you bought on the curve.", "datePublished": "2026-07-28", "dateModified": "2026-07-28", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/lock-tokens-launched-on-hood-fun"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does hood.fun lock liquidity?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, permanently. Tokens that complete the curve graduate to a Uniswap v3 pair whose liquidity is locked by a contract with no withdraw function, no owner and no admin, so there is no date on which it becomes withdrawable."}}, {"@type": "Question", "name": "Are creator tokens locked on hood.fun?", "acceptedAnswer": {"@type": "Answer", "text": "There is no team allocation to lock \u2014 hood.fun launches without presales or reserved supply. What a creator may hold is tokens bought on the bonding curve, and those sit in an ordinary wallet with nothing preventing a sale."}}, {"@type": "Question", "name": "Can I lock a hood.fun token with HoodLock?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Any ERC-20 on Robinhood Chain can be locked or vested, including one launched through hood.fun. The graduated liquidity position is a Uniswap v3 NFT and is already permanently locked by hood.fun itself."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>Locking tokens launched on <span class="serif">hood.fun.</span></h1>
+<div class="meta">Published 2026-07-28 · HoodLock Team</div>
+<p>hood.fun runs a bonding curve with no presale and no team allocation, and on graduation the token
+seeds a Uniswap v3 pair whose liquidity is locked permanently. Their own description of the locker is
+worth quoting: it has <i>"no withdraw function, no owner, and no admin — the code that could move the
+liquidity simply does not exist."</i></p>
+
+<h2>That is a strong default</h2>
+<p>Most launchpads lock liquidity for a period. A locker with no withdrawal path at all removes the
+expiry conversation entirely — there is no date to watch and no team decision to trust. If you launched
+on hood.fun, the liquidity question is closed and you should say so.</p>
+
+<h2>What it doesn't cover</h2>
+<p>No team allocation means no supply was reserved for you. What you may hold instead is whatever you
+bought on the curve — the dev buy — and that sits in an ordinary wallet like anyone else's. It is the
+first thing a holder looks for once they've satisfied themselves about liquidity, precisely because the
+liquidity answer here is so clean.</p>
+<p>A creator buy that stays liquid isn't wrong. It just leaves the one open question on an otherwise
+closed book, and <a href="/blog/how-to-read-token-holder-distribution">the holder list makes it
+visible</a> whether you mention it or not.</p>
+
+<h2>Doing it</h2>
+<ol>
+<li>Copy your token's contract address from its page on hood.fun.</li>
+<li>Open <a href="/app/locks">HoodLock</a> with the wallet holding the tokens.</li>
+<li>Pick the token, the amount and a date. For vesting, add the beneficiary and an optional cliff.</li>
+<li>Approve, confirm, and share the proof link.</li>
+</ol>
+<p>Flat 0.005 ETH either way, no percentage of the tokens, and a proof page that reads live from the
+chain and opens without a wallet.</p>
+
+<h2>Which pool you ended up in</h2>
+<p>hood.fun graduates to Uniswap v3, where a liquidity position is an NFT rather than an ERC-20. That
+means the position itself can't be locked with HoodLock — though in this case hood.fun has already
+locked it far more firmly than we could. Tokens are ERC-20 and can be locked or vested normally.</p>
+<h2>Common questions</h2>
+<h3>Does hood.fun lock liquidity?</h3>
+<p>Yes, permanently. Tokens that complete the curve graduate to a Uniswap v3 pair whose liquidity is locked by a contract with no withdraw function, no owner and no admin, so there is no date on which it becomes withdrawable.</p>
+<h3>Are creator tokens locked on hood.fun?</h3>
+<p>There is no team allocation to lock — hood.fun launches without presales or reserved supply. What a creator may hold is tokens bought on the bonding curve, and those sit in an ordinary wallet with nothing preventing a sale.</p>
+<h3>Can I lock a hood.fun token with HoodLock?</h3>
+<p>Yes. Any ERC-20 on Robinhood Chain can be locked or vested, including one launched through hood.fun. The graduated liquidity position is a Uniswap v3 NFT and is already permanently locked by hood.fun itself.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/lock-dev-tokens-after-a-pons-launch">Locking dev tokens after a Pons launch</a></li>
+<li><a href="/blog/lock-tokens-launched-on-openfair">Locking tokens launched on Openfair</a></li>
+<li><a href="/blog/how-to-read-token-holder-distribution">Reading holder distribution on Robinhood Chain</a></li>
+<li><a href="/blog/how-to-set-up-token-vesting">How to set up token vesting that holds</a></li>
+</ul>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Lock it, share the proof</h2>
+  <p>Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.</p>
+  <a class="btn" href="/app/locks">Lock tokens →</a>
+</div>
+<p class="dim" style="font-size:12.5px;color:var(--ink3);border-top:1px solid var(--line);margin-top:30px;padding-top:14px">
+HoodLock is not affiliated with hood.fun or with Robinhood Markets, Inc. Platform mechanics described
+here come from hood.fun's own published material and change over time — verify them at
+<a href="https://hood.fun" target="_blank" rel="noopener">hood.fun</a> and on-chain before relying on them.</p>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

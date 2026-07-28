@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locking Tokens Launched on Openfair | HoodLock</title>
+<meta name="description" content="Openfair offers a bonding curve or an instant Uniswap V3 listing, with permanent liquidity locking and custom fees. What stays in your wallet is a separate question.">
+<link rel="canonical" href="https://hoodlock.tech/blog/lock-tokens-launched-on-openfair">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Locking Tokens Launched on Openfair | HoodLock"><meta property="og:description" content="Openfair offers a bonding curve or an instant Uniswap V3 listing, with permanent liquidity locking and custom fees. What stays in your wallet is a separate question.">
+<meta property="og:url" content="https://hoodlock.tech/blog/lock-tokens-launched-on-openfair">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Locking Tokens Launched on Openfair | HoodLock", "description": "Openfair offers a bonding curve or an instant Uniswap V3 listing, with permanent liquidity locking and custom fees. What stays in your wallet is a separate question.", "datePublished": "2026-07-28", "dateModified": "2026-07-28", "author": {"@type": "Organization", "name": "HoodLock", "url": "https://hoodlock.tech"}, "publisher": {"@type": "Organization", "name": "HoodLock", "logo": {"@type": "ImageObject", "url": "https://hoodlock.tech/hoodlock-logo.png"}}, "mainEntityOfPage": "https://hoodlock.tech/blog/lock-tokens-launched-on-openfair"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does Openfair lock liquidity?", "acceptedAnswer": {"@type": "Answer", "text": "Yes \u2014 Openfair advertises permanent liquidity locking on both its bonding-curve launches and its instant Uniswap V3 listings, alongside immutable auto-verified contracts."}}, {"@type": "Question", "name": "What happens to fees collected on an Openfair token?", "acceptedAnswer": {"@type": "Answer", "text": "They accumulate in the fee wallet you nominated. That balance sits in an ordinary address and grows with trading volume, which makes it visible on the holder list like any other unlocked supply."}}, {"@type": "Question", "name": "Can I lock fee revenue with HoodLock?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Fee revenue in your own token is an ERC-20 balance like any other, so it can be locked until a date or vested gradually, each with a public proof page."}}]}</script>
+<style>
+:root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
+--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
+a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;max-width:820px;margin:0 auto;padding:20px 22px}
+.nav .logo{font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.03em}.nav .logo b{color:var(--neon)}
+.nav .cta{background:var(--neon);color:#03130a;font-weight:600;font-size:13px;border-radius:9px;padding:8px 16px}
+.nav .cta:hover{text-decoration:none;filter:brightness(1.1)}
+main{max-width:820px;margin:0 auto;padding:30px 22px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
+.crumb a{color:var(--ink3)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.03em;margin-bottom:10px}
+h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
+.meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:30px}
+h2{font-size:21px;letter-spacing:-.02em;margin:36px 0 12px}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{color:var(--ink2);font-size:15.5px}
+p{margin-bottom:14px}
+ul,ol{margin:0 0 14px 22px}
+li{margin-bottom:8px}
+b,strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:18px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;color:var(--ink2)}
+th{color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:26px;text-align:center;margin-top:40px}
+.cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:12px 26px;margin-top:12px}
+.cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
+<main>
+<div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
+<h1>Locking tokens launched on <span class="serif">Openfair.</span></h1>
+<div class="meta">Published 2026-07-28 · HoodLock Team</div>
+<p>Openfair gives you two launch shapes: a bonding-curve fair launch, or an instant Uniswap v3 listing.
+Both come with immutable auto-verified contracts and permanent liquidity locking, plus optional
+anti-snipe protection and buy/sell fees you set anywhere from 0% to 10%. Creation costs a flat
+0.0005 ETH plus gas.</p>
+
+<h2>Auto-verification is worth more than it sounds</h2>
+<p>Openfair verifies the contract automatically. An unverified contract makes every other check
+impossible — nobody outside the team can read the transfer logic, the supply cap, or who holds
+privileged functions — so having it done at launch removes a red flag most launches carry for days.
+<a href="/blog/how-to-verify-a-token-contract-on-blockscout">What verification actually proves</a>.</p>
+
+<h2>The fee wallet is the part that accumulates</h2>
+<p>If you set a buy or sell fee, that revenue collects somewhere. A fee wallet filling up with your own
+token is a growing balance in an ordinary address, and it reads to a holder exactly like any other
+unlocked supply — arguably worse, because it grows with volume rather than sitting still.</p>
+<p>Locking or vesting accumulated fee revenue is uncommon, which is precisely why doing it is legible.
+It converts "the team takes a fee" into "the team takes a fee and it's committed until a date".</p>
+
+<h2>And whatever you bought</h2>
+<p>On the curve or from the instant pool, a creator buy sits in a wallet like anyone else's.
+<a href="/blog/how-to-read-token-holder-distribution">The holder list shows it</a>.</p>
+
+<h2>Doing it</h2>
+<ol>
+<li>Copy your token's contract address from its page on Openfair.</li>
+<li>Open <a href="/app/locks">HoodLock</a> with the wallet holding the tokens.</li>
+<li>Pick the token, the amount and a date. For vesting, add the beneficiary and an optional cliff.</li>
+<li>Approve, confirm, and share the proof link.</li>
+</ol>
+<p>Flat 0.005 ETH either way, no percentage of the tokens, and a proof page that reads live from the
+chain and opens without a wallet.</p>
+<h2>Common questions</h2>
+<h3>Does Openfair lock liquidity?</h3>
+<p>Yes — Openfair advertises permanent liquidity locking on both its bonding-curve launches and its instant Uniswap V3 listings, alongside immutable auto-verified contracts.</p>
+<h3>What happens to fees collected on an Openfair token?</h3>
+<p>They accumulate in the fee wallet you nominated. That balance sits in an ordinary address and grows with trading volume, which makes it visible on the holder list like any other unlocked supply.</p>
+<h3>Can I lock fee revenue with HoodLock?</h3>
+<p>Yes. Fee revenue in your own token is an ERC-20 balance like any other, so it can be locked until a date or vested gradually, each with a public proof page.</p>
+
+<h2>Keep reading</h2>
+<ul>
+<li><a href="/blog/how-to-verify-a-token-contract-on-blockscout">How to read a token contract on Blockscout</a></li>
+<li><a href="/blog/lock-tokens-launched-on-hood-fun">Locking tokens launched on hood.fun</a></li>
+<li><a href="/blog/locking-treasury-and-ecosystem-funds">Locking treasury and ecosystem funds</a></li>
+<li><a href="/blog/how-to-read-token-holder-distribution">Reading holder distribution on Robinhood Chain</a></li>
+</ul>
+
+<div class="cta-box">
+  <h2 style="margin-top:0">Lock it, share the proof</h2>
+  <p>Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.</p>
+  <a class="btn" href="/app/locks">Lock tokens →</a>
+</div>
+<p class="dim" style="font-size:12.5px;color:var(--ink3);border-top:1px solid var(--line);margin-top:30px;padding-top:14px">
+HoodLock is not affiliated with Openfair or with Robinhood Markets, Inc. Platform mechanics described
+here come from Openfair's own published material and change over time — verify them at
+<a href="https://openfair.app" target="_blank" rel="noopener">openfair.app</a> and on-chain before relying on them.</p>
+</main>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

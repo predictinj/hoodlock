@@ -1380,6 +1380,18 @@ app.get("/sitemap.xml", async (_req, res) => {
       ["/blog/what-is-a-token-unlock-schedule", "monthly", "0.6"],
       ["/blog/lock-dev-tokens-after-a-pons-launch", "monthly", "0.8"],
       ["/blog/lock-creator-tokens-after-a-fendex-launch", "monthly", "0.6"],
+      // Per-launchpad pages. Priority tracks how much of the launchpad's own
+      // model leaves something for us to lock — Hood Launcher's Classic route
+      // hands the creator withdrawable LP, which is the strongest case on chain.
+      ["/blog/lock-lp-tokens-from-a-hood-launcher-classic-launch", "monthly", "0.8"],
+      ["/blog/lock-tokens-launched-on-hood-fun", "monthly", "0.7"],
+      ["/blog/lock-tokens-launched-on-robinfun", "monthly", "0.7"],
+      ["/blog/lock-tokens-launched-on-robinlaunch", "monthly", "0.7"],
+      ["/blog/vesting-alongside-a-bankr-launch", "monthly", "0.7"],
+      ["/blog/lock-tokens-launched-on-lemon-fun", "monthly", "0.6"],
+      ["/blog/lock-tokens-launched-on-openfair", "monthly", "0.6"],
+      ["/blog/lock-tokens-launched-on-metalaunch", "monthly", "0.6"],
+      ["/blog/lock-tokens-launched-on-arrowpad", "monthly", "0.6"],
     ];
     const parts = statics.map(([p, cf, pr]) =>
       `  <url><loc>https://hoodlock.tech${p}</loc><lastmod>${today}</lastmod><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`);
