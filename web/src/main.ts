@@ -134,10 +134,13 @@ function loadTokenPages(): Promise<void> {
   }
   return tokenPagesPromise;
 }
-/** Wrap a token's symbol in a link to its page, when it has one. */
-function tokenLink(addr: string, inner: string): string {
+/** A quiet line under a proof card pointing at the token's own page. Only
+    rendered when that page exists — a link to nothing helps nobody. */
+function tokenPageLine(addr: string, symbol: string): string {
   const slug = tokenPageSlugs?.[String(addr).toLowerCase()];
-  return slug ? `<a href="/token/${slug}" class="tk-link">${inner}</a>` : inner;
+  if (!slug) return "";
+  return `<div class="p-tokline">Holders, supply and every HoodLock record for `
+    + `<a href="/token/${slug}">$${escape(symbol)}</a></div>`;
 }
 
 async function tokenIcoHTML(addr: string, symbol: string): Promise<string> {
@@ -979,7 +982,7 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
     const tvl = v !== null && v > 0 ? fmtUsd(v) : "—";
     return `<tr data-proof="${l.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(l.token, m.symbol)}
-      <div><div class="n">${tokenLink(l.token, "$" + sym)} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
+      <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
     <td>${fmtNum(l.amount, m.decimals)}</td>
     <td>${dateLabel(l.unlockTime)}</td>
     <td>${tvl}</td>
@@ -988,7 +991,7 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
   }
   return `<tr data-proof="${l.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(l.token, m.symbol)}
-      <div><div class="n">${tokenLink(l.token, "$" + sym)} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
+      <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
     <td>${fmtNum(l.amount, m.decimals)}</td>
     <td class="addr">${short(l.owner)}</td>
     <td>${dateLabel(l.unlockTime)}</td>
@@ -1033,7 +1036,7 @@ async function burnRowHTML(b: BurnRow, variant: "mine" | "explore" = "mine"): Pr
     const tvl = v !== null && v > 0 ? fmtUsd(v) : "—";
     return `<tr data-proofburn="${b.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(b.token, m2.symbol)}
-      <div><div class="n">${tokenLink(b.token, "$" + sym)} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
+      <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
     <td>${fmtNum(b.amount, m2.decimals)}</td>
     <td>${dateLabel(b.timestamp)}</td>
     <td>${tvl}</td>
@@ -1042,7 +1045,7 @@ async function burnRowHTML(b: BurnRow, variant: "mine" | "explore" = "mine"): Pr
   }
   return `<tr data-proofburn="${b.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(b.token, m2.symbol)}
-      <div><div class="n">${tokenLink(b.token, "$" + sym)} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
+      <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
     <td>${fmtNum(b.amount, m2.decimals)}</td>
     <td class="addr">${short(b.burner)}</td>
     <td>${dateLabel(b.timestamp)}</td>
@@ -1233,6 +1236,7 @@ $("searchAddr").addEventListener("keydown", (e) => { if ((e as KeyboardEvent).ke
 
 /* ---------- shareable proof (/proof/lock/<id>) — works without a wallet ---------- */
 async function showLockProof(id: number, push = true) {
+  loadTokenPages();
   go("proof");
   if (push) history.pushState(null, "", `/proof/lock/${id}`);
   else history.replaceState(null, "", `/proof/lock/${id}`);
@@ -1266,6 +1270,7 @@ async function showLockProof(id: number, push = true) {
         <button class="btn btn-line" id="proofCopy">Copy proof link</button>
       </div>
     </div>
+    ${tokenPageLine(l.token, m.symbol)}
     <a class="p-back" href="/app">← Open HoodLock</a>`;
   $("proofCopy").addEventListener("click", async () => {
     const url = `${location.origin}/proof/lock/${id}`;
@@ -1275,6 +1280,7 @@ async function showLockProof(id: number, push = true) {
 
 /* ---------- shareable burn proof (/proof/burn/<id>) — works without a wallet ---------- */
 async function showBurnProof(id: number, push = true) {
+  loadTokenPages();
   go("proof");
   $("viewTitle").textContent = "BURN PROOF";
   if (push) history.pushState(null, "", `/proof/burn/${id}`);
@@ -1306,6 +1312,7 @@ async function showBurnProof(id: number, push = true) {
         <button class="btn btn-line" id="proofCopy">Copy proof link</button>
       </div>
     </div>
+    ${tokenPageLine(b.token, m2.symbol)}
     <a class="p-back" href="/app">← Open HoodLock</a>`;
   $("proofCopy").addEventListener("click", async () => {
     const url = `${location.origin}/proof/burn/${id}`;
@@ -1425,7 +1432,7 @@ async function affLocksTable(me: any): Promise<string> {
     const ts = l.ts || await blockTs(l.block);
     if (ts === null || ts <= (attrMap.get(l.owner.toLowerCase()) as number)) continue;
     const mt = await tokMeta(l.token);
-    rows.push(`<tr><td><div class="tk-cell">${await tokenIcoHTML(l.token, mt.symbol)}<div><div class="n">${tokenLink(l.token, "$" + escape(mt.symbol))} <span class="tag">#${l.id}</span></div><div class="a">${short(l.owner)}</div></div></div></td>
+    rows.push(`<tr><td><div class="tk-cell">${await tokenIcoHTML(l.token, mt.symbol)}<div><div class="n">$${escape(mt.symbol)} <span class="tag">#${l.id}</span></div><div class="a">${short(l.owner)}</div></div></div></td>
       <td>${fmtNum(l.amount, mt.decimals)}</td><td>${dateLabel(ts)}</td><td>${me.feeEth} ETH</td>
       <td style="text-align:right;color:var(--neon)">+${cut.toFixed(4)} ETH</td></tr>`);
   }
@@ -2466,7 +2473,7 @@ async function vestExploreRowHTML(v: VestRow): Promise<string> {
   const tvl = usd !== null && usd > 0 ? fmtUsd(usd) : "—";
   return `<tr>
     <td><div class="tk-cell">${await tokenIcoHTML(v.token, m.symbol)}
-      <div><div class="n">${tokenLink(v.token, "$" + escape(m.symbol))} <span class="tag">VESTING #${v.id}</span></div><div class="a">${short(v.token)}</div></div></div></td>
+      <div><div class="n">$${escape(m.symbol)} <span class="tag">VESTING #${v.id}</span></div><div class="a">${short(v.token)}</div></div></div></td>
     <td>${fmtNum(v.total, m.decimals)}</td>
     <td>${v.claimed >= v.total ? "100%" : claimedPct.toFixed(1) + "%"} claimed</td>
     <td>${tvl}</td>
@@ -2591,6 +2598,7 @@ function loadVestingView() {
 
 /* ---------- shareable vesting proof (/proof/vesting/<id>) — works without a wallet ---------- */
 async function showVestingProof(id: number, push = true) {
+  loadTokenPages();
   go("proof");
   $("viewTitle").textContent = "VESTING PROOF";
   if (push) history.pushState(null, "", `/proof/vesting/${id}`);
@@ -2645,6 +2653,7 @@ async function showVestingProof(id: number, push = true) {
         <button class="btn btn-line" id="vProofCopy">Copy proof link</button>
       </div>
     </div>
+    ${tokenPageLine(v.token, m.symbol)}
     <a class="p-back" href="/app/vesting">← Open HoodLock Vesting</a>`;
   $("vProofCopy").addEventListener("click", async () => {
     const url = `${location.origin}/proof/vesting/${id}`;
