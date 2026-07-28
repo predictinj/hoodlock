@@ -993,7 +993,7 @@ ${meta.heading ? `<noscript><h1>${esc(meta.heading)}</h1><p>${esc(meta.desc)}</p
   }
   html = html
     .replace("</head>", head + "\n</head>");
-  res.type("html").send(html);
+  res.type("html").set("Cache-Control", HTML_CACHE).send(html);
 }
 
 /** Proof pages: one WebPage record describing that specific lock/burn/vest. */
@@ -1244,7 +1244,16 @@ function relatedTokens(address, n = 6) {
 function next404(res) { res.status(404); return send(res, "404.html"); }
 
 /* ---------- static site with the same rewrites as serve.json ---------- */
-const send = (res, file) => res.sendFile(join(PUBLIC, file));
+/* HTML must be revalidated on every view. It names the hashed asset bundle, and
+   those are served immutable for a year — so an HTML response a browser is free
+   to reuse pins that browser to whatever build it first saw, permanently. With
+   no Cache-Control at all browsers fall back to heuristic caching, which mobile
+   Safari/Chrome apply aggressively; that is how a phone kept serving a build
+   from before vesting existed while desktop had long since moved on.
+   "no-cache" still allows the cache — it just forces revalidation, and the ETag
+   turns that into a 304. */
+const HTML_CACHE = "no-cache";
+const send = (res, file) => res.set("Cache-Control", HTML_CACHE).sendFile(join(PUBLIC, file));
 app.get("/", (_req, res) => send(res, "index.html"));
 /* Clean proof URLs. The legacy ?lock=/?burn=/?vesting= links are already out
    in the wild (shared by projects, embedded by partners), so they 301 here
@@ -1426,7 +1435,7 @@ app.get("/blog/:slug", (req, res) => {
   if (!/^[a-z0-9-]+$/.test(slug)) { res.status(404); return send(res, "404.html"); } // no path traversal
   const f = join(PUBLIC, "blog", slug + ".html");
   if (!existsSync(f)) { res.status(404); return send(res, "404.html"); }
-  return res.sendFile(f);
+  return res.set("Cache-Control", HTML_CACHE).sendFile(f);
 });
 
 /* Unknown API routes fell through to the SPA catch-all and answered 200 with
@@ -1439,7 +1448,10 @@ app.use("/api", (_req, res) => res.status(404).json({ error: "not found" }));
 app.use("/assets", express.static(join(PUBLIC, "assets"), {
   immutable: true, maxAge: "365d", fallthrough: false,
 }));
-app.use(express.static(PUBLIC, { extensions: ["html"] }));
+app.use(express.static(PUBLIC, {
+  extensions: ["html"],
+  setHeaders: (res, p) => { if (p.endsWith(".html")) res.set("Cache-Control", HTML_CACHE); },
+}));
 
 /* Unknown paths used to render the landing page with a 200, which reads to a
    crawler as a real page and to a browser as "this URL exists". Serve the app
