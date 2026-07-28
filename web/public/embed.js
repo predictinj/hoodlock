@@ -5,6 +5,8 @@
  *   <button data-hoodlock data-mode="vesting" data-token="0x…"
  *           data-beneficiary="0x…">Create vesting</button>
  * or call window.HoodLock.open({ mode, token, unlockTime, beneficiary }).
+ * A "Secured by HoodLock" line is added once per page; set data-attribution="off"
+ * on the script tag to leave it out.
  * Opens the matching HoodLock UI in a modal iframe and relays events back. */
 (function () {
   "use strict";
@@ -78,8 +80,34 @@
     else if (d.type === "connected") { emit("connected", d); }
   });
 
+  /* A real link on the partner's own page — the script tag, the button and the
+   * iframe are all invisible to a search engine, so without this an integration
+   * leaves no trace. Rendered once per page, inheriting the surrounding colour
+   * so it sits inside their design rather than on top of it. Partners who don't
+   * want it set data-attribution="off" on the script tag. */
+  var attributionDone = false;
+  function addAttribution(afterEl) {
+    if (attributionDone) return;
+    if (self && self.getAttribute("data-attribution") === "off") return;
+    if (!afterEl || !afterEl.parentNode) return;
+    if (document.querySelector(".hoodlock-attribution")) { attributionDone = true; return; }
+    attributionDone = true;
+    var wrap = document.createElement("div");
+    wrap.className = "hoodlock-attribution";
+    wrap.style.cssText = "margin-top:8px;font-size:12px;line-height:1.5;opacity:.72";
+    var a = document.createElement("a");
+    a.href = "https://hoodlock.tech";
+    a.target = "_blank";
+    a.rel = "noopener";           // deliberately NOT nofollow
+    a.textContent = "Secured by HoodLock";
+    a.style.cssText = "color:inherit;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px";
+    wrap.appendChild(a);
+    afterEl.parentNode.insertBefore(wrap, afterEl.nextSibling);
+  }
+
   function wire() {
     var btns = document.querySelectorAll("[data-hoodlock]:not([data-hoodlock-wired])");
+    var last = btns.length ? btns[btns.length - 1] : null;
     for (var i = 0; i < btns.length; i++) (function (btn) {
       btn.setAttribute("data-hoodlock-wired", "1");
       btn.addEventListener("click", function (ev) {
@@ -92,6 +120,7 @@
         });
       });
     })(btns[i]);
+    if (last) addAttribution(last);
   }
 
   var API = { open: open, close: close, on: on, wire: wire, __ready: true };
