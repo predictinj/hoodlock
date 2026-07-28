@@ -2471,7 +2471,7 @@ async function vestExploreRowHTML(v: VestRow): Promise<string> {
   const unclaimed = v.total - v.claimed;
   const usd = unclaimed > 0n ? await amountValueUsd(pub as any, v.token as `0x${string}`, unclaimed, m.decimals).catch(() => null) : null;
   const tvl = usd !== null && usd > 0 ? fmtUsd(usd) : "—";
-  return `<tr>
+  return `<tr data-proofvest="${v.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(v.token, m.symbol)}
       <div><div class="n">$${escape(m.symbol)} <span class="tag">VESTING #${v.id}</span></div><div class="a">${short(v.token)}</div></div></div></td>
     <td>${fmtNum(v.total, m.decimals)}</td>
@@ -2542,7 +2542,15 @@ function wireVestActions(root: HTMLElement) {
     } catch (e: any) { alert(friendlyErr(e)); b.removeAttribute("disabled"); }
   }));
   root.querySelectorAll<HTMLElement>("[data-vmove]").forEach((b) => b.addEventListener("click", () => openVMoveModal(Number(b.dataset.vmove))));
-  root.querySelectorAll<HTMLElement>("[data-vproof]").forEach((b) => b.addEventListener("click", () => showVestingProof(Number(b.dataset.vproof))));
+  root.querySelectorAll<HTMLElement>("[data-vproof]").forEach((b) => b.addEventListener("click", (e) => {
+    e.stopPropagation();   // the row handles this too; don't open it twice
+    showVestingProof(Number(b.dataset.vproof));
+  }));
+  // Vesting rows in Explore looked clickable — the shared row style sets a
+  // pointer cursor — but only the small Proof button did anything, so a click
+  // anywhere else silently did nothing.
+  root.querySelectorAll<HTMLElement>("[data-proofvest]").forEach((tr) =>
+    tr.addEventListener("click", () => showVestingProof(Number(tr.dataset.proofvest))));
 }
 
 /* move modal — themed replacement for the old prompt() */
