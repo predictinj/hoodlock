@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
 
+# JSON endpoints — nothing to index, and they carry X-Robots-Tag: noindex too.
+Disallow: /api/
+
+# Affiliate links resolve to an interstitial that carries noindex itself;
+# left crawlable so that directive is actually read.
+
 Sitemap: https://hoodlock.tech/sitemap.xml

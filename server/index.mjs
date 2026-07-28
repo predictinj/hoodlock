@@ -347,6 +347,10 @@ app.get("/r/:code", (req, res) => {
   const destAttr = dest.replace(/"/g, "&quot;");
   res.set("Cache-Control", "no-store").status(200).send(`<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- One URL per affiliate code, all showing the same interstitial. Indexed,
+     that is unbounded duplicate content competing with the real pages. follow
+     is kept so the link through to the app still counts. -->
+<meta name="robots" content="noindex,follow">
 <title>HoodLock</title>
 <meta property="og:site_name" content="HoodLock">
 <meta property="og:type" content="website">
@@ -626,6 +630,13 @@ app.post("/api/dev/register", (req, res) => {
    frontend — so these endpoints have to be callable from their origin. The
    docs tell integrators to call /api/dev/attribute when a user connects, and
    without this the browser blocks exactly that. */
+/* JSON can't carry a meta tag, so the header does it. Nothing links to these
+   as content, but Google will index a URL it can fetch. */
+app.use("/api", (_req, res, next) => {
+  res.set("X-Robots-Tag", "noindex");
+  next();
+});
+
 app.use("/api/dev", (req, res, next) => {
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Headers", "Content-Type");
