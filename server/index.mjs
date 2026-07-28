@@ -1367,6 +1367,7 @@ app.get("/sitemap.xml", async (_req, res) => {
       ["/blog/circulating-vs-total-supply", "monthly", "0.6"],
       ["/blog/custodial-vs-non-custodial-locking", "monthly", "0.6"],
       ["/blog/what-is-a-token-unlock-schedule", "monthly", "0.6"],
+      ["/blog/lock-dev-tokens-after-a-pons-launch", "monthly", "0.8"],
     ];
     const parts = statics.map(([p, cf, pr]) =>
       `  <url><loc>https://hoodlock.tech${p}</loc><lastmod>${today}</lastmod><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`);
