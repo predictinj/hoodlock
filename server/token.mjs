@@ -229,6 +229,10 @@ ${noindex ? '<meta name="robots" content="noindex">' : ""}
 <meta property="og:site_name" content="HoodLock"><meta property="og:type" content="website">
 <meta property="og:title" content="${title}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${url}">
+<meta property="og:image" content="${site}/og/token/${esc(String(d.address).toLowerCase())}.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${esc(d.symbol)} on Robinhood Chain — locks, burns and vesting">
+<meta name="twitter:image" content="${site}/og/token/${esc(String(d.address).toLowerCase())}.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -321,6 +325,9 @@ ${recRow("Vesting", d.recs.vesting, "vesting", (r) => `${fmtUnits(r.total, d.dec
   ${d.website ? `<a href="${esc(d.website)}" target="_blank" rel="noopener">Project site ↗</a>` : ""}
   ${d.twitter ? `<a href="${esc(d.twitter)}" target="_blank" rel="noopener">X ↗</a>` : ""}
 </div>
+
+${d.related?.length ? `<h2>Other tokens on Robinhood Chain</h2>
+<div class="links">${d.related.map((r) => `<a href="${site}/token/${esc(r.slug)}">$${esc(r.symbol)}</a>`).join("")}</div>` : ""}
 
 <h2>Common questions</h2>
 ${faqList.map(([q, a]) => `<h3>${esc(q)}</h3>\n<p>${a}</p>`).join("\n")}

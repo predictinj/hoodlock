@@ -916,6 +916,37 @@ app.get("/api/logs/:address", async (req, res) => {
 /* Share card for a proof page. Rendered from the same chain data the page
    shows, cached in memory, and immutable per (kind,id) — the numbers on a
    lock don't change, so crawlers and X can cache it hard. */
+/* Share card for a token page, built from the same data the page shows. */
+app.get("/og/token/:address.png", async (req, res) => {
+  const addr = String(req.params.address || "").toLowerCase();
+  if (!/^0x[0-9a-f]{40}$/.test(addr)) return res.status(404).end();
+  try {
+    const hit = tokenCache.get(addr);
+    if (!hit) return res.status(404).end();   // only cards for pages we've built
+    const d = withRecords(hit.meta, await tokenIndex.get(addr));
+    const locked = d.activeLocks.length;
+    const png = ogPng(`token:${addr}:${locked}`, {
+      kind: "token",
+      symbol: d.symbol,
+      amount: "",
+      line2: locked
+        ? `${locked} active HoodLock lock${locked > 1 ? "s" : ""}`
+        : "No HoodLock lock found",
+      pct: null,
+      stats: [
+        `${Number(d.holders).toLocaleString("en-US")} HOLDERS`,
+        d.topWalletsPct != null ? `TOP 10 WALLETS ${d.topWalletsPct}%` : null,
+        d.recs.vesting.length ? `${d.recs.vesting.length} VESTING` : null,
+        d.recs.burns.length ? `${d.recs.burns.length} BURNS` : null,
+      ].filter(Boolean).join("   ·   "),
+    });
+    if (!png) return res.status(503).end();
+    res.set("Content-Type", "image/png");
+    res.set("Cache-Control", "public, max-age=1800");
+    return res.end(png);
+  } catch { return res.status(404).end(); }
+});
+
 app.get("/og/:kind/:id.png", async (req, res) => {
   const { kind, id } = req.params;
   if (!["lock", "burn", "vesting"].includes(kind) || !/^\d{1,9}$/.test(id)) {
@@ -971,6 +1002,15 @@ async function refreshTokenPages() {
   for (const r of rows) {
     if (r.pass) {
       pass++;
+      // A slug without the ticker ranks for nothing, so when DexScreener had
+      // no pair to read the symbol from, ask the explorer before falling back.
+      if (!r.symbol) {
+        try {
+          const t = await (await fetch(`${cfg.explorer}/api/v2/tokens/${r.address}`,
+            { headers: { "User-Agent": "Mozilla/5.0 (compatible; HoodLock/1.0)" } })).json();
+          if (t?.symbol) r.symbol = t.symbol;
+        } catch { /* keep the generic slug */ }
+      }
       up.run({ address: r.address, symbol: r.symbol || null, slug: slugFor(r.symbol, r.address),
         now, liquidity: r.liquidityUsd || 0, volume24: r.volume24 || 0, holders: r.holders ?? null });
     } else if (isPublished(r.address)) {
@@ -982,20 +1022,47 @@ async function refreshTokenPages() {
   return { pass, total: rows.length, live };
 }
 
-/** Fetch each published page once so the first visitor never pays for it. */
-async function warmTokenPages() {
+/**
+ * Fetch each published page once so the first visitor never pays the
+ * explorer's latency. Paced and retried: at 400ms the first run only got about
+ * half of them, because Blockscout starts refusing rather than slowing down.
+ */
+async function warmTokenPages({ pauseMs = 900, rounds = 2 } = {}) {
   const list = publishedTokens();
-  let ok = 0;
-  for (const t of list) {
-    try {
-      const recs = await tokenIndex.get(t.address);
-      const d = await tokenData({ address: t.address, explorer: cfg.explorer, recs });
-      if (d) { tokenCache.set(t.address, { at: Date.now(), meta: d }); ok++; }
-    } catch { /* skip; the page still renders on demand */ }
-    await new Promise((r) => setTimeout(r, 400)); // paced, so the explorer doesn't throttle us
+  let todo = list.map((t) => t.address);
+  for (let round = 1; round <= rounds && todo.length; round++) {
+    const failed = [];
+    for (const addr of todo) {
+      if (tokenCache.has(addr) && Date.now() - tokenCache.get(addr).at < 60 * 60_000) continue;
+      try {
+        const recs = await tokenIndex.get(addr);
+        const d = await tokenData({ address: addr, explorer: cfg.explorer, recs });
+        if (d) tokenCache.set(addr, { at: Date.now(), meta: d });
+        else failed.push(addr);
+      } catch { failed.push(addr); }
+      await new Promise((r) => setTimeout(r, pauseMs));
+    }
+    const warm = list.filter((t) => tokenCache.has(t.address)).length;
+    console.log(`[hoodlock] token pages warm after round ${round}: ${warm}/${list.length}`);
+    if (!failed.length) break;
+    todo = failed;
+    pauseMs = Math.round(pauseMs * 1.8); // back off rather than hammer
   }
-  console.log(`[hoodlock] token pages warm: ${ok}/${list.length}`);
 }
+
+/* The published slugs, so the app can link straight to a token page instead of
+   bouncing every visitor through a redirect. Small, public, cached hard. */
+let tokenListCache = { at: 0, body: null };
+app.get("/api/token-pages", (_req, res) => {
+  if (Date.now() - tokenListCache.at < 5 * 60_000 && tokenListCache.body) {
+    return res.type("json").send(tokenListCache.body);
+  }
+  const rows = publishedTokens();
+  const body = JSON.stringify({ tokens: Object.fromEntries(rows.map((t) => [t.address, t.slug])) });
+  tokenListCache = { at: Date.now(), body };
+  res.set("Cache-Control", "public, max-age=300");
+  res.type("json").send(body);
+});
 
 /* Token pages. Indexable only once the gate has passed the token; everything
    else resolves but carries noindex. */
@@ -1032,6 +1099,9 @@ app.get("/token/:slug", async (req, res) => {
     const pub_ = isPublished(addr);
     const canonicalSlug = pub_?.slug || slug;
     if (pub_ && canonicalSlug !== slug) return res.redirect(301, `/token/${canonicalSlug}`);
+    // A handful of neighbours by liquidity, so the pages form a graph Google
+    // can crawl rather than 128 unconnected leaves.
+    d.related = relatedTokens(addr);
     res.set("Cache-Control", "public, max-age=30");
     return res.type("html").send(renderTokenPage(d, {
       slug: canonicalSlug, noindex: !pub_ || pub_.misses >= 3,
@@ -1041,6 +1111,17 @@ app.get("/token/:slug", async (req, res) => {
     return next404(res);
   }
 });
+
+/** Nearest published tokens by liquidity — a stable, non-arbitrary ordering. */
+function relatedTokens(address, n = 6) {
+  if (!db) return [];
+  try {
+    return db.prepare(`SELECT symbol, slug FROM token_pages
+      WHERE misses < 3 AND address != ? AND symbol IS NOT NULL
+      ORDER BY ABS(liquidity - COALESCE((SELECT liquidity FROM token_pages WHERE address = ?), 0))
+      LIMIT ?`).all(address, address, n);
+  } catch { return []; }
+}
 
 function next404(res) { res.status(404); return send(res, "404.html"); }
 

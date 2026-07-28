@@ -120,6 +120,26 @@ function tokenLogo(addr: string): Promise<string | null> {
 }
 /** token-ico-span: officiell logga om den finns, annars bokstavsavatar (och
  *  bokstäverna ligger kvar bakom — trasig bild avslöjar dem via onerror). */
+/* Token pages exist only for tokens that cleared the gate, so the app asks
+   which ones before linking — an internal link to a noindex page helps nobody,
+   and bouncing every visitor through a redirect helps less. */
+let tokenPageSlugs: Record<string, string> | null = null;
+let tokenPagesPromise: Promise<void> | null = null;
+function loadTokenPages(): Promise<void> {
+  if (!tokenPagesPromise) {
+    tokenPagesPromise = fetch("/api/token-pages")
+      .then((r) => (r.ok ? r.json() : { tokens: {} }))
+      .then((d) => { tokenPageSlugs = d.tokens || {}; })
+      .catch(() => { tokenPageSlugs = {}; });
+  }
+  return tokenPagesPromise;
+}
+/** Wrap a token's symbol in a link to its page, when it has one. */
+function tokenLink(addr: string, inner: string): string {
+  const slug = tokenPageSlugs?.[String(addr).toLowerCase()];
+  return slug ? `<a href="/token/${slug}" class="tk-link">${inner}</a>` : inner;
+}
+
 async function tokenIcoHTML(addr: string, symbol: string): Promise<string> {
   const letters = escape(symbol.slice(0, 2).toUpperCase());
   const logo = await tokenLogo(addr);
@@ -164,7 +184,7 @@ function go(view: string, writeHistory = true) {
   document.querySelectorAll<HTMLElement>(".nav-item").forEach((n) => n.classList.toggle("active", n.dataset.view === view));
   $("viewTitle").textContent = TITLES[view] || view.toUpperCase();
   if (view !== "proof" && writeHistory) { history.replaceState(null, "", "/app/" + view); }
-  if (view === "explore" && !exploreLoaded) loadExplore();
+  if (view === "explore" && !exploreLoaded) { loadTokenPages(); loadExplore(); }
   if (view === "locks") renderMine();
   if (view === "vesting") loadVestingView();
   if (view === "admin") loadAdmin();
@@ -959,7 +979,7 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
     const tvl = v !== null && v > 0 ? fmtUsd(v) : "—";
     return `<tr data-proof="${l.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(l.token, m.symbol)}
-      <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
+      <div><div class="n">${tokenLink(l.token, "$" + sym)} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
     <td>${fmtNum(l.amount, m.decimals)}</td>
     <td>${dateLabel(l.unlockTime)}</td>
     <td>${tvl}</td>
@@ -968,7 +988,7 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
   }
   return `<tr data-proof="${l.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(l.token, m.symbol)}
-      <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
+      <div><div class="n">${tokenLink(l.token, "$" + sym)} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
     <td>${fmtNum(l.amount, m.decimals)}</td>
     <td class="addr">${short(l.owner)}</td>
     <td>${dateLabel(l.unlockTime)}</td>
@@ -1013,7 +1033,7 @@ async function burnRowHTML(b: BurnRow, variant: "mine" | "explore" = "mine"): Pr
     const tvl = v !== null && v > 0 ? fmtUsd(v) : "—";
     return `<tr data-proofburn="${b.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(b.token, m2.symbol)}
-      <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
+      <div><div class="n">${tokenLink(b.token, "$" + sym)} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
     <td>${fmtNum(b.amount, m2.decimals)}</td>
     <td>${dateLabel(b.timestamp)}</td>
     <td>${tvl}</td>
@@ -1022,7 +1042,7 @@ async function burnRowHTML(b: BurnRow, variant: "mine" | "explore" = "mine"): Pr
   }
   return `<tr data-proofburn="${b.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(b.token, m2.symbol)}
-      <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
+      <div><div class="n">${tokenLink(b.token, "$" + sym)} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
     <td>${fmtNum(b.amount, m2.decimals)}</td>
     <td class="addr">${short(b.burner)}</td>
     <td>${dateLabel(b.timestamp)}</td>
@@ -1405,7 +1425,7 @@ async function affLocksTable(me: any): Promise<string> {
     const ts = l.ts || await blockTs(l.block);
     if (ts === null || ts <= (attrMap.get(l.owner.toLowerCase()) as number)) continue;
     const mt = await tokMeta(l.token);
-    rows.push(`<tr><td><div class="tk-cell">${await tokenIcoHTML(l.token, mt.symbol)}<div><div class="n">$${escape(mt.symbol)} <span class="tag">#${l.id}</span></div><div class="a">${short(l.owner)}</div></div></div></td>
+    rows.push(`<tr><td><div class="tk-cell">${await tokenIcoHTML(l.token, mt.symbol)}<div><div class="n">${tokenLink(l.token, "$" + escape(mt.symbol))} <span class="tag">#${l.id}</span></div><div class="a">${short(l.owner)}</div></div></div></td>
       <td>${fmtNum(l.amount, mt.decimals)}</td><td>${dateLabel(ts)}</td><td>${me.feeEth} ETH</td>
       <td style="text-align:right;color:var(--neon)">+${cut.toFixed(4)} ETH</td></tr>`);
   }
@@ -2446,7 +2466,7 @@ async function vestExploreRowHTML(v: VestRow): Promise<string> {
   const tvl = usd !== null && usd > 0 ? fmtUsd(usd) : "—";
   return `<tr>
     <td><div class="tk-cell">${await tokenIcoHTML(v.token, m.symbol)}
-      <div><div class="n">$${escape(m.symbol)} <span class="tag">VESTING #${v.id}</span></div><div class="a">${short(v.token)}</div></div></div></td>
+      <div><div class="n">${tokenLink(v.token, "$" + escape(m.symbol))} <span class="tag">VESTING #${v.id}</span></div><div class="a">${short(v.token)}</div></div></div></td>
     <td>${fmtNum(v.total, m.decimals)}</td>
     <td>${v.claimed >= v.total ? "100%" : claimedPct.toFixed(1) + "%"} claimed</td>
     <td>${tvl}</td>

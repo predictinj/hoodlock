@@ -31,6 +31,10 @@ const KIND = {
   lock:    { eyebrow: "TOKEN LOCK",       accent: NEON,      verb: "LOCKED" },
   burn:    { eyebrow: "PROOF OF BURN",    accent: "#ff6b6b", verb: "BURNED FOREVER" },
   vesting: { eyebrow: "VESTING SCHEDULE", accent: "#f5b731", verb: "VESTING" },
+  // A token page answers "is this locked?", so its card leads with the answer
+  // rather than an amount — and stays neutral when the answer is no, because
+  // the card is about a project we may have no relationship with.
+  token:   { eyebrow: "TOKEN ON ROBINHOOD CHAIN", accent: NEON, verb: "" },
 };
 
 const esc = (s) => String(s ?? "")
@@ -95,6 +99,9 @@ export function ogSvg(card) {
 
   ${meta ? `<text x="80" y="462" font-family="${FONTS}" font-size="18" letter-spacing="2.4"
         fill="${INK3}">${meta}</text>` : ""}
+
+  ${card.kind === "token" && card.stats ? `<text x="80" y="500" font-family="${FONTS}" font-size="18"
+        letter-spacing="1.6" fill="${INK3}">${esc(card.stats)}</text>` : ""}
 
   <!-- footer -->
   <rect x="80" y="524" width="${W - 160}" height="1" fill="rgba(255,255,255,.09)"/>
