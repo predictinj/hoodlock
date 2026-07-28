@@ -1167,13 +1167,20 @@ $("extendConfirm").addEventListener("click", async () => {
 let exploreLoaded = false;
 // Merge locks + burns into ONE explore table, newest first (burns show exactly like
 // locks — same columns, sorted by creation time alongside them).
-async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], limit = 25): Promise<string> {
-  const lockItems = await Promise.all(lockRows.map(async (l) => {
-    const ts = (await lockedAtTs(l.id)) ?? 0;
-    return { ts, render: () => lockRowHTML(l, false, "explore") };
-  }));
+/* One list, newest first. Vesting used to be rendered above the sorted rows
+   rather than inside them, so a schedule created weeks ago sat above a lock
+   from this morning. */
+async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], vestRows: VestRow[] = [], limit = 25): Promise<string> {
+  const [lockItems, vestItems] = await Promise.all([
+    Promise.all(lockRows.map(async (l) => ({
+      ts: (await lockedAtTs(l.id)) ?? 0, render: () => lockRowHTML(l, false, "explore"),
+    }))),
+    Promise.all(vestRows.map(async (v) => ({
+      ts: (await vestCreationInfo(v.id).catch(() => null))?.ts ?? 0, render: () => vestExploreRowHTML(v),
+    }))),
+  ]);
   const burnItems = burnRows.map((b) => ({ ts: b.timestamp, render: () => burnRowHTML(b, "explore") }));
-  const items = [...lockItems, ...burnItems].sort((a, b) => b.ts - a.ts).slice(0, limit);
+  const items = [...lockItems, ...burnItems, ...vestItems].sort((a, b) => b.ts - a.ts).slice(0, limit);
   return (await Promise.all(items.map((it) => it.render()))).join("");
 }
 async function loadExplore() {
@@ -1201,11 +1208,8 @@ async function loadExplore() {
     // One table, one look: vesting rows share the explore columns with locks/burns.
     // Both halves read token metadata and prices, so build them together —
     // waiting for the vesting rows first doubled the time to first render.
-    const [vestRowsHTML, lockBurnHTML] = await Promise.all([
-      Promise.all(vests.map(vestExploreRowHTML)).then((r) => r.join("")),
-      buildExploreRows(lockRows, burnRows),
-    ]);
-    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${vestRowsHTML}${lockBurnHTML}</tbody></table>`;
+    const rowsHTML = await buildExploreRows(lockRows, burnRows, vests);
+    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${rowsHTML}</tbody></table>`;
     wireActions(box); wireVestActions(box);
     exploreLoaded = true;
   } catch {
@@ -1239,15 +1243,14 @@ async function runSearch() {
     const burnIds = [...new Set([...burnsTok, ...burnsBy].map(Number))];
     const vestIds = [...new Set([...vestTok, ...vestBen, ...vestCre].map(Number))];
     if (!ids.length && !burnIds.length && !vestIds.length) { box.innerHTML = `<div class="empty"><div class="big">No locks found</div><div class="small">Nothing locked, burned or vesting for this token or wallet yet.</div></div>`; return; }
-    const rows = await Promise.all(ids.map(readLock));
-    const burns = await Promise.all(burnIds.map(readBurn));
-    const merged = await buildExploreRows(rows, burns, 100);
-    let vestRowsHTML = "";
-    if (vestIds.length) {
-      const vrows = (await Promise.all(vestIds.map((i) => readVest(i).catch(() => null)))).filter((v): v is VestRow => !!v).reverse();
-      vestRowsHTML = (await Promise.all(vrows.slice(0, 50).map(vestExploreRowHTML))).join("");
-    }
-    const combined = vestRowsHTML + (merged || "");
+      const [rows, burns, vrows] = await Promise.all([
+        Promise.all(ids.map(readLock)),
+        Promise.all(burnIds.map(readBurn)),
+        Promise.all(vestIds.map((i) => readVest(i).catch(() => null)))
+          .then((a) => a.filter((v): v is VestRow => !!v)),
+      ]);
+      // Search results are one list too — same ordering rule as Explore.
+      const combined = await buildExploreRows(rows, burns, vrows, 100);
     box.innerHTML = combined ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${combined}</tbody></table>` : `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
     wireActions(box); wireVestActions(box);
   } catch {
