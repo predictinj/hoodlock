@@ -55,6 +55,21 @@
   if (backdrop) backdrop.addEventListener("click", function () { setMenu(false); });
   if (sb) sb.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false); });
 
+  /* The drawer covers the page behind a backdrop, so it behaves as a modal and
+     owes the two things a modal owes: Escape closes it, and Tab stays inside it.
+     Without the trap, tabbing walks into links the user cannot see. */
+  document.addEventListener("keydown", function (e) {
+    if (!sb || !sb.classList.contains("open")) return;
+    if (e.key === "Escape") { e.preventDefault(); setMenu(false); return; }
+    if (e.key !== "Tab") return;
+    var f = sb.querySelectorAll("a[href], button:not([disabled])");
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    else if (!sb.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  });
+
   /* ---------- reading progress ---------- */
   var bar = document.getElementById("progress");
   if (bar && !reduced) {

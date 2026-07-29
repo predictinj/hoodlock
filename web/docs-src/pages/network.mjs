@@ -39,12 +39,19 @@ ${p(`The locker, burner and vesting addresses are on the ${doc("contracts", "con
 with the functions and events each one exposes.`)}
 
 ${h2("Reading history")}
-${p(`If you are indexing HoodLock events yourself, two limits on the public RPC matter more than anything
-else about it.`)}
-${table(["Limit", "Value", "What it means for you"], [
-  ["<code>eth_getLogs</code> block span", "2,000 blocks", "A full-history scan has to be chunked. The chain is past 21 million blocks, so that is a lot of calls."],
-  ["<code>eth_getLogs</code> result size", "10,000 logs", "A busy contract can hit this inside a single 2,000-block window."],
+${p(`If you are indexing HoodLock events yourself, one limit on the public RPC matters more than anything
+else about it — and it is not the one you might expect.`)}
+${table(["Limit", "Measured behaviour"], [
+  ["<code>eth_getLogs</code> result size",
+   "<b>Hard cap at 10,000 logs.</b> Exceeding it returns <code>logs matched by query exceeds limit of 10000</code> and no partial result."],
+  ["<code>eth_getLogs</code> block span",
+   "<b>No fixed span limit.</b> A single call spanning two million blocks succeeds provided the result stays under the cap."],
 ])}
+${info(`<p>This means you should chunk by <b>result volume, not by block count</b>. A quiet contract can be
+backfilled in one or two calls across its whole history; a busy one needs narrow windows even over a few
+hundred blocks. Fixed 2,000-block chunking wastes thousands of requests on the first case and still fails
+on the second.</p>
+<p>A workable strategy is to start wide and halve the window whenever the cap error comes back.</p>`)}
 ${info(`<p>Blockscout's API returns a contract's full log history in one request and is the faster path for
 a backfill. Keep a chunked RPC scan as the fallback — if the indexer is briefly unavailable, a scan that
 silently returns nothing looks identical to a contract with no activity, and every number downstream

@@ -22,7 +22,7 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Network","item":"https://hoodlock.tech/docs/network"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Robinhood Chain Network Details for HoodLock | Docs","description":"Chain id, RPC endpoint, explorer and gas token for Robinhood Chain, plus the indexing limits that shape how HoodLock reads history.","url":"https://hoodlock.tech/docs/network","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/network"}</script>
 <link rel="stylesheet" href="/docs/docs-35G3hZZE.css">
-<script defer src="/docs/docs-vpTBYnZe.js"></script>
+<script defer src="/docs/docs-4DcY1IvB.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -75,9 +75,14 @@ cases where that fails.</p>
 with the functions and events each one exposes.</p>
 
 <h2 id="reading-history">Reading history<a class="anchor" href="#reading-history" aria-label="Link to this section">#</a></h2>
-<p>If you are indexing HoodLock events yourself, two limits on the public RPC matter more than anything
-else about it.</p>
-<div class="tablewrap"><table><thead><tr><th>Limit</th><th>Value</th><th>What it means for you</th></tr></thead><tbody><tr><td><code>eth_getLogs</code> block span</td><td>2,000 blocks</td><td>A full-history scan has to be chunked. The chain is past 21 million blocks, so that is a lot of calls.</td></tr><tr><td><code>eth_getLogs</code> result size</td><td>10,000 logs</td><td>A busy contract can hit this inside a single 2,000-block window.</td></tr></tbody></table></div>
+<p>If you are indexing HoodLock events yourself, one limit on the public RPC matters more than anything
+else about it — and it is not the one you might expect.</p>
+<div class="tablewrap"><table><thead><tr><th>Limit</th><th>Measured behaviour</th></tr></thead><tbody><tr><td><code>eth_getLogs</code> result size</td><td><b>Hard cap at 10,000 logs.</b> Exceeding it returns <code>logs matched by query exceeds limit of 10000</code> and no partial result.</td></tr><tr><td><code>eth_getLogs</code> block span</td><td><b>No fixed span limit.</b> A single call spanning two million blocks succeeds provided the result stays under the cap.</td></tr></tbody></table></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>This means you should chunk by <b>result volume, not by block count</b>. A quiet contract can be
+backfilled in one or two calls across its whole history; a busy one needs narrow windows even over a few
+hundred blocks. Fixed 2,000-block chunking wastes thousands of requests on the first case and still fails
+on the second.</p>
+<p>A workable strategy is to start wide and halve the window whenever the cap error comes back.</p></div>
 <div class="callout callout-info"><div class="ct">Note</div><p>Blockscout's API returns a contract's full log history in one request and is the faster path for
 a backfill. Keep a chunked RPC scan as the fallback — if the indexer is briefly unavailable, a scan that
 silently returns nothing looks identical to a contract with no activity, and every number downstream
