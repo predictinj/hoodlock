@@ -1046,9 +1046,12 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
   if (variant === "explore") {
     const v = l.withdrawn ? null : await amountValueUsd(pub as any, l.token as `0x${string}`, l.amount, m.decimals).catch(() => null);
     const tvl = v !== null && v > 0 ? fmtUsd(v) : "—";
+    // Explore mixes locks, burns and vesting in one table, so the tag has to say
+    // which product a row is — "#22" alone next to "BURN #4" reads as a lock only
+    // if you already know that's the default.
     return `<tr data-proof="${l.id}">
     <td><div class="tk-cell">${await tokenIcoHTML(l.token, m.symbol)}
-      <div><div class="n">$${sym} <span class="tag">#${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
+      <div><div class="n">$${sym} <span class="tag">LOCK #${l.id}</span></div><div class="a">${short(l.token)}</div></div></div></td>
     <td>${fmtNum(l.amount, m.decimals)}</td>
     <td>${dateLabel(l.unlockTime)}</td>
     <td>${tvl}</td>
@@ -2308,8 +2311,14 @@ async function vestCreationInfo(id: number): Promise<{ tx: string; ts: number } 
     try {
       const hit = (await eventLogs(VESTING!, TOPIC_VESTING_CREATED)).find((l) => l.id === id);
       if (!hit) return null;
-      const info = { tx: hit.tx, ts: hit.ts };
-      vestTxCache.set(id, info); return info;
+      // Logs read from a bare RPC carry no timestamp, so fall back to the block's
+      // own time the way locks already do. Without this a schedule could be dated
+      // to the epoch — and the result was being cached, so it stayed wrong for the
+      // rest of the session.
+      const ts = hit.ts || (await blockTs(BigInt(hit.block))) || 0;
+      const info = { tx: hit.tx, ts };
+      if (ts) vestTxCache.set(id, info);   // don't cache a time we failed to resolve
+      return info;
     } catch { await new Promise((r) => setTimeout(r, 500 * (a + 1))); }
   }
   return null;
