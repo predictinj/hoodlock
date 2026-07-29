@@ -445,19 +445,60 @@ function friendlyErr(e: any): string {
 }
 
 /* ---------- fee (live from contract) ---------- */
-let lockFee = 0n, burnFee = 0n;
+/* Fees start as null, not 0n.
+ *
+ * They used to default to 0n, and loadFee() swallowed a failed RPC read. A
+ * single rate-limited request therefore left the fee at zero, the summary line
+ * said "free", and the lock transaction went out with value: 0 — which the
+ * contract rejects, because it requires msg.value >= fee. The user saw a
+ * confirmed-looking flow fail for no stated reason, and had no way to tell that
+ * a read had failed rather than the fee genuinely being zero.
+ *
+ * null means "we do not know yet". 0n means "we read it and it really is zero".
+ * Nothing is ever submitted while the answer is null. */
+let lockFee: bigint | null = null, burnFee: bigint | null = null;
 function renderFee() {
   // avgiftsraden är borttagen ur UI:t — avgifterna används fortfarande i tx:erna
   const el = document.getElementById("sFee");
-  if (el) { const fee = burnMode ? burnFee : lockFee; el.textContent = fee > 0n ? `${formatUnits(fee, 18)} ETH` : "free"; }
+  if (el) {
+    const fee = burnMode ? burnFee : lockFee;
+    el.textContent = fee === null ? "—" : fee > 0n ? `${formatUnits(fee, 18)} ETH` : "free";
+  }
 }
-let vestingFee = 0n;
+let vestingFee: bigint | null = null;
+async function readFee(addr: `0x${string}`, abi: unknown): Promise<bigint | null> {
+  // Two attempts: the public RPC drops the occasional read under load, and a
+  // retry costs a few hundred milliseconds against a transaction that would
+  // otherwise be guaranteed to revert.
+  for (let i = 0; i < 2; i++) {
+    try { return await pub.readContract({ address: addr, abi: abi as any, functionName: "fee" }) as bigint; }
+    catch { if (i === 0) await new Promise((r) => setTimeout(r, 400)); }
+  }
+  return null;
+}
+
 async function loadFee() {
-  try { lockFee = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "fee" }) as bigint; } catch { /* leave 0 */ }
-  if (BURNER) { try { burnFee = await pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "fee" }) as bigint; } catch { /* leave 0 */ } }
-  if (VESTING) { try { vestingFee = await pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "fee" }) as bigint; } catch { /* leave 0 */ } }
+  lockFee = await readFee(LOCKER, LOCKER_ABI);
+  if (BURNER) burnFee = await readFee(BURNER, BURNER_ABI);
+  if (VESTING) vestingFee = await readFee(VESTING, VESTING_ABI);
   renderFee();
   if (document.getElementById("vsFee")) updateVSummary(); // vesting summary shows n × fee
+}
+
+/**
+ * The fee immediately before signing, re-read rather than trusted from page load.
+ *
+ * The admin can change it, and more importantly the value may never have loaded.
+ * Sending a transaction with the wrong value is not a soft failure here: the
+ * locker and burner reject anything below the fee, and the vesting contract
+ * requires it exactly and refunds nothing.
+ */
+async function feeNow(addr: `0x${string}`, abi: unknown, label: string): Promise<bigint> {
+  const fee = await readFee(addr, abi);
+  if (fee === null) {
+    throw new Error(`Couldn't read the ${label} fee from the chain — the network is busy. Wait a moment and try again; nothing was sent.`);
+  }
+  return fee;
 }
 loadFee();
 
@@ -648,7 +689,8 @@ async function doBurn(amount: bigint, amtStr: string, msg: HTMLElement) {
     msg.innerHTML = `Approving… <span class="spin"></span>`; await waitTx(ah);
   }
   msg.textContent = "Burning… confirm in wallet";
-  const bh = await send(BURNER, encodeFunctionData({ abi: BURNER_ABI as any, functionName: "burn", args: [t.addr, amount] }), burnFee);
+  const bFee = await feeNow(BURNER, BURNER_ABI, "burn");
+    const bh = await send(BURNER, encodeFunctionData({ abi: BURNER_ABI as any, functionName: "burn", args: [t.addr, amount] }), bFee);
   msg.innerHTML = `Burning… <span class="spin"></span>`;
   await waitTx(bh);
   // our newest burn is the last id in burnsByBurner — that's the shareable proof
@@ -689,7 +731,8 @@ $("lockBtn").addEventListener("click", async () => {
       msg.innerHTML = `Approving… <span class="spin"></span>`; await waitTx(ah);
     }
     msg.textContent = "Locking… confirm in wallet";
-    const lh = await send(LOCKER, encodeFunctionData({ abi: LOCKER_ABI as any, functionName: "lock", args: [tokenMeta.addr, amount, unlockTime] }), lockFee);
+    const feeWei = await feeNow(LOCKER, LOCKER_ABI, "lock");
+      const lh = await send(LOCKER, encodeFunctionData({ abi: LOCKER_ABI as any, functionName: "lock", args: [tokenMeta.addr, amount, unlockTime] }), feeWei);
     msg.innerHTML = `Locking… <span class="spin"></span>`;
     try {
       await waitTx(lh);
@@ -2017,9 +2060,9 @@ async function loadAdmin() {
       BURNER ? pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "totalBurns" }).then(Number).catch(() => 0) : Promise.resolve(0),
       VESTING ? pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "totalSchedules" }).then(Number).catch(() => 0) : Promise.resolve(0),
     ]);
-    const feeEth = Number(formatUnits(lockFee, 18)) || 0;
-    const burnFeeEth = Number(formatUnits(burnFee, 18)) || 0;
-    const vestFeeEth = Number(formatUnits(vestingFee, 18)) || 0;
+    const feeEth = Number(formatUnits(lockFee ?? 0n, 18)) || 0;
+    const burnFeeEth = Number(formatUnits(burnFee ?? 0n, 18)) || 0;
+    const vestFeeEth = Number(formatUnits(vestingFee ?? 0n, 18)) || 0;
     const ethUsd = Number((typeof localStorage !== "undefined" && localStorage.getItem("hl_ethusd")) || 0);
     const now = Math.floor(Date.now() / 1000);
 
@@ -2445,7 +2488,7 @@ function updateVSummary() {
     else warn.textContent = "";
   }
   const n = BigInt(Math.max(rows.length, 1));
-  $("vsFee").textContent = vestingFee > 0n ? `${formatUnits(vestingFee * n, 18)} ETH` : "free";
+  $("vsFee").textContent = vestingFee === null ? "—" : vestingFee > 0n ? `${formatUnits(vestingFee * n, 18)} ETH` : "free";
   const btn = $("vCreateBtn") as HTMLButtonElement;
   if (!account) btn.textContent = "Connect wallet to vest";
   else btn.textContent = rows.length > 1 ? `Create ${rows.length} vesting schedules` : "Create vesting schedule";
@@ -2509,7 +2552,8 @@ async function vCreate() {
     const data = rows.length === 1
       ? encodeFunctionData({ abi: VESTING_ABI as any, functionName: "create", args: [vTokenMeta.addr, rows[0].addr, amounts[0], BigInt(d.start), BigInt(d.cliff), BigInt(d.end)] })
       : encodeFunctionData({ abi: VESTING_ABI as any, functionName: "createMany", args: [vTokenMeta.addr, rows.map((r) => r.addr), amounts, BigInt(d.start), BigInt(d.cliff), BigInt(d.end)] });
-    const h = await send(VESTING, data, vestingFee * n);
+    const vFee = await feeNow(VESTING, VESTING_ABI, "vesting");
+    const h = await send(VESTING, data, vFee * n);
     msg.innerHTML = `Creating… <span class="spin"></span>`;
     try {
       await waitTx(h);
