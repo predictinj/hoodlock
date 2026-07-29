@@ -1438,6 +1438,53 @@ app.get("/blog/:slug", (req, res) => {
   return res.set("Cache-Control", HTML_CACHE).sendFile(f);
 });
 
+/* Self-hosted analytics, proxied first-party.
+ *
+ * The tracker and its collector are served from hoodlock.tech rather than from
+ * the Umami host directly. That matters for three reasons: the visitor's browser
+ * never contacts a second origin, content blockers don't recognise a first-party
+ * path, and the Umami instance needs no public exposure of its own for tracking
+ * to work — the hop happens over Railway's private network.
+ *
+ * Umami is cookieless: it derives a daily-rotating visitor hash from IP and user
+ * agent and stores neither. So the real client IP has to reach it, or every
+ * visitor collapses into one — but it also means there is nothing to consent to.
+ */
+const UMAMI = process.env.UMAMI_URL || "http://umami.railway.internal:8080";
+let trackerCache = { at: 0, body: null };
+app.get("/u/s.js", async (_req, res) => {
+  try {
+    if (!trackerCache.body || Date.now() - trackerCache.at > 6 * 3600_000) {
+      const r = await fetch(`${UMAMI}/script.js`, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error(String(r.status));
+      trackerCache = { at: Date.now(), body: Buffer.from(await r.arrayBuffer()) };
+    }
+    res.type("application/javascript").set("Cache-Control", "public, max-age=3600").send(trackerCache.body);
+  } catch {
+    // Analytics is never worth breaking a page over — hand back a valid no-op.
+    res.type("application/javascript").set("Cache-Control", "no-store").send("/* analytics unavailable */");
+  }
+});
+app.post("/u/api/send", async (req, res) => {
+  if (limited(req, res, 240)) return;
+  try {
+    const r = await fetch(`${UMAMI}/api/send`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "user-agent": req.get("user-agent") || "",
+        // Umami reads the leftmost entry for geo and for the visitor hash.
+        "x-forwarded-for": (req.headers["x-forwarded-for"] || req.ip || "").toString(),
+      },
+      body: JSON.stringify(req.body || {}),
+      signal: AbortSignal.timeout(8000),
+    });
+    res.status(r.status).type("text/plain").send(await r.text());
+  } catch {
+    res.status(202).end(); // swallow: a dropped beacon must not surface to the visitor
+  }
+});
+
 /* Unknown API routes fell through to the SPA catch-all and answered 200 with
    HTML, which is confusing for anything expecting JSON. */
 app.use("/api", (_req, res) => res.status(404).json({ error: "not found" }));
