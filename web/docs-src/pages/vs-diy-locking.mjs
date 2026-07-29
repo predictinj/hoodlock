@@ -7,7 +7,7 @@ export default {
   desc: "Locking tokens yourself is a twenty-line contract. An honest look at when that is the right call and what the twenty lines leave you to build afterwards.",
   updated: "2026-07-29",
   h1: 'Rolling your <span class="serif">own.</span>',
-  lede: "A timelock is genuinely simple to write. If you have the skills, the case for building it yourself is stronger than most vendors will admit — so here is the honest version, including where it stops being simple.",
+  lede: "A timelock is twenty lines, and we will not pretend otherwise. The contract was never the hard part — everything that has to exist around it is, and that is where an afternoon turns into ongoing maintenance nobody budgeted for.",
   body: `
 ${h2("The part that is easy")}
 ${p(`A single-beneficiary timelock is short enough to read in one screen, and there is nothing clever in it.`)}
