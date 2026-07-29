@@ -333,7 +333,7 @@ h1{font-size:34px;line-height:1.12;letter-spacing:-.035em;margin-bottom:12px}
   font-family:var(--mono);font-size:14px;text-overflow:ellipsis}
 .search input:focus{outline:none}
 .search input::placeholder{color:var(--ink3)}
-/* A link, not a button — clearing the field is just the page without a query,
+/* A link, not a button. Clearing the field is just the page without a query,
    so it works with JavaScript off like everything else here. */
 .clear{flex:none;width:27px;height:27px;display:grid;place-items:center;border-radius:50%;
   color:var(--ink3);font-size:18px;line-height:1}
@@ -373,8 +373,8 @@ p,li{color:var(--ink2);font-size:15px}p{margin-bottom:12px}
 footer{border-top:1px solid var(--line);margin-top:50px;padding:24px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.08em}
 @media(max-width:520px){
   h1{font-size:27px}
-  /* The address is 42 characters — on a phone it needs the whole width, so the
-     button wraps under it instead of squeezing the field to nothing. */
+  /* The address is 42 characters, so on a phone it needs the whole width and the
+     button wraps under it rather than squeezing the field to nothing. */
   .search{flex-wrap:wrap;padding:14px 14px 10px;gap:0 12px}
   .search input{flex:1 1 0;padding:2px 0 12px}
   .search button{flex:1 1 100%;margin-top:2px}
