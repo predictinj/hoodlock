@@ -11,6 +11,7 @@ import { keccak256, toHex } from "viem";
 import { makeLogReader, byTopic, addrArg, addrParam } from "./logs.mjs";
 import { makeOgRenderer, fontsReady } from "./og.mjs";
 import { tokenData, withRecords, renderTokenPage } from "./token.mjs";
+import { renderChecker, KINDS } from "./checker.mjs";
 import { makeTokenIndex } from "./tokenindex.mjs";
 import { selectTokens } from "./gate.mjs";
 
@@ -1287,6 +1288,47 @@ app.get("/token/:slug", async (req, res) => {
   }
 });
 
+/* The three checker pages. One handler, three routes: what differs between them
+ * lives in checker.mjs, so they cannot drift apart.
+ *
+ * The lookup is the same one the token pages use — the shared event index for
+ * the records, the token cache for symbol and decimals — so a search costs a Map
+ * read plus, at worst, one metadata fetch.
+ */
+for (const [kind, k] of Object.entries(KINDS)) {
+  app.get(`/${k.path}`, async (req, res) => {
+    const raw = String(req.query.a || "").trim();
+    const m = /^(0x[0-9a-fA-F]{40})$/.exec(raw);
+    res.set("Cache-Control", raw ? "public, max-age=30" : HTML_CACHE);
+
+    if (!raw) return res.type("html").send(renderChecker({ kind, site: SITE }));
+    if (!m) return res.type("html").send(renderChecker({ kind, q: raw, site: SITE }));
+
+    const addr = m[1].toLowerCase();
+    try {
+      const recs = await tokenIndex.get(addr);
+      const hit = tokenCache.get(addr);
+      let d;
+      if (hit && Date.now() - hit.at < 60 * 60_000) d = hit.meta;
+      else {
+        d = await tokenData({ address: addr, explorer: cfg.explorer, recs });
+        if (d) tokenCache.set(addr, { at: Date.now(), meta: d });
+      }
+      // An address with records but no readable metadata is still worth
+      // answering — the records are the point, so fall back to the address.
+      const token = d
+        ? { address: addr, name: d.name, symbol: d.symbol, decimals: d.decimals }
+        : (recs.locks.length || recs.burns.length || recs.vesting.length)
+          ? { address: addr, name: "Unknown token", symbol: "???", decimals: 18 }
+          : null;
+      return res.type("html").send(renderChecker({ kind, q: raw, token, recs, site: SITE }));
+    } catch (e) {
+      console.log("[hoodlock] checker failed:", e?.message || e);
+      return res.type("html").send(renderChecker({ kind, q: raw, site: SITE }));
+    }
+  });
+}
+
 /** Nearest published tokens by liquidity — a stable, non-arbitrary ordering. */
 function relatedTokens(address, n = 6) {
   if (!db) return [];
@@ -1420,6 +1462,10 @@ app.get("/sitemap.xml", async (_req, res) => {
       ["/", "daily", "1.0"], ["/app/locks", "weekly", "0.9"], ["/app/vesting", "weekly", "0.9"],
       ["/app/explore", "daily", "0.8"], ["/app/affiliate", "monthly", "0.7"], ["/app/developers", "monthly", "0.7"],
       ["/app", "weekly", "0.6"], ["/blog", "weekly", "0.7"],
+      // The three checkers answer the questions people actually type, so they
+      // rank alongside the homepage rather than below the articles about them.
+      ["/lock-checker", "weekly", "0.9"], ["/burn-checker", "weekly", "0.8"],
+      ["/vesting-checker", "weekly", "0.8"],
       ["/blog/how-to-lock-liquidity-on-robinhood-chain", "monthly", "0.6"],
       ["/blog/what-is-a-liquidity-lock", "monthly", "0.6"],
       ["/blog/how-to-burn-tokens-on-robinhood-chain", "monthly", "0.6"],

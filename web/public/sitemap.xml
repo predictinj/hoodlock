@@ -12,6 +12,9 @@
   <url><loc>https://hoodlock.tech/app/developers</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://hoodlock.tech/app</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://hoodlock.tech/blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://hoodlock.tech/lock-checker</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://hoodlock.tech/burn-checker</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://hoodlock.tech/vesting-checker</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://hoodlock.tech/blog/how-to-lock-liquidity-on-robinhood-chain</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://hoodlock.tech/blog/what-is-a-liquidity-lock</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://hoodlock.tech/blog/how-to-burn-tokens-on-robinhood-chain</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>

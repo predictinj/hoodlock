@@ -66,6 +66,7 @@ ${p(`${blog("rug-pull-red-flags-checklist", "The red-flag checklist")} covers th
 side of this one.`)}
 `,
   related: [
+    { href: "/lock-checker", title: "Token lock checker", note: "look a token up by its contract address" },
     { href: "/docs/proof-of-lock", title: "Proof of lock" },
     { href: "/docs/lock-explorer", title: "Lock explorer" },
     { href: "/blog/how-to-check-if-liquidity-is-locked", title: "How to check if liquidity is locked" },

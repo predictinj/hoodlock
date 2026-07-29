@@ -192,6 +192,19 @@ HoodLock is not affiliated with Robinhood Markets, Inc.
 - All three contracts are verified on Blockscout, so the published source is the bytecode that runs.
 - Scope of the guarantees: they describe HoodLock's own functions. A token that is mintable, upgradeable, pausable or that can blacklist an address can still undo or freeze what a lock, burn or schedule appears to promise.
 
+## Tools
+
+Each takes a token contract address and answers one question from the chain,
+server-rendered, no wallet and no JavaScript required. A result reflects
+HoodLock's own contracts only — an empty result means "no record with HoodLock",
+not "no record anywhere".
+
+- [Token lock checker](${SITE}/lock-checker): every lock HoodLock holds on a token — amount, unlock date, proof link
+- [Token burn checker](${SITE}/burn-checker): every burn sent through HoodLock for a token — amount, date, proof link
+- [Token vesting checker](${SITE}/vesting-checker): every vesting schedule on a token — total, cliff, end date, proof link
+- [Lock explorer](${SITE}/app/explore): every lock, burn and schedule across the chain
+- Token pages at ${SITE}/token/<address> carry the same records plus holders, supply and liquidity.
+
 ${sections.join("\n\n")}
 
 ${blog}

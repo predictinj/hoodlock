@@ -74,6 +74,7 @@ burn. The confirmation screen states the amount and the share of supply before y
 ${cta("Burn tokens", "A single hop to the dead address, with a proof page and a transaction anyone can check.", "/app/burn", "Open burn →")}
 `,
   related: [
+    { href: "/burn-checker", title: "Token burn checker", note: "see what a token has burned through HoodLock" },
     { href: "/docs/how-to-burn-tokens", title: "How to burn tokens" },
     { href: "/docs/token-locker", title: "Token locker", note: "the reversible alternative" },
     { href: "/blog/how-to-check-if-liquidity-is-burned", title: "How to check if liquidity is burned" },

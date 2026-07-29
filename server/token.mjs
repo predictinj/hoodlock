@@ -13,11 +13,11 @@
 const BS_UA = { "User-Agent": "Mozilla/5.0 (compatible; HoodLock/1.0)" };
 const DEXS = "https://api.dexscreener.com/latest/dex/tokens";
 
-const esc = (s) => String(s ?? "").replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
-const nf = (n) => Number(n).toLocaleString("en-US");
+export const esc = (s) => String(s ?? "").replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+export const nf = (n) => Number(n).toLocaleString("en-US");
 const isBurnAddr = (a) => /^0x0{40}$/i.test(a || "") || /dead$/i.test(a || "");
 
-function fmtUnits(v, dec) {
+export function fmtUnits(v, dec) {
   const s = (BigInt(v) / 10n ** BigInt(dec)).toString();
   return nf(s);
 }
@@ -26,7 +26,7 @@ function pctOf(part, total) {
   return (Number((BigInt(part) * 10000n) / BigInt(total)) / 100).toFixed(2);
 }
 const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-const day = (ts) => new Date(Number(ts) * 1000).toISOString().slice(0, 10);
+export const day = (ts) => new Date(Number(ts) * 1000).toISOString().slice(0, 10);
 
 async function j(url, opts) {
   const r = await fetch(url, { headers: BS_UA, ...opts });

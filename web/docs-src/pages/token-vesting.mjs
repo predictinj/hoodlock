@@ -80,6 +80,7 @@ before someone else does.</p>`)}
 ${cta("Create a vesting schedule", "Flat 0.005 ETH per schedule, claims are free, and no HoodLock function can alter it afterwards.", "/app/vesting", "Open vesting →")}
 `,
   related: [
+    { href: "/vesting-checker", title: "Token vesting checker", note: "see a token's schedules" },
     { href: "/docs/how-to-create-vesting", title: "How to create a vesting schedule" },
     { href: "/docs/token-locker", title: "Token locker" },
     { href: "/blog/how-to-set-up-token-vesting", title: "How to set up vesting that holds" },

@@ -66,6 +66,7 @@ ${doc("lock-explorer", "the explorer")}.`)}
 ${cta("Create something worth linking to", "Lock, burn or vest — every record gets a page anyone can open.")}
 `,
   related: [
+    { href: "/lock-checker", title: "Token lock checker", note: "look a token up by its contract address" },
     { href: "/docs/how-to-verify-a-lock", title: "Verify someone else's lock" },
     { href: "/docs/lock-explorer", title: "Lock explorer" },
     { href: "/blog/how-to-prove-your-project-wont-rug", title: "How to prove you won't rug" },
