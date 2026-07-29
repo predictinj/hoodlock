@@ -1467,6 +1467,12 @@ app.get("/docs", (_req, res) => send(res, "docs/index.html"));
    is a URL people and crawlers produce by hand. Redirect to the canonical form
    rather than serving the same page at two addresses. */
 app.get(/^\/docs\/(.+)\/$/, (req, res) => res.redirect(301, "/docs/" + req.params[0]));
+/* The docs stylesheet and runtime carry a content hash, so a given URL can never
+   change and is safe to cache for a year. Without this they fall to the generic
+   static handler's max-age=0 and get revalidated on every page of a multi-page
+   section. The pattern is strict enough that req.path cannot traverse. */
+app.get(/^\/docs\/docs-[A-Za-z0-9_-]{8}\.(?:css|js)$/, (req, res) =>
+  res.set("Cache-Control", "public, max-age=31536000, immutable").sendFile(join(PUBLIC, req.path)));
 app.get("/blog/:slug", (req, res) => {
   const slug = req.params.slug;
   // A post that isn't there is a 404, not a silent bounce to the index — the

@@ -9,6 +9,7 @@
  * runs this first, so the two can never disagree.
  */
 import { readdir, mkdir, writeFile, readFile, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -156,9 +157,19 @@ async function main() {
 
   await guardAgainstCannibalisation(pages);
 
+  /* Content-hash the stylesheet and runtime so they can be cached for a year
+   * instead of revalidated on every page. A docs site is many small documents;
+   * two conditional requests per navigation is a cost worth removing. */
+  const hash = (s) => createHash("sha256").update(s).digest("base64url").slice(0, 8);
+  const css = await readFile(join(HERE, "styles.css"), "utf8");
+  const js = await readFile(join(HERE, "runtime.js"), "utf8");
+  const assets = { css: `docs-${hash(css)}.css`, js: `docs-${hash(js)}.js` };
+  await writeFile(join(OUT, assets.css), css);
+  await writeFile(join(OUT, assets.js), js);
+
   const index = [];
   for (const p of pages) {
-    const html = render(p);
+    const html = render(p, assets);
     const file = p.slug ? `${p.slug}.html` : "index.html";
     await writeFile(join(OUT, file), html);
     index.push({
@@ -169,8 +180,6 @@ async function main() {
     });
   }
 
-  await writeFile(join(OUT, "docs.css"), await readFile(join(HERE, "styles.css"), "utf8"));
-  await writeFile(join(OUT, "docs.js"), await readFile(join(HERE, "runtime.js"), "utf8"));
   await writeFile(join(OUT, "search.json"), JSON.stringify(index));
 
   // Sitemap triples, pasted into server/index.mjs — printed so the two stay in step.

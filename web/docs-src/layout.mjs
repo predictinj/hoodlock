@@ -52,7 +52,7 @@ const relatedHtml = (related) => !related?.length ? "" :
  * page = { slug, seoTitle, desc, h1, lede, body, kind, related, faqs, updated }
  * slug "" is the /docs hub.
  */
-export function render(page) {
+export function render(page, assets = { css: "docs.css", js: "docs.js" }) {
   const url = page.slug ? `${SITE}/docs/${page.slug}` : `${SITE}/docs`;
   const toc = page.slug ? extractToc(page.body) : [];
 
@@ -119,8 +119,8 @@ export function render(page) {
 <noscript><link rel="stylesheet" href="${FONTS}"></noscript>
 <link rel="icon" href="/favicon.ico" sizes="any">
 ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)}</script>`).join("\n")}
-<link rel="stylesheet" href="/docs/docs.css">
-<script defer src="/docs/docs.js"></script>
+<link rel="stylesheet" href="/docs/${assets.css}">
+<script defer src="/docs/${assets.js}"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
