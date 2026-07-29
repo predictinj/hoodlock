@@ -1216,17 +1216,60 @@ let exploreLoaded = false;
 /* One list, newest first. Vesting used to be rendered above the sorted rows
    rather than inside them, so a schedule created weeks ago sat above a lock
    from this morning. */
+type ExploreItem = { ts: number; known: boolean; id: number; kind: string; render: () => Promise<string> };
+
+/* Locks and vesting schedules get their creation time from the Blockscout event
+ * log, and Blockscout indexes a few seconds behind the chain. So the one record
+ * whose time we cannot read is, almost always, the one created moments ago.
+ *
+ * Treating that as time zero — which is what a bare `?? 0` did — sorted the
+ * newest lock to the very bottom of a newest-first list. A user who had just
+ * locked went looking for their lock at the top and found it last.
+ *
+ * Ids are assigned sequentially by the contract, so within one product they are
+ * an exact record of creation order, and that is what we fall back to. Fill a
+ * missing time from the nearest older record we do know, which bounds it
+ * correctly against everything below it. Anything with no known record above it
+ * is newer than everything we can date, so it gets the current time — which is
+ * what it actually is.
+ *
+ * Burns are unaffected: the burner contract stores the timestamp itself, so that
+ * read either succeeds or the whole row fails.
+ */
+function inferTimes(rows: ExploreItem[], now: number) {
+  const asc = [...rows].sort((a, b) => a.id - b.id);
+  let last = 0;
+  for (const r of asc) {
+    if (r.known) last = r.ts;
+    else r.ts = last;
+  }
+  for (let i = asc.length - 1; i >= 0 && !asc[i].known; i--) asc[i].ts = now;
+}
+
 async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], vestRows: VestRow[] = [], limit = 25): Promise<string> {
   const [lockItems, vestItems] = await Promise.all([
-    Promise.all(lockRows.map(async (l) => ({
-      ts: (await lockedAtTs(l.id)) ?? 0, render: () => lockRowHTML(l, false, "explore"),
-    }))),
-    Promise.all(vestRows.map(async (v) => ({
-      ts: (await vestCreationInfo(v.id).catch(() => null))?.ts ?? 0, render: () => vestExploreRowHTML(v),
-    }))),
+    Promise.all(lockRows.map(async (l): Promise<ExploreItem> => {
+      const ts = await lockedAtTs(l.id).catch(() => null);
+      return { ts: ts ?? 0, known: !!ts, id: l.id, kind: "lock", render: () => lockRowHTML(l, false, "explore") };
+    })),
+    Promise.all(vestRows.map(async (v): Promise<ExploreItem> => {
+      const ts = (await vestCreationInfo(v.id).catch(() => null))?.ts;
+      return { ts: ts ?? 0, known: !!ts, id: v.id, kind: "vest", render: () => vestExploreRowHTML(v) };
+    })),
   ]);
-  const burnItems = burnRows.map((b) => ({ ts: b.timestamp, render: () => burnRowHTML(b, "explore") }));
-  const items = [...lockItems, ...burnItems, ...vestItems].sort((a, b) => b.ts - a.ts).slice(0, limit);
+  const burnItems: ExploreItem[] = burnRows.map((b) => ({
+    ts: b.timestamp, known: b.timestamp > 0, id: b.id, kind: "burn", render: () => burnRowHTML(b, "explore"),
+  }));
+
+  const now = Math.floor(Date.now() / 1000);
+  for (const group of [lockItems, burnItems, vestItems]) inferTimes(group, now);
+
+  const items = [...lockItems, ...burnItems, ...vestItems]
+    // Ties break on id, but only within one product — a lock id and a burn id
+    // are unrelated counters. Across products the sort's stability keeps them
+    // in the order they were merged.
+    .sort((a, b) => b.ts - a.ts || (a.kind === b.kind ? b.id - a.id : 0))
+    .slice(0, limit);
   return (await Promise.all(items.map((it) => it.render()))).join("");
 }
 /* Record ids for an address, from the server's event index rather than from the
