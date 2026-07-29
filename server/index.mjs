@@ -1463,6 +1463,10 @@ app.get("/blog", (_req, res) => send(res, "blog/index.html"));
    canonical. Sub-pages need no route — express.static's `extensions` option
    already resolves /docs/contracts to docs/contracts.html. */
 app.get("/docs", (_req, res) => send(res, "docs/index.html"));
+/* A trailing slash on a sub-page resolved to nothing and 404'd — /docs/contracts/
+   is a URL people and crawlers produce by hand. Redirect to the canonical form
+   rather than serving the same page at two addresses. */
+app.get(/^\/docs\/(.+)\/$/, (req, res) => res.redirect(301, "/docs/" + req.params[0]));
 app.get("/blog/:slug", (req, res) => {
   const slug = req.params.slug;
   // A post that isn't there is a 404, not a silent bounce to the index — the
