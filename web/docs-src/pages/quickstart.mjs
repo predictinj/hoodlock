@@ -34,8 +34,8 @@ ${steps([
 ${h2("Which product do you actually want?")}
 ${table(["If you want to…", "Use", "Reversible?"], [
   ["Hold a balance until a date", doc("token-locker", "a lock"), "Yes, after the date"],
-  ["Release supply gradually to someone", doc("token-vesting", "vesting"), "No — irrevocable once created"],
-  ["Remove supply permanently", doc("token-burning", "a burn"), "No — permanent by construction"],
+  ["Release supply gradually to someone", doc("token-vesting", "vesting"), "No — no HoodLock function can alter it"],
+  ["Remove supply permanently", doc("token-burning", "a burn"), "No — not by us; the token can still mint"],
   ["Prove a pool cannot be pulled", doc("liquidity-locker", "an LP lock"), "Yes, after the date"],
 ])}
 ${info(`<p>Not sure between the first three? ${blog("token-locks-vs-vesting-vs-burning", "Locks vs vesting vs burning")}

@@ -22,7 +22,7 @@ ${table(["Guarantee", "Enforced by"], [
   ["Not before the unlock time", "A timestamp check in <code>withdraw</code>"],
   ["No admin can move locked tokens", "The absence of any such function — there is nothing to disable"],
   ["The unlock date can only move later", "<code>extend</code> requires a strictly greater timestamp"],
-  ["The recorded amount is the amount received", "Balance measured before and after transfer, so fee-on-transfer tokens are recorded honestly"],
+  ["The recorded amount is the balance the contract gained", "Measured before and after the transfer. Correct for simple fee-on-transfer; <b>not</b> for rebasing or reflection tokens, which are unsupported"],
 ])}
 ${p(`Each of these is checkable in the source on Blockscout — the ${doc("contracts", "contract reference")}
 names the exact functions.`)}

@@ -57,10 +57,19 @@ ${ul([
   "Locked tokens can only be withdrawn by the lock's owner, and only at or after the unlock time.",
   "There is no admin function that can move locked tokens.",
   "<code>unlockTime</code> can only ever be extended.",
-  "The amount recorded is the amount actually received, so fee-on-transfer tokens are stored honestly rather than over-credited.",
+  "The amount recorded is measured as the balance the contract actually gained, so a fee-on-transfer token is not over-credited.",
 ])}
 ${warn(`The locker has <b>no hard cap on the fee</b>. The admin can change it, and a change applies to new
 locks only — an existing lock is never re-priced. The vesting contract does have a cap; see below.`)}
+${warn(`<p><b>Balance-delta accounting has a blind spot.</b> It measures what the contract gained, which is
+not the same as what <i>you</i> sent. On a reflection token — where holders are credited during other
+people's transfers — a deposit can be recorded above or below what actually left your wallet, because
+rewards earned by the existing pool land inside the same measurement window.</p>
+<p>There is also one balance pool per token, not one per lock. If a token's balances can move without a
+transfer — a negative rebase, an owner burn, a blacklist zeroing — the pool can end up smaller than the
+sum of what it owes. Withdrawal is all-or-nothing and first-come-first-served, so the shortfall falls
+entirely on whoever withdraws last. <b>Rebasing and reflection tokens are not supported, and nothing in
+the contract enforces that.</b></p>`)}
 
 ${h2("Burner")}
 ${p(`A burn registry rather than a vault. Tokens are moved from your wallet to the dead address in a
@@ -74,12 +83,27 @@ ${table(["Function", "Notes"], [
   ["<code>totalBurnedOf(address token)</code>", "Cumulative amount burned through this contract for one token."],
 ])}
 ${code(`event Burned(uint256 indexed id, address indexed burner, address indexed token, uint256 amount);`, "solidity")}
-${danger(`Burning cannot be undone, and not because we decline to undo it — nothing can move tokens out
-of the dead address. Read ${blog("burning-vs-locking-liquidity", "burning versus locking")} before choosing it.`)}
+${danger(`<p>Nothing in this contract can move tokens back out of the dead address, and no key controls
+that address. From HoodLock's side a burn is final. Read
+${blog("burning-vs-locking-liquidity", "burning versus locking")} before choosing it.</p>`)}
+${warn(`<p><b>The token can still undo it.</b> Sending to the dead address parks tokens there; it does not
+reduce <code>totalSupply</code>. A token that is mintable can re-issue the same amount, and an upgradeable
+token can add a function that moves the dead address's balance. Neither is detectable from here.</p>
+<p>The same limitation applies to <code>totalBurnedOf</code>: it is derived from the token's own
+<code>balanceOf</code> readings, so a token that reports whatever it likes produces a burn record that
+looks legitimate. Check whether the token is mintable or upgradeable before treating a burn total as
+supply reduction.</p>`)}
 
 ${h2("Vesting")}
-${p(`Linear release with an optional cliff. Schedules are irrevocable: there is no revoke, no sweep and
-no rescue function in the contract.`)}
+${p(`Linear release with an optional cliff. There is no revoke, no sweep and no rescue function in this
+contract, so no HoodLock function can cancel or alter a schedule once it exists.`)}
+${warn(`<p><b>“Irrevocable” describes this contract, not the token.</b> A token that is upgradeable,
+pausable, mintable, or that can blacklist an address, can still make a schedule worthless or unclaimable
+after the fact — and the schedule's creator is very often the token's deployer, which means they may
+retain exactly that power.</p>
+<p>The reverse also holds: because there is no rescue path, a token that is paused or that freezes the
+beneficiary locks the tokens <b>permanently</b>, with no recourse from anyone. Irrevocable and
+unrecoverable are the same property.</p>`)}
 
 ${table(["Function", "Notes"], [
   ["<code>create(address token, address beneficiary, uint256 amount, uint64 start, uint64 cliff, uint64 end)</code> <b>payable</b>",

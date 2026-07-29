@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How HoodLock Vesting Works | Linear Release, Cliffs and Limits</title>
-<meta name="description" content="The release formula, the cliff, the irrevocability rule and the hard limits written into the contract — plus when a lock is the better instrument.">
+<meta name="description" content="The release formula, the cliff, what the contract can and cannot undo, and the hard limits written into it — plus when a lock is the better instrument.">
 <link rel="canonical" href="https://hoodlock.tech/docs/token-vesting">
 <meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
 <meta property="og:title" content="How HoodLock Vesting Works | Linear Release, Cliffs and Limits">
-<meta property="og:description" content="The release formula, the cliff, the irrevocability rule and the hard limits written into the contract — plus when a lock is the better instrument.">
+<meta property="og:description" content="The release formula, the cliff, what the contract can and cannot undo, and the hard limits written into it — plus when a lock is the better instrument.">
 <meta property="og:url" content="https://hoodlock.tech/docs/token-vesting">
 <meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="How HoodLock Vesting Works | Linear Release, Cliffs and Limits">
-<meta name="twitter:description" content="The release formula, the cliff, the irrevocability rule and the hard limits written into the contract — plus when a lock is the better instrument.">
+<meta name="twitter:description" content="The release formula, the cliff, what the contract can and cannot undo, and the hard limits written into it — plus when a lock is the better instrument.">
 <meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -20,7 +20,7 @@
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap"></noscript>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Token vesting","item":"https://hoodlock.tech/docs/token-vesting"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"How HoodLock Vesting Works | Linear Release, Cliffs and Limits","description":"The release formula, the cliff, the irrevocability rule and the hard limits written into the contract — plus when a lock is the better instrument.","url":"https://hoodlock.tech/docs/token-vesting","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/token-vesting"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"How HoodLock Vesting Works | Linear Release, Cliffs and Limits","description":"The release formula, the cliff, what the contract can and cannot undo, and the hard limits written into it — plus when a lock is the better instrument.","url":"https://hoodlock.tech/docs/token-vesting","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/token-vesting"}</script>
 <link rel="stylesheet" href="/docs/docs-q6wNEG5_.css">
 <script defer src="/docs/docs-4DcY1IvB.js"></script>
 </head>
@@ -68,9 +68,16 @@ cliff on a four-year schedule means someone who leaves in month eleven takes not
 <p><a href="/blog/what-is-a-vesting-cliff">What a vesting cliff is</a> covers how holders read one.</p>
 
 <h2 id="what-the-contract-forbids">What the contract forbids<a class="anchor" href="#what-the-contract-forbids" aria-label="Link to this section">#</a></h2>
-<div class="callout callout-danger"><div class="ct">Irreversible</div><p><b>A schedule cannot be cancelled, edited or reversed.</b> There is no revoke function, no
-sweep and no rescue. Once created, it runs to completion. Check the beneficiary address and the amount
-before you sign — a mistake cannot be undone by us or by anyone.</p></div>
+<div class="callout callout-danger"><div class="ct">Irreversible</div><p><b>No HoodLock function can cancel, edit or reverse a schedule.</b> There is no revoke, no
+sweep and no rescue. Check the beneficiary address and the amount before you sign — a mistake cannot be
+undone by us.</p></div>
+<div class="callout callout-warn"><div class="ct">Careful</div><p><b>The token is the exception, and it matters.</b> A token that is upgradeable, pausable,
+mintable, or that can blacklist an address can still make a schedule worthless or unclaimable after the
+fact. Where the schedule's creator is also the token's deployer — the common case for team vesting —
+they may retain exactly that power, whatever this contract does.</p>
+<p>It cuts the other way too. Because there is no rescue path, a token that pauses or freezes the
+beneficiary locks the tokens <b>permanently</b>, with no recourse from anyone. Irrevocable and
+unrecoverable are the same property.</p></div>
 <div class="tablewrap"><table><thead><tr><th>Constraint</th><th>Value</th><th>Why it exists</th></tr></thead><tbody><tr><td>Minimum duration</td><td>24 hours</td><td>Stops a schedule that would be fully vested the moment it is created.</td></tr><tr><td>Maximum fee</td><td>0.05 ETH, hard-coded</td><td>A ceiling the admin can never exceed, whatever else changes.</td></tr><tr><td>Batch limit</td><td>200 beneficiaries</td><td>Bounds gas on a single <code>createMany</code> call.</td></tr></tbody></table></div>
 <p>The admin can change the fee and the fee collector, and nothing else. No admin function can touch an
 existing schedule. See the <a href="/docs/contracts">contract reference</a>.</p>
@@ -91,15 +98,15 @@ set up a whole team at once.</p>
 
 <h2 id="the-proof-page">The proof page<a class="anchor" href="#the-proof-page" aria-label="Link to this section">#</a></h2>
 <p>Each schedule gets a public page showing the total, the amount already claimed, the cliff and end
-dates, and the percentage released. Because vesting is irrevocable, that page is unusually strong
-evidence — it is describing something that cannot be undone. See <a href="/docs/proof-of-lock">proof of lock</a>.</p>
+dates, and the percentage released. Because no HoodLock function can alter a schedule, that page describes
+a commitment we cannot walk back for you. See <a href="/docs/proof-of-lock">proof of lock</a>.</p>
 
 <div class="callout callout-warn"><div class="ct">Careful</div><p>One thing worth stating on your own page rather than leaving to inference: <b>what share of the
 schedule had already vested when it was created</b>. A schedule back-dated so that half of it is claimable
 on day one is technically vesting and practically a transfer. Our proof pages show it; say it yourself
 before someone else does.</p></div>
 
-<div class="cta-box"><h2>Create a vesting schedule</h2><p>Flat 0.005 ETH per schedule, claims are free, and the result is irrevocable by design.</p><a class="btn" href="/app/vesting">Open vesting →</a></div>
+<div class="cta-box"><h2>Create a vesting schedule</h2><p>Flat 0.005 ETH per schedule, claims are free, and no HoodLock function can alter it afterwards.</p><a class="btn" href="/app/vesting">Open vesting →</a></div>
 
 <section class="related"><h2>Related</h2><ul><li><a href="/docs/how-to-create-vesting">How to create a vesting schedule</a></li><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/blog/how-to-set-up-token-vesting">How to set up vesting that holds</a></li><li><a href="/blog/what-is-a-token-unlock-schedule">What an unlock schedule tells you</a></li></ul></section>
 <nav class="pager" aria-label="Previous and next page"><a href="/docs/liquidity-locker"><span class="d">Previous</span>Liquidity locker</a><a class="next" href="/docs/token-burning"><span class="d">Next</span>Token burning</a></nav>

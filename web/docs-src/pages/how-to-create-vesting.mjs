@@ -4,14 +4,16 @@ export default {
   slug: "how-to-create-vesting",
   navTitle: "Create a vesting schedule",
   seoTitle: "Create a Vesting Schedule with HoodLock | Step-by-Step",
-  desc: "Set up irrevocable linear vesting on Robinhood Chain, alone or for a whole team at once, with the checks to run before you sign something permanent.",
+  desc: "Set up linear vesting on Robinhood Chain, alone or for a whole team at once, with the checks worth running before you sign something you cannot edit.",
   updated: "2026-07-29",
   h1: 'Create a <span class="serif">vesting schedule.</span>',
   lede: "Four numbers decide everything: how much, when it starts, when the cliff falls and when it ends. Get them right before you sign — a schedule cannot be edited afterwards.",
   body: `
-${danger(`<p><b>Vesting is irrevocable.</b> There is no cancel, no edit and no recovery function in the
-contract. A wrong beneficiary address or a wrong amount is permanent. Read this page before you start
-rather than during.</p>`)}
+${danger(`<p><b>No HoodLock function can cancel, edit or recover a schedule.</b> A wrong beneficiary
+address or a wrong amount is permanent. Read this page before you start rather than during.</p>
+<p>The token is the one exception: an upgradeable, pausable or blacklisting token can still undo or
+freeze a schedule after the fact — and if you deployed the token, you may hold that power yourself. See
+${doc("token-vesting", "how vesting works")}.</p>`)}
 
 ${h2("Decide the four numbers")}
 ${table(["Field", "What it means", "Common choice"], [
@@ -35,8 +37,8 @@ ${steps([
    character.</b> This is the field that cannot be fixed later.`,
   `<b>Set start, cliff and end.</b> The form enforces the contract's rules, so an invalid combination
    will not reach a signature prompt.`,
-  `<b>Review the summary.</b> It shows what percentage would already be vested at creation — read that
-   number before continuing (see below).`,
+  `<b>Review the summary.</b> Check the dates against what you intend to announce — a back-dated start
+   makes part of the schedule claimable immediately (see below).`,
   `<b>Approve, then create.</b> Two transactions. The fee is charged once, here; claiming later is free.`,
 ])}
 
@@ -62,8 +64,11 @@ ${h2("Be honest about back-dating")}
 ${warn(`<p>A schedule with a start date in the past is already partly vested the moment it exists. That is
 legitimate — teams often vest from a date people actually joined — but a schedule that is 50% claimable on
 day one is, in practice, half a transfer.</p>
-<p>Our proof pages show the percentage already vested at creation, so the number will be visible whether
-or not you mention it. Say it yourself. It costs nothing and pre-empts the accusation.</p>`)}
+<p><b>The proof page does not state this for you.</b> It shows what has vested <i>so far</i>, and it warns
+when a future cliff will release a large chunk at once — but a schedule that was already substantially
+vested when it was created reads, months later, exactly like one that vested honestly over that period.</p>
+<p>So say it yourself, in your own announcement: the start date, and what share was already claimable on
+day one. It costs nothing, and it is the one number a sceptical reader cannot reconstruct from the page.</p>`)}
 
 ${h2("After creating")}
 ${ul([
@@ -75,7 +80,7 @@ ${ul([
 ${p(`Share the proof link the same way you would a lock — ${doc("proof-of-lock", "proof of lock")} covers
 what it shows.`)}
 
-${cta("Create a vesting schedule", "Flat 0.005 ETH per schedule, claims are free, and the result is irrevocable by design.", "/app/vesting", "Open vesting →")}
+${cta("Create a vesting schedule", "Flat 0.005 ETH per schedule, claims are free, and no HoodLock function can alter it afterwards.", "/app/vesting", "Open vesting →")}
 `,
   related: [
     { href: "/docs/token-vesting", title: "Token vesting", note: "how release is calculated" },

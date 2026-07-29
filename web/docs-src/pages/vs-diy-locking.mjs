@@ -73,7 +73,7 @@ ${table(["", "Your own contract", "HoodLock"], [
   ["Verification", "Yours to do", "Verified on Blockscout"],
   ["Public proof page", "Yours to build", "Generated per record"],
   ["Extend without a gap", "Yours to implement", "Built in, free"],
-  ["Fee-on-transfer safety", "Yours to handle", "Records the amount actually received"],
+  ["Fee-on-transfer safety", "Yours to handle", "Records the balance gained; rebasing tokens unsupported"],
   ["Discoverable by strangers", "No", doc("lock-explorer", "In the explorer")],
   ["Custom release logic", "<b>Anything you write</b>", "Linear vesting, or a single date"],
 ])}

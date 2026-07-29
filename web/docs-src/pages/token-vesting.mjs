@@ -4,7 +4,7 @@ export default {
   slug: "token-vesting",
   navTitle: "Token vesting",
   seoTitle: "How HoodLock Vesting Works | Linear Release, Cliffs and Limits",
-  desc: "The release formula, the cliff, the irrevocability rule and the hard limits written into the contract — plus when a lock is the better instrument.",
+  desc: "The release formula, the cliff, what the contract can and cannot undo, and the hard limits written into it — plus when a lock is the better instrument.",
   updated: "2026-07-29",
   h1: 'Token <span class="serif">vesting.</span>',
   lede: "A lock says “not before this date”. Vesting says “a little at a time, starting here, finishing there” — which is what team and contributor allocations actually need.",
@@ -25,9 +25,16 @@ cliff on a four-year schedule means someone who leaves in month eleven takes not
 ${p(`${blog("what-is-a-vesting-cliff", "What a vesting cliff is")} covers how holders read one.`)}
 
 ${h2("What the contract forbids")}
-${danger(`<p><b>A schedule cannot be cancelled, edited or reversed.</b> There is no revoke function, no
-sweep and no rescue. Once created, it runs to completion. Check the beneficiary address and the amount
-before you sign — a mistake cannot be undone by us or by anyone.</p>`)}
+${danger(`<p><b>No HoodLock function can cancel, edit or reverse a schedule.</b> There is no revoke, no
+sweep and no rescue. Check the beneficiary address and the amount before you sign — a mistake cannot be
+undone by us.</p>`)}
+${warn(`<p><b>The token is the exception, and it matters.</b> A token that is upgradeable, pausable,
+mintable, or that can blacklist an address can still make a schedule worthless or unclaimable after the
+fact. Where the schedule's creator is also the token's deployer — the common case for team vesting —
+they may retain exactly that power, whatever this contract does.</p>
+<p>It cuts the other way too. Because there is no rescue path, a token that pauses or freezes the
+beneficiary locks the tokens <b>permanently</b>, with no recourse from anyone. Irrevocable and
+unrecoverable are the same property.</p>`)}
 ${table(["Constraint", "Value", "Why it exists"], [
   ["Minimum duration", "24 hours", "Stops a schedule that would be fully vested the moment it is created."],
   ["Maximum fee", "0.05 ETH, hard-coded", "A ceiling the admin can never exceed, whatever else changes."],
@@ -62,15 +69,15 @@ set up a whole team at once.`)}
 
 ${h2("The proof page")}
 ${p(`Each schedule gets a public page showing the total, the amount already claimed, the cliff and end
-dates, and the percentage released. Because vesting is irrevocable, that page is unusually strong
-evidence — it is describing something that cannot be undone. See ${doc("proof-of-lock", "proof of lock")}.`)}
+dates, and the percentage released. Because no HoodLock function can alter a schedule, that page describes
+a commitment we cannot walk back for you. See ${doc("proof-of-lock", "proof of lock")}.`)}
 
 ${warn(`<p>One thing worth stating on your own page rather than leaving to inference: <b>what share of the
 schedule had already vested when it was created</b>. A schedule back-dated so that half of it is claimable
 on day one is technically vesting and practically a transfer. Our proof pages show it; say it yourself
 before someone else does.</p>`)}
 
-${cta("Create a vesting schedule", "Flat 0.005 ETH per schedule, claims are free, and the result is irrevocable by design.", "/app/vesting", "Open vesting →")}
+${cta("Create a vesting schedule", "Flat 0.005 ETH per schedule, claims are free, and no HoodLock function can alter it afterwards.", "/app/vesting", "Open vesting →")}
 `,
   related: [
     { href: "/docs/how-to-create-vesting", title: "How to create a vesting schedule" },

@@ -1095,12 +1095,15 @@ async function renderMine() {
   }
   boxes.forEach((b) => b.innerHTML = `<div class="empty"><div class="small">Loading your locks… <span class="spin"></span></div></div>`);
   try {
-    const [ids, burnIds] = await Promise.all([
-      pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByOwner", args: [account as `0x${string}`] }) as Promise<bigint[]>,
-      BURNER
-        ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [account as `0x${string}`] }) as Promise<bigint[]>).catch(() => [] as bigint[])
-        : Promise.resolve([] as bigint[]),
-    ]);
+    const idx = await recordIds(account);
+    const [ids, burnIds] = idx
+      ? [asBig(idx.locks.owner).reverse(), asBig(idx.burns.burner).reverse()]
+      : await Promise.all([
+        pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByOwner", args: [account as `0x${string}`] }) as Promise<bigint[]>,
+        BURNER
+          ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [account as `0x${string}`] }) as Promise<bigint[]>).catch(() => [] as bigint[])
+          : Promise.resolve([] as bigint[]),
+      ]);
     document.getElementById("yourLocksSub")?.replaceChildren(`${ids.length} LOCK${ids.length === 1 ? "" : "S"}${burnIds.length ? ` · ${burnIds.length} BURN${burnIds.length === 1 ? "" : "S"}` : ""} · ${short(account).toUpperCase()}`);
     const rows = (await Promise.all(ids.map((i) => readLock(Number(i))))).reverse();
     const burns = (await Promise.all(burnIds.map((i) => readBurn(Number(i))))).reverse();
@@ -1183,6 +1186,34 @@ async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], vestRo
   const items = [...lockItems, ...burnItems, ...vestItems].sort((a, b) => b.ts - a.ts).slice(0, limit);
   return (await Promise.all(items.map((it) => it.render()))).join("");
 }
+/* Record ids for an address, from the server's event index rather than from the
+ * contracts' own index arrays.
+ *
+ * Those arrays only grow and have no paginated getter, and anyone can append to
+ * someone else's array for the price of a 1-wei record. Since we then issue one
+ * eth_call per id, a few thousand junk entries were enough to permanently break a
+ * real wallet's dashboard or a real token's page. The server derives the same ids
+ * from cached events and caps them.
+ *
+ * Falls back to the contract getters if the endpoint is unavailable, so the app
+ * still works against a bare RPC.
+ */
+type IdSets = { locks: { owner: number[]; token: number[] };
+                burns: { burner: number[]; token: number[] };
+                vests: { token: number[]; beneficiary: number[]; creator: number[] } };
+const idsCache = new Map<string, Promise<IdSets | null>>();
+function recordIds(address: string): Promise<IdSets | null> {
+  const key = address.toLowerCase();
+  if (!idsCache.has(key)) {
+    idsCache.set(key, fetch(`/api/ids?address=${key}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => (j && j.locks ? j as IdSets : null))
+      .catch(() => null));
+  }
+  return idsCache.get(key)!;
+}
+const asBig = (xs: number[]) => xs.map((n) => BigInt(n));
+
 async function loadExplore() {
   const box = $("exploreBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading latest activity… <span class="spin"></span></div></div>`;
@@ -1225,14 +1256,19 @@ async function runSearch() {
   try {
     const addr = getAddress(raw);
     // a search matches locks OF this token, locks BY this wallet — and burns for both
-    const [byToken, byOwner, burnsTok, burnsBy] = await Promise.all([
-      pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByToken", args: [addr] }) as Promise<bigint[]>,
-      pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByOwner", args: [addr] }) as Promise<bigint[]>,
-      BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByToken", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]) : Promise.resolve([] as bigint[]),
-      BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]) : Promise.resolve([] as bigint[]),
-    ]);
+    const idx = await recordIds(addr);
+    const [byToken, byOwner, burnsTok, burnsBy] = idx
+      ? [asBig(idx.locks.token), asBig(idx.locks.owner), asBig(idx.burns.token), asBig(idx.burns.burner)]
+      : await Promise.all([
+        pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByToken", args: [addr] }) as Promise<bigint[]>,
+        pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByOwner", args: [addr] }) as Promise<bigint[]>,
+        BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByToken", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]) : Promise.resolve([] as bigint[]),
+        BURNER ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]) : Promise.resolve([] as bigint[]),
+      ]);
     // …and vesting schedules for the token, the recipient, or the creator
-    const [vestTok, vestBen, vestCre] = VESTING
+    const [vestTok, vestBen, vestCre] = idx
+      ? [asBig(idx.vests.token), asBig(idx.vests.beneficiary), asBig(idx.vests.creator)]
+      : VESTING
       ? await Promise.all([
           (pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByToken", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]),
           (pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByBeneficiary", args: [addr] }) as Promise<bigint[]>).catch(() => [] as bigint[]),
@@ -2546,10 +2582,13 @@ async function renderVestMine() {
     return;
   }
   try {
-    const [benIds, creIds] = await Promise.all([
-      pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByBeneficiary", args: [account as `0x${string}`] }) as Promise<bigint[]>,
-      pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByCreator", args: [account as `0x${string}`] }) as Promise<bigint[]>,
-    ]);
+    const vIdx = await recordIds(account);
+    const [benIds, creIds] = vIdx
+      ? [asBig(vIdx.vests.beneficiary).reverse(), asBig(vIdx.vests.creator).reverse()]
+      : await Promise.all([
+        pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByBeneficiary", args: [account as `0x${string}`] }) as Promise<bigint[]>,
+        pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByCreator", args: [account as `0x${string}`] }) as Promise<bigint[]>,
+      ]);
     const uniq = (xs: bigint[]) => [...new Set(xs.map(Number))];
     const mineRows = (await Promise.all(uniq(benIds).map((i) => readVest(i).catch(() => null))))
       .filter((v): v is VestRow => !!v && v.beneficiary.toLowerCase() === account.toLowerCase()) // F-5: skip stale ids after Move

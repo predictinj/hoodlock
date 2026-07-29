@@ -1015,6 +1015,63 @@ function sendProof(res, meta) {
    logs here, so serve them from that cache instead of making every visitor
    wait on the explorer. Restricted to our own contracts — this is a cache, not
    an open proxy. */
+/* Record ids for one address, derived from events rather than from the
+ * contracts' own index arrays.
+ *
+ * The arrays (`locksByOwner`, `burnsByToken`, `schedulesByBeneficiary`, …) only
+ * ever grow and have no paginated getter. Anyone can append to another address's
+ * array for the price of a 1-wei record, and the client then issued one eth_call
+ * per id — so a few thousand junk entries were enough to make a real user's
+ * dashboard or a real token's page unusable, permanently.
+ *
+ * Events carry the same information, are already cached here, and can be capped.
+ * `schedulesByCreator` has no indexed creator (it is a data word), so that one is
+ * decoded rather than read from topics.
+ */
+const IDS_CAP = 250;
+const idArg = (l) => { try { return Number(BigInt(l.topics?.[1] || "0x0")); } catch { return null; } };
+
+app.get("/api/ids", async (req, res) => {
+  const who = String(req.query.address || "").toLowerCase();
+  if (!isAddress(who)) return res.status(400).json({ error: "bad address" });
+
+  // Newest first, then capped — a capped oldest-first list would hide live records.
+  const pick = (logs, match) => {
+    const out = [];
+    for (let i = logs.length - 1; i >= 0 && out.length < IDS_CAP; i--) {
+      if (match(logs[i])) { const id = idArg(logs[i]); if (id !== null) out.push(id); }
+    }
+    return out;
+  };
+  const eq = (a) => a && a.toLowerCase() === who;
+
+  try {
+    const [lockLogs, burnLogs, vestLogs] = await Promise.all([
+      readLogs(String(LOCKER).toLowerCase()).catch(() => []),
+      BURNER ? readLogs(String(BURNER).toLowerCase()).catch(() => []) : [],
+      VESTING ? readLogs(String(VESTING).toLowerCase()).catch(() => []) : [],
+    ]);
+    const locked = byTopic(lockLogs, T_LOCKED);
+    const burned = byTopic(burnLogs, T_BURNED);
+    const vested = byTopic(vestLogs, T_VESTING_CREATED);
+
+    res.set("Cache-Control", "public, max-age=30");
+    res.json({
+      cap: IDS_CAP,
+      locks: { owner: pick(locked, (l) => eq(addrArg(l, 2))), token: pick(locked, (l) => eq(addrArg(l, 3))) },
+      burns: { burner: pick(burned, (l) => eq(addrArg(l, 2))), token: pick(burned, (l) => eq(addrArg(l, 3))) },
+      // VestingCreated indexes (id, token, beneficiary); creator is the first data word.
+      vests: {
+        token: pick(vested, (l) => eq(addrArg(l, 2))),
+        beneficiary: pick(vested, (l) => eq(addrArg(l, 3))),
+        creator: pick(vested, (l) => eq(addrParam(l, "creator", 0))),
+      },
+    });
+  } catch {
+    res.status(503).json({ error: "index unavailable" });
+  }
+});
+
 app.get("/api/logs/:address", async (req, res) => {
   const want = String(req.params.address || "").toLowerCase();
   const allowed = [LOCKER, BURNER, VESTING].filter(Boolean).map((a) => String(a).toLowerCase());

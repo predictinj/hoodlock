@@ -54,7 +54,7 @@ the mechanics if you have not done it before.`)}
 
 ${h2("Token quirks the contracts handle")}
 ${table(["Quirk", "How it is handled"], [
-  ["Fee-on-transfer tokens", "The amount recorded is measured from the balance actually received, so the record is never overstated."],
+  ["Fee-on-transfer tokens", "The amount recorded is the balance the contract actually gained. Simple fee-on-transfer is recorded correctly; <b>rebasing and reflection tokens are not supported</b> and can leave the shared per-token pool short of what it owes."],
   ["Tokens that return no boolean", "Transfers use a safe wrapper in the vesting contract rather than a raw <code>require</code>."],
   ["Overpaid fees", "Refunded by the locker and burner. <b>Not</b> by vesting, which requires the exact fee."],
   ["Non-contract token addresses", "Vesting rejects an address with no code, so a typo cannot create an empty schedule."],

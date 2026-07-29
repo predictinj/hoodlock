@@ -1,13 +1,13 @@
-import { h2, p, ul, table, code, info, danger, doc, blog, cta } from "../components.mjs";
+import { h2, p, ul, table, code, info, warn, danger, doc, blog, cta } from "../components.mjs";
 
 export default {
   slug: "token-burning",
   navTitle: "Token burning",
   seoTitle: "Token Burning on Robinhood Chain | HoodLock",
-  desc: "Send tokens to the dead address with a permanent on-chain record. What burning proves, what it costs, and why it cannot be reversed.",
+  desc: "Send tokens to the dead address with a permanent on-chain record. What a burn actually proves, what it costs, and where the token itself sets the limit.",
   updated: "2026-07-29",
   h1: 'Token <span class="serif">burning.</span>',
-  lede: "Burning removes supply permanently. Not by policy — by arithmetic. Nothing can move tokens out of the dead address, including us.",
+  lede: "Sending tokens to an address nobody holds the key to, with a permanent public record of it. Final from our side — though whether it truly reduces supply depends on the token.",
   body: `
 ${h2("What happens")}
 ${p(`The burner moves tokens from your wallet to the dead address in a single transfer and writes a record:
@@ -17,8 +17,24 @@ ${p(`The tokens never rest in the burner contract. There is no intermediate cust
 could go wrong or where a privileged function could intervene — the transfer goes straight from you to an
 address nobody holds the key to.`)}
 
-${danger(`<p><b>This cannot be undone.</b> There is no recovery, no support ticket and no admin override.
+${danger(`<p><b>We cannot undo this.</b> There is no recovery, no support ticket and no admin override.
 The dead address has no owner, so there is no one to ask. Burn the amount you mean to burn.</p>`)}
+
+${h2("What a burn does and does not prove")}
+${p(`This is the part worth reading carefully, because burning is routinely presented as stronger evidence
+than it is.`)}
+${warn(`<p><b>A transfer to the dead address does not reduce <code>totalSupply</code>.</b> The tokens are
+parked at an unspendable address, not destroyed at the protocol level, so every "% of supply" figure still
+counts them in the denominator unless the token implements a real burn.</p>
+<p><b>And the token decides whether they stay there.</b> A mintable token can re-issue the same amount. An
+upgradeable token can add a function that moves the dead address's balance. Neither is visible from the
+burn record.</p>`)}
+${warn(`<p><b>The recorded amount comes from the token itself.</b> The registry measures the dead address's
+balance before and after, which means a token that reports whatever it likes can produce a burn record for
+far more than was actually sent. A burn of a token you did not verify is a claim, not proof.</p>
+<p>Before treating any burn — including one shown to you — as supply reduction: check the token's contract
+address rather than its symbol, and check whether it is mintable or upgradeable.
+${blog("how-to-verify-a-token-contract-on-blockscout", "How to read a contract on Blockscout")}.</p>`)}
 
 ${h2("Why burn through a contract at all")}
 ${p(`You could send tokens to the dead address yourself. The difference is the record.`)}
@@ -28,15 +44,17 @@ ${ul([
   "<code>totalBurnedOf(token)</code> gives a running total per token, so repeated burns add up to a number you can point at.",
 ])}
 
-${h2("What burning proves, and what it does not")}
-${table(["It proves", "It does not prove"], [
-  ["That specific supply is permanently gone", "That the remaining supply is distributed well"],
-  ["Nobody can sell those tokens", "That the token contract is safe to trade"],
-  ["The team gave something up irreversibly", "That anything else about the project is committed"],
+${h2("Where the line falls")}
+${table(["A burn record establishes", "It does not establish"], [
+  ["That a transfer to the dead address happened, on a specific date, in a specific transaction", "That <code>totalSupply</code> fell, unless the token burns rather than parks"],
+  ["That HoodLock cannot return those tokens", "That the <i>token</i> cannot return them"],
+  ["That the burner gave up whatever they actually held", "That what they held was worth anything"],
+  ["An amount the token reported", "That the amount is true, if the token is not verified"],
+  ["Nothing about the remaining supply", "Nothing about the token contract or the team"],
 ])}
-${p(`Burning a large share of supply is a strong signal precisely because it is irreversible. It is also
-the only one of the three products that gives you no way back, which is why it should be a considered
-decision rather than a marketing gesture.`)}
+${p(`On a verified, non-mintable, non-upgradeable token a burn is one of the strongest signals available —
+precisely because there is no way back. That qualifier is doing real work in that sentence, and it is why
+the checks above are worth the two minutes.`)}
 
 ${h2("Burning versus locking liquidity")}
 ${p(`For an LP position the two are genuinely different promises. A burn is permanent and needs no trust
@@ -53,7 +71,7 @@ No percentage of the tokens. See ${doc("fees", "fees")}.`)}
 ${h2("Doing it")}
 ${p(`Full steps in ${doc("how-to-burn-tokens", "how to burn tokens")}. Two transactions: approve, then
 burn. The confirmation screen states the amount and the share of supply before you sign.`)}
-${cta("Burn tokens", "Permanent by construction, with a proof page and a transaction anyone can check.", "/app/burn", "Open burn →")}
+${cta("Burn tokens", "A single hop to the dead address, with a proof page and a transaction anyone can check.", "/app/burn", "Open burn →")}
 `,
   related: [
     { href: "/docs/how-to-burn-tokens", title: "How to burn tokens" },
