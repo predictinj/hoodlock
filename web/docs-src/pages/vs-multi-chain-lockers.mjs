@@ -44,14 +44,18 @@ ${p(`${blog("how-to-choose-a-token-locker", "How to choose a token locker")} wor
 properly, and ${doc("security", "our security model")} answers them for HoodLock with the specific
 functions to read.`)}
 
-${h2("What is actually available on this chain")}
-${table(["Platform", "Locks", "Notes"], [
-  ["HoodLock", "ERC-20 tokens, v2-style LP tokens, vesting, burning", "Flat 0.005 ETH, no percentage. Verified, not third-party audited."],
-  ["StonkBrokers", "Uniswap v3 and v4 position NFTs", "Percentage-based pricing. Audited by HashLock. " + doc("vs/stonkbrokers", "Full comparison") + "."],
+${h2("What HoodLock covers")}
+${table(["Asset", "Covered"], [
+  ["Creator, team and treasury tokens (any ERC-20)", "<b>Yes</b>"],
+  ["v2-style LP tokens, which are themselves ERC-20", "<b>Yes</b>"],
+  ["Vesting schedules, single or batched", "<b>Yes</b>"],
+  ["Token burning with an auditable record", "<b>Yes</b>"],
+  ["Uniswap v3 and v4 positions", "No — those are NFTs, not ERC-20"],
 ])}
-${info(`<p>Between the two, most position types on this chain are covered — and by different platforms.
-That is worth knowing before you conclude the chain is underserved: the answer for a v3 position is not
-the answer for a team allocation.</p>`)}
+${info(`<p>If you hold a v3 or v4 position, check what your launchpad already did with it before looking
+for somewhere to lock it. Most platforms on this chain lock or burn the position at graduation, in which
+case it is no longer yours to move and the question is settled. ${doc("liquidity-locker", "The liquidity locker page")}
+explains how to tell which kind of position you have.</p>`)}
 
 ${h2("If you would rather wait")}
 ${p(`That is a legitimate choice, and the trade-off is worth stating plainly. Waiting for a locker you

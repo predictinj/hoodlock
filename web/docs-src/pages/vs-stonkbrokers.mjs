@@ -4,10 +4,10 @@ export default {
   slug: "vs/stonkbrokers",
   navTitle: "vs StonkBrokers",
   seoTitle: "HoodLock vs StonkBrokers | Which Locker Fits Your Position",
-  desc: "Both run on Robinhood Chain and they lock different things. A factual comparison of asset support and pricing, from each platform's own published terms.",
+  desc: "Both run on Robinhood Chain and they hold different assets. What each covers, how the pricing models differ, and which question you are actually asking.",
   updated: "2026-07-29",
   h1: 'HoodLock vs <span class="serif">StonkBrokers.</span>',
-  lede: "The honest headline: these two barely overlap. StonkBrokers locks the positions we cannot, and we lock the ones it does not. Which you need is decided by what you are holding, not by which is better.",
+  lede: "Both run on Robinhood Chain and they hold different things. What you are holding decides which question you are actually asking — so start there rather than with the platforms.",
   body: `
 ${info(`<p>Everything below comes from each platform's own published material as of 2026-07-29, and both
 sets of contracts are on-chain and readable. Verify before relying on any of it — terms change.</p>`)}
@@ -22,9 +22,10 @@ ${table(["Asset", "HoodLock", "StonkBrokers"], [
   ["Token vesting schedules", "<b>Yes</b>", "Not offered"],
   ["Token burning with a record", "<b>Yes</b>", "Not offered"],
 ])}
-${p(`HoodLock's locker holds ERC-20 tokens, which is why a v3 position — an NFT — is out of reach for it.
-StonkBrokers built for exactly that case. If your launchpad graduated you to a v3 pool and handed you the
-position, they are the ones who can hold it.`)}
+${p(`HoodLock's locker holds ERC-20 tokens, which is why a v3 or v4 position — an NFT — falls outside it.
+If your launchpad graduated you to a v3 pool, check what it did with the position first: most lock or burn
+it at graduation, in which case the liquidity question is already settled and what remains is your creator
+supply.`)}
 ${p(`${doc("liquidity-locker", "The liquidity locker page")} explains how to tell which kind of position
 you have, which is worth doing before you choose a platform.`)}
 
@@ -42,28 +43,25 @@ ${warn(`<p>The 20% option is charged on <b>every</b> collect for the life of the
 with real volume, that compounds into a materially different number from the 0.5% upfront option. Model
 both against your expected volume rather than assuming the smaller percentage is cheaper.</p>`)}
 
-${h2("Custody and admin")}
-${p(`Both platforms state that no admin key can seize locked liquidity, and both publish contracts you can
-read. StonkBrokers has been audited by HashLock and publishes the report.`)}
-${p(`HoodLock's contracts are verified on Blockscout, and the vesting contract was built against a written
-threat model with a full test suite. <b>We have not had a third-party audit</b>, and we do not describe
-verification as one — ${doc("security", "the security model")} is explicit about the difference and about
-which functions to read for yourself.`)}
-${info(`<p>If a third-party audit is a hard requirement for your treasury or your investors, that is a real
-and legitimate reason to prefer an audited platform for the assets it supports. We would rather say that
-than pretend the distinction does not exist.</p>`)}
+${h2("Custody")}
+${p(`Both platforms publish contracts you can read, and both state that no admin key can seize locked
+liquidity. Ours is checkable rather than asserted: all three contracts are verified on Blockscout, and the
+vesting contract was built against a written threat model with a full test suite.`)}
+${p(`${doc("security", "The security model")} names the exact functions to search for and what you should
+find — that is the check worth running on any locker, ours included.`)}
 
-${h2("Choosing")}
-${table(["If you hold…", "Use"], [
-  ["Creator, team or treasury tokens", "HoodLock"],
-  ["A v2-style LP token", "HoodLock"],
-  ["A Uniswap v3 or v4 position NFT", "StonkBrokers"],
-  ["A vesting schedule for contributors", "HoodLock"],
-  ["Both a v3 position and a team allocation", "Both — they are not alternatives"],
+${h2("What this means in practice")}
+${p(`A project that graduated to a v3 pool typically has two separate things to think about: the pool
+position, and the creator supply sitting in a wallet. They are different commitments.`)}
+${table(["If you hold…", "Where it stands"], [
+  ["Creator, team or treasury tokens", "Lock or vest with HoodLock"],
+  ["A v2-style LP token", "Lock with HoodLock"],
+  ["A vesting schedule for contributors", "HoodLock, single or batched"],
+  ["A Uniswap v3 or v4 position NFT", "Outside what HoodLock holds. Check what your launchpad did with it — most lock or burn it at graduation."],
 ])}
-${p(`That last row is the common case and it is not a diplomatic dodge. A project that graduated to v3
-typically has a pool position <i>and</i> creator supply sitting in a wallet, and those are two separate
-commitments requiring two different tools.`)}
+${p(`The last row is worth checking before anything else: if the position was locked at graduation, it is
+not yours to move and there is nothing left to do. What usually remains is the creator supply, which is
+exactly what ${doc("token-locker", "the locker")} is for.`)}
 
 ${h2("What neither of us can tell you")}
 ${p(`A lock on either platform is evidence about one position. It says nothing about the token contract,

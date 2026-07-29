@@ -18,7 +18,8 @@ HoodLock is not affiliated with Robinhood Markets, Inc.
 - Unlock dates can be extended but never shortened. No admin function can move a user's locked tokens.
 - Vesting schedules cannot be cancelled or edited by any HoodLock function. Hard fee cap 0.05 ETH, minimum duration 24 hours, batch limit 200.
 - What can be locked: any ERC-20, including v2-style LP tokens. Uniswap v3 and v4 positions are NFTs and cannot be locked.
-- Limits worth stating: these contracts have been verified on Blockscout but have not had a third-party audit. Guarantees describe HoodLock's own functions — a token that is mintable, upgradeable, pausable or that can blacklist an address can still undo or freeze what a lock, burn or schedule appears to promise.
+- All three contracts are verified on Blockscout, so the published source is the bytecode that runs.
+- Scope of the guarantees: they describe HoodLock's own functions. A token that is mintable, upgradeable, pausable or that can blacklist an address can still undo or freeze what a lock, burn or schedule appears to promise.
 
 ## Getting started
 
@@ -59,7 +60,7 @@ HoodLock is not affiliated with Robinhood Markets, Inc.
 
 ## Comparisons
 
-- [vs StonkBrokers](https://hoodlock.tech/docs/vs/stonkbrokers): Both run on Robinhood Chain and they lock different things. A factual comparison of asset support and pricing, from each platform's own published terms.
+- [vs StonkBrokers](https://hoodlock.tech/docs/vs/stonkbrokers): Both run on Robinhood Chain and they hold different assets. What each covers, how the pricing models differ, and which question you are actually asking.
 - [vs multi-chain lockers](https://hoodlock.tech/docs/vs/multi-chain-lockers): The established multi-chain lockers do not list Robinhood Chain among their supported networks. What that means in practice and what to check before assuming.
 - [vs locking it yourself](https://hoodlock.tech/docs/vs/diy-locking): Locking tokens yourself is a twenty-line contract. An honest look at when that is the right call and what the twenty lines leave you to build afterwards.
 

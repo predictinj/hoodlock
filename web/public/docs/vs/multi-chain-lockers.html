@@ -77,11 +77,12 @@ apply to us as much as to anyone.</p>
 properly, and <a href="/docs/security">our security model</a> answers them for HoodLock with the specific
 functions to read.</p>
 
-<h2 id="what-is-actually-available-on-this-chain">What is actually available on this chain<a class="anchor" href="#what-is-actually-available-on-this-chain" aria-label="Link to this section">#</a></h2>
-<div class="tablewrap"><table><thead><tr><th>Platform</th><th>Locks</th><th>Notes</th></tr></thead><tbody><tr><td>HoodLock</td><td>ERC-20 tokens, v2-style LP tokens, vesting, burning</td><td>Flat 0.005 ETH, no percentage. Verified, not third-party audited.</td></tr><tr><td>StonkBrokers</td><td>Uniswap v3 and v4 position NFTs</td><td>Percentage-based pricing. Audited by HashLock. <a href="/docs/vs/stonkbrokers">Full comparison</a>.</td></tr></tbody></table></div>
-<div class="callout callout-info"><div class="ct">Note</div><p>Between the two, most position types on this chain are covered — and by different platforms.
-That is worth knowing before you conclude the chain is underserved: the answer for a v3 position is not
-the answer for a team allocation.</p></div>
+<h2 id="what-hoodlock-covers">What HoodLock covers<a class="anchor" href="#what-hoodlock-covers" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Asset</th><th>Covered</th></tr></thead><tbody><tr><td>Creator, team and treasury tokens (any ERC-20)</td><td><b>Yes</b></td></tr><tr><td>v2-style LP tokens, which are themselves ERC-20</td><td><b>Yes</b></td></tr><tr><td>Vesting schedules, single or batched</td><td><b>Yes</b></td></tr><tr><td>Token burning with an auditable record</td><td><b>Yes</b></td></tr><tr><td>Uniswap v3 and v4 positions</td><td>No — those are NFTs, not ERC-20</td></tr></tbody></table></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>If you hold a v3 or v4 position, check what your launchpad already did with it before looking
+for somewhere to lock it. Most platforms on this chain lock or burn the position at graduation, in which
+case it is no longer yours to move and the question is settled. <a href="/docs/liquidity-locker">The liquidity locker page</a>
+explains how to tell which kind of position you have.</p></div>
 
 <h2 id="if-you-would-rather-wait">If you would rather wait<a class="anchor" href="#if-you-would-rather-wait" aria-label="Link to this section">#</a></h2>
 <p>That is a legitimate choice, and the trade-off is worth stating plainly. Waiting for a locker you
@@ -98,7 +99,7 @@ their own sites before relying on it.</p>
 <section class="related"><h2>Related</h2><ul><li><a href="/docs/vs/stonkbrokers">HoodLock vs StonkBrokers</a></li><li><a href="/docs/security">Security model</a></li><li><a href="/blog/how-to-choose-a-token-locker">How to choose a token locker</a></li><li><a href="/blog/custodial-vs-non-custodial-locking">Custodial vs non-custodial locking</a></li></ul></section>
 <nav class="pager" aria-label="Previous and next page"><a href="/docs/vs/stonkbrokers"><span class="d">Previous</span>vs StonkBrokers</a><a class="next" href="/docs/vs/diy-locking"><span class="d">Next</span>vs locking it yourself</a></nav>
 </main>
-<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#the-short-answer">The short answer</a></li><li><a class="" href="#why-chain-support-is-not-a-formality">Why chain support is not a formality</a></li><li><a class="" href="#what-to-check-on-any-locker-including-this-one">What to check on any locker, including this one</a></li><li><a class="" href="#what-is-actually-available-on-this-chain">What is actually available on this chain</a></li><li><a class="" href="#if-you-would-rather-wait">If you would rather wait</a></li></ul></aside>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#the-short-answer">The short answer</a></li><li><a class="" href="#why-chain-support-is-not-a-formality">Why chain support is not a formality</a></li><li><a class="" href="#what-to-check-on-any-locker-including-this-one">What to check on any locker, including this one</a></li><li><a class="" href="#what-hoodlock-covers">What HoodLock covers</a></li><li><a class="" href="#if-you-would-rather-wait">If you would rather wait</a></li></ul></aside>
 </div>
 <footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
 </body>

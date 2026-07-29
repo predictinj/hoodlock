@@ -189,7 +189,8 @@ HoodLock is not affiliated with Robinhood Markets, Inc.
 - Unlock dates can be extended but never shortened. No admin function can move a user's locked tokens.
 - Vesting schedules cannot be cancelled or edited by any HoodLock function. Hard fee cap 0.05 ETH, minimum duration 24 hours, batch limit 200.
 - What can be locked: any ERC-20, including v2-style LP tokens. Uniswap v3 and v4 positions are NFTs and cannot be locked.
-- Limits worth stating: these contracts have been verified on Blockscout but have not had a third-party audit. Guarantees describe HoodLock's own functions — a token that is mintable, upgradeable, pausable or that can blacklist an address can still undo or freeze what a lock, burn or schedule appears to promise.
+- All three contracts are verified on Blockscout, so the published source is the bytecode that runs.
+- Scope of the guarantees: they describe HoodLock's own functions. A token that is mintable, upgradeable, pausable or that can blacklist an address can still undo or freeze what a lock, burn or schedule appears to promise.
 
 ${sections.join("\n\n")}
 
