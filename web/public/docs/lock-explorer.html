@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lock Explorer | Browse Locks, Burns and Vesting on Robinhood Chain</title>
+<meta name="description" content="Browse every lock, burn and vesting schedule on Robinhood Chain, search by token or wallet, and open the proof page for any record.">
+<link rel="canonical" href="https://hoodlock.tech/docs/lock-explorer">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Lock Explorer | Browse Locks, Burns and Vesting on Robinhood Chain">
+<meta property="og:description" content="Browse every lock, burn and vesting schedule on Robinhood Chain, search by token or wallet, and open the proof page for any record.">
+<meta property="og:url" content="https://hoodlock.tech/docs/lock-explorer">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lock Explorer | Browse Locks, Burns and Vesting on Robinhood Chain">
+<meta name="twitter:description" content="Browse every lock, burn and vesting schedule on Robinhood Chain, search by token or wallet, and open the proof page for any record.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Lock explorer","item":"https://hoodlock.tech/docs/lock-explorer"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Lock Explorer | Browse Locks, Burns and Vesting on Robinhood Chain","description":"Browse every lock, burn and vesting schedule on Robinhood Chain, search by token or wallet, and open the proof page for any record.","url":"https://hoodlock.tech/docs/lock-explorer","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/lock-explorer"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer" aria-current="page">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Lock explorer</li></ol></nav>
+<h1>Lock <span class="serif">explorer.</span></h1>
+<p class="lede">Every record HoodLock has ever created, in one list, readable without connecting anything.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="what-it-shows">What it shows<a class="anchor" href="#what-it-shows" aria-label="Link to this section">#</a></h2>
+<p><a href="/app/explore">The explorer</a> lists locks, burns and vesting schedules together, newest first, with
+the token, the amount, the date and the current status on each row. Clicking a row opens its
+<a href="/docs/proof-of-lock">proof page</a>.</p>
+<p>Locks, burns and schedules are interleaved rather than separated, because the question a reader
+usually has is “what has happened to this token”, not “show me one product”.</p>
+
+<h2 id="searching">Searching<a class="anchor" href="#searching" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Search by</th><th>What you get</th></tr></thead><tbody><tr><td>Token address</td><td>Every record against that token, whoever created it</td></tr><tr><td>Wallet address</td><td>Every record created by that wallet, across tokens</td></tr></tbody></table></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>Search takes a contract address, not a symbol. Symbols are not unique — several tokens on this
+chain share one — so an address is the only unambiguous way to ask the question. Copy it from the DEX pair
+or the project's own site rather than from a chat message.</p></div>
+
+<h2 id="token-pages">Token pages<a class="anchor" href="#token-pages" aria-label="Link to this section">#</a></h2>
+<p>Tokens with enough on-chain history get a standing page that gathers every lock, burn and schedule
+against them, along with supply and holder context. Those pages update as the chain does — a token with no
+locks today will show them once they exist, without anyone republishing anything.</p>
+
+<h2 id="reading-a-row-honestly">Reading a row honestly<a class="anchor" href="#reading-a-row-honestly" aria-label="Link to this section">#</a></h2>
+<p>Three habits make the difference between using the explorer well and being misled by it.</p>
+<ul><li><b>Read the share of supply, not the token count.</b> Large numbers are cheap; percentages are not.</li><li><b>Check the unlock date, not just that a lock exists.</b> A lock expiring next week is a countdown, not a commitment.</li><li><b>Look at what is <i>not</i> locked.</b> A locked position tells you about that balance only. <a href="/blog/how-to-read-token-holder-distribution">Holder distribution</a> tells you about the rest.</li></ul>
+
+<h2 id="for-the-record">For the record<a class="anchor" href="#for-the-record" aria-label="Link to this section">#</a></h2>
+<p>Everything the explorer displays is read from the chain at request time. It holds no private index of
+its own and shows nothing that could not be reconstructed from the contracts directly — the
+<a href="/docs/contracts">contract reference</a> lists the enumeration functions it uses.</p>
+
+<div class="cta-box"><h2>Browse the explorer</h2><p>Every lock, burn and vesting schedule on Robinhood Chain — no wallet needed.</p><a class="btn" href="/app/explore">Open explorer →</a></div>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li><li><a href="/blog/how-to-check-if-liquidity-is-locked">How to check if liquidity is locked</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/proof-of-lock"><span class="d">Previous</span>Proof of lock</a><a class="next" href="/docs/security"><span class="d">Next</span>Security model</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#what-it-shows">What it shows</a></li><li><a class="" href="#searching">Searching</a></li><li><a class="" href="#token-pages">Token pages</a></li><li><a class="" href="#reading-a-row-honestly">Reading a row honestly</a></li><li><a class="" href="#for-the-record">For the record</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

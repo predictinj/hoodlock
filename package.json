@@ -8,8 +8,9 @@
     "compile": "node scripts/compile.cjs",
     "deploy": "node scripts/deploy.cjs",
     "dev": "vite web",
-    "build": "vite build web",
-    "preview": "vite preview web"
+    "build": "npm run docs:build && vite build web",
+    "preview": "vite preview web",
+    "docs:build": "node web/docs-src/build.mjs"
   },
   "dependencies": {
     "viem": "^2.21.0",

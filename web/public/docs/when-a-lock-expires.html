@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lock Expiry: Withdraw, Extend or Let It Lapse | HoodLock</title>
+<meta name="description" content="Nothing moves automatically at the unlock date. What actually changes, what holders see, and which of the three options costs you least.">
+<link rel="canonical" href="https://hoodlock.tech/docs/when-a-lock-expires">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Lock Expiry: Withdraw, Extend or Let It Lapse | HoodLock">
+<meta property="og:description" content="Nothing moves automatically at the unlock date. What actually changes, what holders see, and which of the three options costs you least.">
+<meta property="og:url" content="https://hoodlock.tech/docs/when-a-lock-expires">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lock Expiry: Withdraw, Extend or Let It Lapse | HoodLock">
+<meta name="twitter:description" content="Nothing moves automatically at the unlock date. What actually changes, what holders see, and which of the three options costs you least.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"When a lock expires","item":"https://hoodlock.tech/docs/when-a-lock-expires"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Lock Expiry: Withdraw, Extend or Let It Lapse | HoodLock","description":"Nothing moves automatically at the unlock date. What actually changes, what holders see, and which of the three options costs you least.","url":"https://hoodlock.tech/docs/when-a-lock-expires","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/when-a-lock-expires"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires" aria-current="page">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>When a lock expires</li></ol></nav>
+<h1>When a lock <span class="serif">expires.</span></h1>
+<p class="lede">Expiry is not an event. No tokens move, no transaction fires and nothing is sent anywhere — a permission simply becomes available to one address.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="what-actually-happens">What actually happens<a class="anchor" href="#what-actually-happens" aria-label="Link to this section">#</a></h2>
+<p>At the unlock time, exactly one thing changes: <code>withdraw</code> stops reverting for the lock's
+owner. The tokens stay in the contract until that owner sends a transaction. They can stay there
+indefinitely.</p>
+<div class="tablewrap"><table><thead><tr><th>Common belief</th><th>Reality</th></tr></thead><tbody><tr><td>Tokens are returned automatically</td><td>Nothing is pushed. The owner must withdraw.</td></tr><tr><td>The lock disappears</td><td>The record stays on-chain permanently, with its status updated.</td></tr><tr><td>The proof link stops working</td><td>It keeps working and shows the current status honestly.</td></tr><tr><td>There is a grace period</td><td>There is not. The moment passes and withdrawal is available.</td></tr></tbody></table></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>Because withdrawal is a deliberate act, an expired lock that has not been withdrawn is
+informative in itself — it says the owner had the option and has not taken it.</p></div>
+
+<h2 id="what-holders-see">What holders see<a class="anchor" href="#what-holders-see" aria-label="Link to this section">#</a></h2>
+<p>The proof page and the explorer both switch the status from locked to unlockable, and then to
+withdrawn if and when that happens. Nobody has to be told; anyone watching the token sees it.</p>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>Assume someone is watching the date. On a token with an engaged community, the unlock date is
+often better known than the team expects, and a date that passes in silence reads as a countdown that
+ended. Saying what you plan to do beforehand costs nothing.</p></div>
+
+<h2 id="your-options-as-the-date-approaches">Your options as the date approaches<a class="anchor" href="#your-options-as-the-date-approaches" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Option</th><th>Cost</th><th>How it reads</th></tr></thead><tbody><tr><td><b>Extend</b> before expiry</td><td>Gas only — extending is free</td><td>Strongest. A continuous record with no gap.</td></tr><tr><td>Let it expire and leave it</td><td>Nothing</td><td>Ambiguous. The option to sell exists and is visible.</td></tr><tr><td>Withdraw and re-lock</td><td>A new fee</td><td>Weakest. There is a gap, and gaps get noticed.</td></tr><tr><td>Withdraw</td><td>Gas only</td><td>Honest, if you say why.</td></tr></tbody></table></div>
+<p>Extending is almost always the right move if you intend to stay locked — see
+<a href="/docs/how-to-extend-a-lock">extending a lock</a>. It is free, it happens before the gap rather than
+after, and it keeps the record unbroken.</p>
+
+<h2 id="withdrawing">Withdrawing<a class="anchor" href="#withdrawing" aria-label="Link to this section">#</a></h2>
+<ol class="steps"><li><b>Open My locks</b> in <a href="/app/locks">the app</a> with the owning wallet.</li><li><b>Find the expired lock</b> — it will show as unlockable.</li><li><b>Withdraw.</b> One transaction, gas only. <b>There is no withdrawal fee.</b></li></ol>
+<p>The full amount returns to the lock's current owner. If ownership was transferred at some point, it
+goes to the current owner, not the original creator.</p>
+
+<h2 id="planning-around-it">Planning around it<a class="anchor" href="#planning-around-it" aria-label="Link to this section">#</a></h2>
+<ul><li><b>Do not set a date you will resent.</b> Extending is free and shortening is impossible, so err short and extend.</li><li><b>Stagger a treasury.</b> Several locks on different dates beat one large lock expiring in a single block, both operationally and in how it reads.</li><li><b>Put the date in your own documentation.</b> If holders learn it from you rather than from a chart, the conversation starts differently.</li></ul>
+<p><a href="/blog/what-happens-when-a-token-lock-expires">The longer discussion</a> covers how markets
+typically react around unlock dates, and <a href="/blog/what-is-a-token-unlock-schedule">unlock schedules</a>
+covers publishing them in advance.</p>
+
+<h2 id="vesting-is-different">Vesting is different<a class="anchor" href="#vesting-is-different" aria-label="Link to this section">#</a></h2>
+<p>Schedules have no expiry in this sense. Tokens become claimable progressively and unclaimed amounts
+never lapse — the beneficiary can claim years later. There is nothing to extend and nothing to miss. See
+<a href="/docs/token-vesting">token vesting</a>.</p>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/blog/what-happens-when-a-token-lock-expires">When a lock expires on Robinhood Chain</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/security"><span class="d">Previous</span>Security model</a><a class="next" href="/docs/troubleshooting"><span class="d">Next</span>Troubleshooting</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#what-actually-happens">What actually happens</a></li><li><a class="" href="#what-holders-see">What holders see</a></li><li><a class="" href="#your-options-as-the-date-approaches">Your options as the date approaches</a></li><li><a class="" href="#withdrawing">Withdrawing</a></li><li><a class="" href="#planning-around-it">Planning around it</a></li><li><a class="" href="#vesting-is-different">Vesting is different</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

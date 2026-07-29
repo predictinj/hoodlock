@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create a Vesting Schedule with HoodLock | Step-by-Step</title>
+<meta name="description" content="Set up irrevocable linear vesting on Robinhood Chain, alone or for a whole team at once, with the checks to run before you sign something permanent.">
+<link rel="canonical" href="https://hoodlock.tech/docs/how-to-create-vesting">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Create a Vesting Schedule with HoodLock | Step-by-Step">
+<meta property="og:description" content="Set up irrevocable linear vesting on Robinhood Chain, alone or for a whole team at once, with the checks to run before you sign something permanent.">
+<meta property="og:url" content="https://hoodlock.tech/docs/how-to-create-vesting">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Create a Vesting Schedule with HoodLock | Step-by-Step">
+<meta name="twitter:description" content="Set up irrevocable linear vesting on Robinhood Chain, alone or for a whole team at once, with the checks to run before you sign something permanent.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Create a vesting schedule","item":"https://hoodlock.tech/docs/how-to-create-vesting"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Create a Vesting Schedule with HoodLock | Step-by-Step","description":"Set up irrevocable linear vesting on Robinhood Chain, alone or for a whole team at once, with the checks to run before you sign something permanent.","url":"https://hoodlock.tech/docs/how-to-create-vesting","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/how-to-create-vesting"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting" aria-current="page">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Create a vesting schedule</li></ol></nav>
+<h1>Create a <span class="serif">vesting schedule.</span></h1>
+<p class="lede">Four numbers decide everything: how much, when it starts, when the cliff falls and when it ends. Get them right before you sign — a schedule cannot be edited afterwards.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<div class="callout callout-danger"><div class="ct">Irreversible</div><p><b>Vesting is irrevocable.</b> There is no cancel, no edit and no recovery function in the
+contract. A wrong beneficiary address or a wrong amount is permanent. Read this page before you start
+rather than during.</p></div>
+
+<h2 id="decide-the-four-numbers">Decide the four numbers<a class="anchor" href="#decide-the-four-numbers" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Field</th><th>What it means</th><th>Common choice</th></tr></thead><tbody><tr><td><b>Amount</b></td><td>Total tokens in the schedule</td><td>The whole allocation for that person</td></tr><tr><td><b>Start</b></td><td>When accrual begins</td><td>Today, or a shared team start date</td></tr><tr><td><b>Cliff</b></td><td>Nothing is claimable before this</td><td>One year on a multi-year schedule</td></tr><tr><td><b>End</b></td><td>Everything is claimable at this point</td><td>Two to four years for team supply</td></tr></tbody></table></div>
+<p>Between start and end, release is linear. Before the cliff it is zero even though time is accruing —
+when the cliff passes, everything earned to that point becomes claimable at once. The exact formula is on
+<a href="/docs/token-vesting">the vesting page</a>.</p>
+<div class="callout callout-info"><div class="ct">Note</div><p><a href="/blog/team-token-allocation-benchmarks">Allocation benchmarks</a> covers what sizes and
+durations survive scrutiny, and <a href="/blog/what-is-a-vesting-cliff">what a cliff is</a> covers how holders
+read one.</p></div>
+
+<h2 id="create-it">Create it<a class="anchor" href="#create-it" aria-label="Link to this section">#</a></h2>
+<ol class="steps"><li><b>Open vesting.</b> Go to <a href="/app/vesting">the vesting form</a> with the wallet holding the tokens.</li><li><b>Pick the token and amount.</b> Same as any other flow — from your balances or by address.</li><li><b>Enter the beneficiary.</b> The address that will be able to claim. <b>Check it character by
+   character.</b> This is the field that cannot be fixed later.</li><li><b>Set start, cliff and end.</b> The form enforces the contract's rules, so an invalid combination
+   will not reach a signature prompt.</li><li><b>Review the summary.</b> It shows what percentage would already be vested at creation — read that
+   number before continuing (see below).</li><li><b>Approve, then create.</b> Two transactions. The fee is charged once, here; claiming later is free.</li></ol>
+
+<h2 id="the-rules-the-contract-enforces">The rules the contract enforces<a class="anchor" href="#the-rules-the-contract-enforces" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Rule</th><th>Value</th></tr></thead><tbody><tr><td>Minimum duration</td><td>24 hours between start and end</td></tr><tr><td>Ordering</td><td><code>start ≤ cliff ≤ end</code></td></tr><tr><td>Fee</td><td>Exactly the fee — overpayment is <b>not</b> refunded, unlike locks and burns</td></tr><tr><td>Batch size</td><td>Up to 200 beneficiaries per transaction</td></tr></tbody></table></div>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>If you build transactions yourself rather than using the app, note that the API validates
+<code>end - start ≥ 86400</code> while the contract validates <code>end &gt; block.timestamp +
+MIN_DURATION</code>. A back-dated start can pass the first and fail the second. Validate against
+<code>block.timestamp</code>. Details on the <a href="/docs/api">API page</a>.</p></div>
+
+<h2 id="vesting-a-whole-team-at-once">Vesting a whole team at once<a class="anchor" href="#vesting-a-whole-team-at-once" aria-label="Link to this section">#</a></h2>
+<p>Batch creation makes one schedule per beneficiary in a single transaction — same token, same timing,
+different addresses and amounts. Up to 200 at a time, with the fee charged per schedule.</p>
+<p>It is the practical way to set up a cap table, and it produces one proof page per person rather than
+one shared page, which is what you want when someone asks about a specific allocation.</p>
+
+<h2 id="be-honest-about-back-dating">Be honest about back-dating<a class="anchor" href="#be-honest-about-back-dating" aria-label="Link to this section">#</a></h2>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>A schedule with a start date in the past is already partly vested the moment it exists. That is
+legitimate — teams often vest from a date people actually joined — but a schedule that is 50% claimable on
+day one is, in practice, half a transfer.</p>
+<p>Our proof pages show the percentage already vested at creation, so the number will be visible whether
+or not you mention it. Say it yourself. It costs nothing and pre-empts the accusation.</p></div>
+
+<h2 id="after-creating">After creating<a class="anchor" href="#after-creating" aria-label="Link to this section">#</a></h2>
+<ul><li><b>The beneficiary claims</b>, when they choose. Nothing is pushed automatically and unclaimed tokens never expire.</li><li><b>Claims are free.</b> Gas only.</li><li><b>The beneficiary can hand over</b> to a new address themselves, for a wallet change. You cannot do it for them.</li><li><b>You cannot change anything.</b> Not the amount, not the dates, not the recipient.</li></ul>
+<p>Share the proof link the same way you would a lock — <a href="/docs/proof-of-lock">proof of lock</a> covers
+what it shows.</p>
+
+<div class="cta-box"><h2>Create a vesting schedule</h2><p>Flat 0.005 ETH per schedule, claims are free, and the result is irrevocable by design.</p><a class="btn" href="/app/vesting">Open vesting →</a></div>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/token-vesting">Token vesting</a> — how release is calculated</li><li><a href="/docs/how-to-lock-tokens">Lock tokens</a> — the reversible alternative</li><li><a href="/blog/how-to-set-up-token-vesting">How to set up vesting that holds</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/how-to-lock-liquidity"><span class="d">Previous</span>Lock LP tokens</a><a class="next" href="/docs/how-to-burn-tokens"><span class="d">Next</span>Burn tokens</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#decide-the-four-numbers">Decide the four numbers</a></li><li><a class="" href="#create-it">Create it</a></li><li><a class="" href="#the-rules-the-contract-enforces">The rules the contract enforces</a></li><li><a class="" href="#vesting-a-whole-team-at-once">Vesting a whole team at once</a></li><li><a class="" href="#be-honest-about-back-dating">Be honest about back-dating</a></li><li><a class="" href="#after-creating">After creating</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

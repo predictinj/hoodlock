@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Burning on Robinhood Chain | HoodLock</title>
+<meta name="description" content="Send tokens to the dead address with a permanent on-chain record. What burning proves, what it costs, and why it cannot be reversed.">
+<link rel="canonical" href="https://hoodlock.tech/docs/token-burning">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Token Burning on Robinhood Chain | HoodLock">
+<meta property="og:description" content="Send tokens to the dead address with a permanent on-chain record. What burning proves, what it costs, and why it cannot be reversed.">
+<meta property="og:url" content="https://hoodlock.tech/docs/token-burning">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Token Burning on Robinhood Chain | HoodLock">
+<meta name="twitter:description" content="Send tokens to the dead address with a permanent on-chain record. What burning proves, what it costs, and why it cannot be reversed.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Token burning","item":"https://hoodlock.tech/docs/token-burning"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Token Burning on Robinhood Chain | HoodLock","description":"Send tokens to the dead address with a permanent on-chain record. What burning proves, what it costs, and why it cannot be reversed.","url":"https://hoodlock.tech/docs/token-burning","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/token-burning"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning" aria-current="page">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Token burning</li></ol></nav>
+<h1>Token <span class="serif">burning.</span></h1>
+<p class="lede">Burning removes supply permanently. Not by policy — by arithmetic. Nothing can move tokens out of the dead address, including us.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="what-happens">What happens<a class="anchor" href="#what-happens" aria-label="Link to this section">#</a></h2>
+<p>The burner moves tokens from your wallet to the dead address in a single transfer and writes a record:
+who burned, which token, how much, and when.</p>
+<div class="codewrap"><span class="lang">address</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>0x000000000000000000000000000000000000dEaD</code></pre></div>
+<p>The tokens never rest in the burner contract. There is no intermediate custody step where something
+could go wrong or where a privileged function could intervene — the transfer goes straight from you to an
+address nobody holds the key to.</p>
+
+<div class="callout callout-danger"><div class="ct">Irreversible</div><p><b>This cannot be undone.</b> There is no recovery, no support ticket and no admin override.
+The dead address has no owner, so there is no one to ask. Burn the amount you mean to burn.</p></div>
+
+<h2 id="why-burn-through-a-contract-at-all">Why burn through a contract at all<a class="anchor" href="#why-burn-through-a-contract-at-all" aria-label="Link to this section">#</a></h2>
+<p>You could send tokens to the dead address yourself. The difference is the record.</p>
+<ul><li>A direct transfer is one line in a long transaction list that a reader has to find and interpret.</li><li>A burn through the registry produces an indexed record and a proof page that states the amount, the share of supply it represented, and the transaction — readable by someone who has never used a block explorer.</li><li><code>totalBurnedOf(token)</code> gives a running total per token, so repeated burns add up to a number you can point at.</li></ul>
+
+<h2 id="what-burning-proves-and-what-it-does-not">What burning proves, and what it does not<a class="anchor" href="#what-burning-proves-and-what-it-does-not" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>It proves</th><th>It does not prove</th></tr></thead><tbody><tr><td>That specific supply is permanently gone</td><td>That the remaining supply is distributed well</td></tr><tr><td>Nobody can sell those tokens</td><td>That the token contract is safe to trade</td></tr><tr><td>The team gave something up irreversibly</td><td>That anything else about the project is committed</td></tr></tbody></table></div>
+<p>Burning a large share of supply is a strong signal precisely because it is irreversible. It is also
+the only one of the three products that gives you no way back, which is why it should be a considered
+decision rather than a marketing gesture.</p>
+
+<h2 id="burning-versus-locking-liquidity">Burning versus locking liquidity<a class="anchor" href="#burning-versus-locking-liquidity" aria-label="Link to this section">#</a></h2>
+<p>For an LP position the two are genuinely different promises. A burn is permanent and needs no trust
+at all; a lock is temporary and keeps the option to migrate the pool later. Neither is strictly better —
+<a href="/blog/burning-vs-locking-liquidity">the comparison</a> lays out when each fits.</p>
+<div class="callout callout-info"><div class="ct">Note</div><p>If you are considering burning LP to prove liquidity is permanent, check first whether your
+launchpad already did it at graduation. Several on this chain do, and you cannot burn a position you no
+longer control.</p></div>
+
+<h2 id="cost">Cost<a class="anchor" href="#cost" aria-label="Link to this section">#</a></h2>
+<p>A flat fee — currently 0.005 ETH, read live from the contract — plus gas. Overpayment is refunded.
+No percentage of the tokens. See <a href="/docs/fees">fees</a>.</p>
+
+<h2 id="doing-it">Doing it<a class="anchor" href="#doing-it" aria-label="Link to this section">#</a></h2>
+<p>Full steps in <a href="/docs/how-to-burn-tokens">how to burn tokens</a>. Two transactions: approve, then
+burn. The confirmation screen states the amount and the share of supply before you sign.</p>
+<div class="cta-box"><h2>Burn tokens</h2><p>Permanent by construction, with a proof page and a transaction anyone can check.</p><a class="btn" href="/app/burn">Open burn →</a></div>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/how-to-burn-tokens">How to burn tokens</a></li><li><a href="/docs/token-locker">Token locker</a> — the reversible alternative</li><li><a href="/blog/how-to-check-if-liquidity-is-burned">How to check if liquidity is burned</a></li><li><a href="/blog/burning-vs-locking-liquidity">Burning vs locking liquidity</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/token-vesting"><span class="d">Previous</span>Token vesting</a><a class="next" href="/docs/proof-of-lock"><span class="d">Next</span>Proof of lock</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#what-happens">What happens</a></li><li><a class="" href="#why-burn-through-a-contract-at-all">Why burn through a contract at all</a></li><li><a class="" href="#what-burning-proves-and-what-it-does-not">What burning proves, and what it does not</a></li><li><a class="" href="#burning-versus-locking-liquidity">Burning versus locking liquidity</a></li><li><a class="" href="#cost">Cost</a></li><li><a class="" href="#doing-it">Doing it</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

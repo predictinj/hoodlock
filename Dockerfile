@@ -17,6 +17,9 @@ ENV VITE_WALLETCONNECT_PROJECT_ID=$VITE_WALLETCONNECT_PROJECT_ID
 ARG VITE_RPC_URL
 ENV VITE_RPC_URL=$VITE_RPC_URL
 COPY . .
+# Regenerate /docs from web/docs-src before bundling. The output is committed
+# too, but building it here means a stale commit cannot ship.
+RUN node web/docs-src/build.mjs
 RUN npx vite build web
 
 # ---- stage 2: runtime (server serves dist + api) ----

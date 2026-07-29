@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burning in the HoodLock App | Steps and Safeguards</title>
+<meta name="description" content="The exact flow for removing supply through the HoodLock burn registry, the confirmations you get before signing, and the mistakes that cost the most.">
+<link rel="canonical" href="https://hoodlock.tech/docs/how-to-burn-tokens">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Burning in the HoodLock App | Steps and Safeguards">
+<meta property="og:description" content="The exact flow for removing supply through the HoodLock burn registry, the confirmations you get before signing, and the mistakes that cost the most.">
+<meta property="og:url" content="https://hoodlock.tech/docs/how-to-burn-tokens">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Burning in the HoodLock App | Steps and Safeguards">
+<meta name="twitter:description" content="The exact flow for removing supply through the HoodLock burn registry, the confirmations you get before signing, and the mistakes that cost the most.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Burn tokens","item":"https://hoodlock.tech/docs/how-to-burn-tokens"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Burning in the HoodLock App | Steps and Safeguards","description":"The exact flow for removing supply through the HoodLock burn registry, the confirmations you get before signing, and the mistakes that cost the most.","url":"https://hoodlock.tech/docs/how-to-burn-tokens","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/how-to-burn-tokens"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens" aria-current="page">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Burn tokens</li></ol></nav>
+<h1>Burn <span class="serif">tokens.</span></h1>
+<p class="lede">Two transactions, and the supply is gone for good. Read the whole page first — this is the one action on HoodLock with no way back.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<div class="callout callout-danger"><div class="ct">Irreversible</div><p><b>Burning cannot be reversed.</b> The tokens go to an address nobody holds the key to. There
+is no recovery, no support path and no admin override, because there is nobody to ask. Burn the amount you
+mean to burn.</p></div>
+
+<h2 id="decide-first">Decide first<a class="anchor" href="#decide-first" aria-label="Link to this section">#</a></h2>
+<p>Burning and locking answer different questions, and the choice is easier before you sign.</p>
+<div class="tablewrap"><table><thead><tr><th>Goal</th><th>Use</th></tr></thead><tbody><tr><td>Remove supply permanently and prove it</td><td><a href="/docs/token-burning">burn</a></td></tr><tr><td>Show commitment but keep the option to migrate later</td><td><a href="/docs/token-locker">lock</a></td></tr><tr><td>Release supply gradually to people</td><td><a href="/docs/token-vesting">vesting</a></td></tr></tbody></table></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>For LP positions specifically, <a href="/blog/burning-vs-locking-liquidity">burning vs locking liquidity</a>
+lays out the trade-off — a burn needs no trust at all, a lock keeps the option to move the pool.</p></div>
+
+<h2 id="burn-it">Burn it<a class="anchor" href="#burn-it" aria-label="Link to this section">#</a></h2>
+<ol class="steps"><li><b>Open the burn form.</b> Go to <a href="/app/burn">the burn page</a> and connect the wallet holding the tokens.</li><li><b>Pick the token.</b> From your balances or by contract address.</li><li><b>Enter the amount.</b> The form shows the share of total supply this represents — that percentage is
+   what people will quote, so check it is what you intend.</li><li><b>Read the confirmation.</b> It states the amount and that the action is irreversible. This is the last
+   point at which stopping costs nothing.</li><li><b>Approve, then burn.</b> Two transactions. The tokens move from your wallet straight to the dead
+   address in a single transfer — they never sit in our contract.</li><li><b>Share the proof link.</b> The page states the amount, the share of supply and the transaction.</li></ol>
+
+<h2 id="what-gets-recorded">What gets recorded<a class="anchor" href="#what-gets-recorded" aria-label="Link to this section">#</a></h2>
+<p>The registry writes who burned, which token, how much and when, and exposes a running total per token
+through <code>totalBurnedOf</code>. That is the difference between burning through the registry and sending
+tokens to the dead address yourself: both destroy the supply, but only one produces something a reader can
+check without knowing how to read a block explorer.</p>
+
+<h2 id="common-mistakes">Common mistakes<a class="anchor" href="#common-mistakes" aria-label="Link to this section">#</a></h2>
+<ul><li><b>Burning the wrong token.</b> Symbols repeat across contracts. Verify the address, not the ticker.</li><li><b>Burning LP you did not mean to.</b> Burning an LP token removes liquidity permanently — the pool shrinks. That is sometimes the intent and sometimes a very expensive misunderstanding.</li><li><b>Burning before checking the launchpad.</b> Several platforms already burn LP at graduation. You cannot burn a position you no longer hold, and you should not need to.</li><li><b>Treating a burn as a substitute for distribution.</b> Removing supply does not fix a concentrated holder list — <a href="/blog/how-to-read-token-holder-distribution">the distribution</a> is a separate question.</li></ul>
+
+<h2 id="after-burning">After burning<a class="anchor" href="#after-burning" aria-label="Link to this section">#</a></h2>
+<p>Total supply drops by the burned amount, so every percentage derived from it shifts. If you publish
+tokenomics, update them — a burn that makes your own documentation wrong undercuts the point of doing it.</p>
+<p><a href="/blog/how-to-check-if-liquidity-is-burned">How to check if liquidity is burned</a> shows what a
+reader will do with your claim.</p>
+
+<div class="cta-box"><h2>Burn tokens</h2><p>Permanent by construction, with a proof page and a transaction anyone can verify.</p><a class="btn" href="/app/burn">Open burn →</a></div>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/blog/burning-vs-locking-liquidity">Burning vs locking liquidity</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/how-to-create-vesting"><span class="d">Previous</span>Create a vesting schedule</a><a class="next" href="/docs/how-to-extend-a-lock"><span class="d">Next</span>Extend a lock</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#decide-first">Decide first</a></li><li><a class="" href="#burn-it">Burn it</a></li><li><a class="" href="#what-gets-recorded">What gets recorded</a></li><li><a class="" href="#common-mistakes">Common mistakes</a></li><li><a class="" href="#after-burning">After burning</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

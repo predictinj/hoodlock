@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HoodLock Security Model | What the Contracts Can and Cannot Do</title>
+<meta name="description" content="Non-custodial by construction: what admin can reach, what it cannot, the fee caps, and how to verify every claim on this page yourself.">
+<link rel="canonical" href="https://hoodlock.tech/docs/security">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="HoodLock Security Model | What the Contracts Can and Cannot Do">
+<meta property="og:description" content="Non-custodial by construction: what admin can reach, what it cannot, the fee caps, and how to verify every claim on this page yourself.">
+<meta property="og:url" content="https://hoodlock.tech/docs/security">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HoodLock Security Model | What the Contracts Can and Cannot Do">
+<meta name="twitter:description" content="Non-custodial by construction: what admin can reach, what it cannot, the fee caps, and how to verify every claim on this page yourself.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Security model","item":"https://hoodlock.tech/docs/security"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"HoodLock Security Model | What the Contracts Can and Cannot Do","description":"Non-custodial by construction: what admin can reach, what it cannot, the fee caps, and how to verify every claim on this page yourself.","url":"https://hoodlock.tech/docs/security","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/security"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security" aria-current="page">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Security model</li></ol></nav>
+<h1>Security <span class="serif">model.</span></h1>
+<p class="lede">The useful question is not whether we would take your tokens. It is whether the code lets us. Everything below points at a function you can read rather than a promise you have to accept.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="non-custodial-precisely">Non-custodial, precisely<a class="anchor" href="#non-custodial-precisely" aria-label="Link to this section">#</a></h2>
+<p>The locker and the vesting contract hold tokens. That is custody in the literal sense, so the claim
+worth making is narrower and checkable: <b>no function exists that lets anyone other than the rightful
+party withdraw them.</b></p>
+<div class="tablewrap"><table><thead><tr><th>Contract</th><th>Who can move tokens out</th><th>Under what condition</th></tr></thead><tbody><tr><td>Locker</td><td>The lock's owner, and nobody else</td><td>At or after the unlock time</td></tr><tr><td>Vesting</td><td>The beneficiary, and nobody else</td><td>As the schedule releases</td></tr><tr><td>Burner</td><td>Nobody — ever</td><td>Tokens go straight to the dead address and never rest in the contract</td></tr></tbody></table></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>Note the absence rather than the presence. There is no <code>rescue</code>, no
+<code>sweep</code>, no <code>emergencyWithdraw</code> and no pause that redirects funds. A backdoor you
+cannot find is usually a backdoor that is not there — and you can check, because all three contracts are
+verified on Blockscout.</p></div>
+
+<h2 id="what-admin-can-actually-do">What admin can actually do<a class="anchor" href="#what-admin-can-actually-do" aria-label="Link to this section">#</a></h2>
+<p>Each contract has an admin key. Its reach is deliberately narrow.</p>
+<div class="tablewrap"><table><thead><tr><th>Admin can</th><th>Admin cannot</th></tr></thead><tbody><tr><td>Change the fee for <b>new</b> records</td><td>Touch any existing lock, schedule or balance</td></tr><tr><td>Change the fee collector address</td><td>Withdraw, redirect or freeze user tokens</td></tr><tr><td>Transfer the admin role</td><td>Alter an unlock date or a vesting schedule</td></tr></tbody></table></div>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>Two asymmetries worth knowing rather than discovering:</p>
+<ul>
+<li><b>Vesting has a hard fee cap of 0.05 ETH</b>, written as a contract constant. No admin action can
+exceed it.</li>
+<li><b>The locker and burner have no such cap.</b> The admin can set any fee for new records. Existing
+locks are never re-priced and withdrawal is always free, but the ceiling is not enforced in code.</li>
+</ul></div>
+<p>The vesting contract uses a <b>two-step admin transfer</b> — <code>transferAdmin</code> then
+<code>acceptAdmin</code> — so a mistyped address cannot strand the role.</p>
+
+<h2 id="verify-it-yourself">Verify it yourself<a class="anchor" href="#verify-it-yourself" aria-label="Link to this section">#</a></h2>
+<p>This takes about five minutes and does not require trusting anything on this page.</p>
+<ul><li>Open a contract from the <a href="/docs/contracts">contract reference</a> — the links go straight to the verified source tab.</li><li>Confirm the source is <b>verified</b>. If it were not, nothing else here could be checked.</li><li>Search the source for <code>withdraw</code>. Read every match and confirm each is gated on the owner or beneficiary.</li><li>Search for <code>onlyAdmin</code>. Read what those functions touch — you should find fees, the collector and the admin key, and nothing else.</li><li>Check that the fee constant matches what the app charges you.</li></ul>
+<p><a href="/blog/how-to-verify-a-token-contract-on-blockscout">How to read a contract on Blockscout</a> covers
+the mechanics if you have not done it before.</p>
+
+<h2 id="token-quirks-the-contracts-handle">Token quirks the contracts handle<a class="anchor" href="#token-quirks-the-contracts-handle" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Quirk</th><th>How it is handled</th></tr></thead><tbody><tr><td>Fee-on-transfer tokens</td><td>The amount recorded is measured from the balance actually received, so the record is never overstated.</td></tr><tr><td>Tokens that return no boolean</td><td>Transfers use a safe wrapper in the vesting contract rather than a raw <code>require</code>.</td></tr><tr><td>Overpaid fees</td><td>Refunded by the locker and burner. <b>Not</b> by vesting, which requires the exact fee.</td></tr><tr><td>Non-contract token addresses</td><td>Vesting rejects an address with no code, so a typo cannot create an empty schedule.</td></tr></tbody></table></div>
+
+<h2 id="what-this-does-not-protect-you-from">What this does not protect you from<a class="anchor" href="#what-this-does-not-protect-you-from" aria-label="Link to this section">#</a></h2>
+<p>Being clear about the boundary matters more than the reassurance.</p>
+<ul><li><b>A malicious token contract.</b> Locking a token that can be minted at will does not constrain the minting. Read the token, not just the lock.</li><li><b>A compromised wallet.</b> If someone controls the lock owner's key, they control the lock when it expires.</li><li><b>Bad distribution.</b> A locked balance says nothing about the other 95% of supply — <a href="/blog/how-to-read-token-holder-distribution">check the holder list</a>.</li><li><b>Phishing.</b> We will never DM you, never ask for a seed phrase, and never ask you to “verify” a wallet. Reach the app by typing the domain.</li></ul>
+
+<h2 id="reporting-an-issue">Reporting an issue<a class="anchor" href="#reporting-an-issue" aria-label="Link to this section">#</a></h2>
+<p>If you believe you have found a vulnerability in any of the three contracts or in the site, report it
+privately before disclosing it publicly. A responsible report gives us a chance to protect the people
+currently using the contracts, which a public one does not.</p>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/contracts">Contracts</a> — the functions this page describes</li><li><a href="/docs/fees">Fees</a> — including the caps</li><li><a href="/blog/custodial-vs-non-custodial-locking">Custodial vs non-custodial locking</a></li><li><a href="/blog/how-to-choose-a-token-locker">How to choose a token locker</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/lock-explorer"><span class="d">Previous</span>Lock explorer</a><a class="next" href="/docs/when-a-lock-expires"><span class="d">Next</span>When a lock expires</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#non-custodial-precisely">Non-custodial, precisely</a></li><li><a class="" href="#what-admin-can-actually-do">What admin can actually do</a></li><li><a class="" href="#verify-it-yourself">Verify it yourself</a></li><li><a class="" href="#token-quirks-the-contracts-handle">Token quirks the contracts handle</a></li><li><a class="" href="#what-this-does-not-protect-you-from">What this does not protect you from</a></li><li><a class="" href="#reporting-an-issue">Reporting an issue</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

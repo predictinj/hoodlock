@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extend a Token Lock on Robinhood Chain | HoodLock</title>
+<meta name="description" content="Push an unlock date further out for free. Why extend-only is enforced by the contract, and why a lock extended repeatedly reads better than one long lock.">
+<link rel="canonical" href="https://hoodlock.tech/docs/how-to-extend-a-lock">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Extend a Token Lock on Robinhood Chain | HoodLock">
+<meta property="og:description" content="Push an unlock date further out for free. Why extend-only is enforced by the contract, and why a lock extended repeatedly reads better than one long lock.">
+<meta property="og:url" content="https://hoodlock.tech/docs/how-to-extend-a-lock">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Extend a Token Lock on Robinhood Chain | HoodLock">
+<meta name="twitter:description" content="Push an unlock date further out for free. Why extend-only is enforced by the contract, and why a lock extended repeatedly reads better than one long lock.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Extend a lock","item":"https://hoodlock.tech/docs/how-to-extend-a-lock"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Extend a Token Lock on Robinhood Chain | HoodLock","description":"Push an unlock date further out for free. Why extend-only is enforced by the contract, and why a lock extended repeatedly reads better than one long lock.","url":"https://hoodlock.tech/docs/how-to-extend-a-lock","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/how-to-extend-a-lock"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock" aria-current="page">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Extend a lock</li></ol></nav>
+<h1>Extend a <span class="serif">lock.</span></h1>
+<p class="lede">Unlock dates move in one direction. You can always push a lock further out, never pull it in, and the contract is what enforces that rather than a policy.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="why-it-only-moves-one-way">Why it only moves one way<a class="anchor" href="#why-it-only-moves-one-way" aria-label="Link to this section">#</a></h2>
+<p><code>extend</code> requires the new timestamp to be strictly greater than the current one. There is
+no function that shortens a lock, so a team cannot quietly bring a date forward when it becomes
+inconvenient — and nobody has to take their word for it.</p>
+<p>That is what makes an unlock date meaningful as a commitment rather than a preference. See the
+<a href="/docs/contracts">contract reference</a> for the exact check.</p>
+
+<h2 id="extend-it">Extend it<a class="anchor" href="#extend-it" aria-label="Link to this section">#</a></h2>
+<ol class="steps"><li><b>Open My locks.</b> Go to <a href="/app/locks">the app</a> with the wallet that owns the lock.</li><li><b>Find the lock</b> and choose <b>Extend</b>.</li><li><b>Pick a later date.</b> Anything earlier than the current unlock time is rejected before it reaches
+   your wallet.</li><li><b>Confirm.</b> One transaction, gas only — <b>extending is free</b>.</li></ol>
+<div class="callout callout-info"><div class="ct">Note</div><p>The proof page updates immediately. Anyone holding the old link sees the new date the next time
+they open it, so there is nothing to re-share.</p></div>
+
+<h2 id="the-strategy-worth-understanding">The strategy worth understanding<a class="anchor" href="#the-strategy-worth-understanding" aria-label="Link to this section">#</a></h2>
+<p>Most teams set one long lock at launch and never touch it. Extending repeatedly is the better play,
+and the reason is about evidence rather than mechanics.</p>
+<div class="tablewrap"><table><thead><tr><th>Approach</th><th>What a reader sees</th></tr></thead><tbody><tr><td>One 12-month lock set at launch</td><td>A decision made once, before anything was proven</td></tr><tr><td>A 3-month lock extended three times</td><td>A team that kept choosing to stay, on the record, after each milestone</td></tr></tbody></table></div>
+<p>The second costs the same — extending is free — and produces a history rather than a single data
+point. It also avoids the trap of a long lock set optimistically at launch that the team later resents.</p>
+<p><a href="/blog/how-long-should-you-lock-liquidity">How long should you lock liquidity</a> works through
+choosing the first duration.</p>
+
+<h2 id="before-the-date-arrives">Before the date arrives<a class="anchor" href="#before-the-date-arrives" aria-label="Link to this section">#</a></h2>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>An unlock date that passes without comment is read as a countdown that ended. If you intend to
+stay locked, <b>extend before it expires</b>, not after — a lock that lapses for a week and is then
+re-created is a different fact from one that never lapsed, and holders who are watching will notice which
+one happened.</p></div>
+<p>Nothing happens automatically at expiry — see <a href="/docs/when-a-lock-expires">when a lock expires</a>.</p>
+
+<h2 id="what-extending-does-not-change">What extending does not change<a class="anchor" href="#what-extending-does-not-change" aria-label="Link to this section">#</a></h2>
+<ul><li><b>The amount.</b> To lock more, create a second lock. Locks are independent records.</li><li><b>The owner.</b> Ownership transfers separately, and the tokens stay where they are.</li><li><b>Vesting schedules.</b> Those are irrevocable and have no extend function — the dates are fixed at creation.</li></ul>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/blog/what-happens-when-a-token-lock-expires">When a lock expires on Robinhood Chain</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/how-to-burn-tokens"><span class="d">Previous</span>Burn tokens</a><a class="next" href="/docs/how-to-verify-a-lock"><span class="d">Next</span>Verify someone else&#39;s lock</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#why-it-only-moves-one-way">Why it only moves one way</a></li><li><a class="" href="#extend-it">Extend it</a></li><li><a class="" href="#the-strategy-worth-understanding">The strategy worth understanding</a></li><li><a class="" href="#before-the-date-arrives">Before the date arrives</a></li><li><a class="" href="#what-extending-does-not-change">What extending does not change</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

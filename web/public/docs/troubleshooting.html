@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HoodLock Troubleshooting | Failed Transactions and Wallet Errors</title>
+<meta name="description" content="Fixes for the problems that actually come up: transactions that will not send, approvals that stall, missing locks and vesting schedules that revert.">
+<link rel="canonical" href="https://hoodlock.tech/docs/troubleshooting">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="HoodLock Troubleshooting | Failed Transactions and Wallet Errors">
+<meta property="og:description" content="Fixes for the problems that actually come up: transactions that will not send, approvals that stall, missing locks and vesting schedules that revert.">
+<meta property="og:url" content="https://hoodlock.tech/docs/troubleshooting">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HoodLock Troubleshooting | Failed Transactions and Wallet Errors">
+<meta name="twitter:description" content="Fixes for the problems that actually come up: transactions that will not send, approvals that stall, missing locks and vesting schedules that revert.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Troubleshooting","item":"https://hoodlock.tech/docs/troubleshooting"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"HoodLock Troubleshooting | Failed Transactions and Wallet Errors","description":"Fixes for the problems that actually come up: transactions that will not send, approvals that stall, missing locks and vesting schedules that revert.","url":"https://hoodlock.tech/docs/troubleshooting","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/troubleshooting"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting" aria-current="page">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Troubleshooting</li></ol></nav>
+<h1>Trouble<span class="serif">shooting.</span></h1>
+<p class="lede">Ordered by how often they happen. If your problem is not here, check the transaction on the explorer first — the revert reason is usually the answer.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="http-request-failed-while-browsing">“HTTP request failed” while browsing<a class="anchor" href="#http-request-failed-while-browsing" aria-label="Link to this section">#</a></h2>
+<p>The public RPC is rate limited and a read-heavy page can lose a call. Reload. If it recurs, the
+explorer or a different network moment is usually the cause rather than your wallet.</p>
+<p>This affects reading, not signing. Your transactions go through your wallet's own RPC.</p>
+
+<h2 id="a-transaction-was-submitted-but-never-confirmed">A transaction was submitted but never confirmed<a class="anchor" href="#a-transaction-was-submitted-but-never-confirmed" aria-label="Link to this section">#</a></h2>
+<div class="callout callout-warn"><div class="ct">Careful</div><p><b>Check before retrying.</b> Open <a href="/app/locks">My locks</a> or the explorer and look for the
+record. A lock that was created but whose receipt was lost looks identical to one that failed — and
+sending again creates a <b>second lock</b> and charges a <b>second fee</b>.</p></div>
+<p>If the widget reported <code>unconfirmed: true</code>, that means exactly this: broadcast succeeded,
+receipt unknown, most likely landed.</p>
+
+<h2 id="the-approval-went-through-but-the-lock-did-not">The approval went through but the lock did not<a class="anchor" href="#the-approval-went-through-but-the-lock-did-not" aria-label="Link to this section">#</a></h2>
+<p>These are two separate transactions and the approval is not wasted — it sits unused until you use it.
+Start the lock again; you should not be asked to approve the same amount twice.</p>
+<p>If you are asked to approve again, the amount you are now locking is larger than what you approved.</p>
+
+<h2 id="my-wallet-does-not-appear">My wallet does not appear<a class="anchor" href="#my-wallet-does-not-appear" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Situation</th><th>Fix</th></tr></thead><tbody><tr><td>Desktop, extension installed</td><td>Unlock the extension, then reload. A locked wallet does not announce itself.</td></tr><tr><td>Mobile browser</td><td>Mobile wallets cannot inject into Safari or Chrome. Use WalletConnect or the wallet's in-app browser.</td></tr><tr><td>Several wallets installed</td><td>One can claim the injection slot. Pick yours explicitly from the list, or disable the others temporarily.</td></tr></tbody></table></div>
+<p>More detail in <a href="/docs/connect-wallet">connecting a wallet</a>.</p>
+
+<h2 id="the-network-will-not-switch">The network will not switch<a class="anchor" href="#the-network-will-not-switch" aria-label="Link to this section">#</a></h2>
+<p>Some wallets refuse to add an unfamiliar chain automatically. Add Robinhood Chain by hand with the
+parameters on the <a href="/docs/network">network page</a>, then reconnect.</p>
+<div class="callout callout-info"><div class="ct">Note</div><p>If the network is already in your wallet but transactions fail to send, the saved RPC endpoint
+may be wrong. Remove the network and let the app add it again.</p></div>
+
+<h2 id="a-vesting-schedule-reverted">A vesting schedule reverted<a class="anchor" href="#a-vesting-schedule-reverted" aria-label="Link to this section">#</a></h2>
+<p>The contract enforces rules the form usually catches first. If you are building transactions yourself,
+these are the ones that bite:</p>
+<div class="tablewrap"><table><thead><tr><th>Rule</th><th>Requirement</th></tr></thead><tbody><tr><td>Minimum duration</td><td><code>end &gt; block.timestamp + 24 hours</code></td></tr><tr><td>Ordering</td><td><code>start ≤ cliff ≤ end</code></td></tr><tr><td>Fee</td><td><code>msg.value == fee</code> <b>exactly</b> — overpayment is not refunded and reverts</td></tr><tr><td>Token</td><td>Must be a contract address, not an EOA</td></tr></tbody></table></div>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>The most common cause: the API validates <code>end - start ≥ 86400</code> while the contract
+validates against <code>block.timestamp</code>. A <b>back-dated start</b> passes the first and fails the
+second. Validate against <code>block.timestamp</code>. See the <a href="/docs/api">API page</a>.</p></div>
+
+<h2 id="my-lock-is-not-in-the-explorer">My lock is not in the explorer<a class="anchor" href="#my-lock-is-not-in-the-explorer" aria-label="Link to this section">#</a></h2>
+<ul><li>Give it a moment — the explorer reads from an indexer that can lag a block or two behind your wallet.</li><li>Confirm the transaction actually succeeded on the explorer, not just that it was sent.</li><li>Check you are looking at the right token address. Searching by symbol is not possible precisely because symbols repeat.</li></ul>
+
+<h2 id="the-token-amount-looks-wrong">The token amount looks wrong<a class="anchor" href="#the-token-amount-looks-wrong" aria-label="Link to this section">#</a></h2>
+<p>Two usual causes. <b>Decimals</b>: if you are building transactions yourself, amounts are in the
+token's smallest unit, so a token with 18 decimals needs 18 zeros. <b>Fee-on-transfer</b>: the locker
+records what it actually received, so a token that taxes transfers will show slightly less locked than you
+sent. That is the honest number, not an error.</p>
+
+<h2 id="i-sent-tokens-directly-to-a-contract-address">I sent tokens directly to a contract address<a class="anchor" href="#i-sent-tokens-directly-to-a-contract-address" aria-label="Link to this section">#</a></h2>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>Tokens transferred straight to the locker or burner address, rather than through the app,
+<b>are not recoverable</b>. There is no rescue function — that absence is the same property that stops
+anyone taking locked tokens. Always go through the app or the <a href="/docs/api">API</a>.</p></div>
+
+<h2 id="still-stuck">Still stuck<a class="anchor" href="#still-stuck" aria-label="Link to this section">#</a></h2>
+<p>Open the transaction on the explorer and read the revert reason. It names the failing check directly,
+and the <a href="/docs/contracts">contract reference</a> explains what each one enforces.</p>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/contracts">Contracts</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/when-a-lock-expires"><span class="d">Previous</span>When a lock expires</a><a class="next" href="/docs/contracts"><span class="d">Next</span>Contracts</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#http-request-failed-while-browsing">“HTTP request failed” while browsing</a></li><li><a class="" href="#a-transaction-was-submitted-but-never-confirmed">A transaction was submitted but never confirmed</a></li><li><a class="" href="#the-approval-went-through-but-the-lock-did-not">The approval went through but the lock did not</a></li><li><a class="" href="#my-wallet-does-not-appear">My wallet does not appear</a></li><li><a class="" href="#the-network-will-not-switch">The network will not switch</a></li><li><a class="" href="#a-vesting-schedule-reverted">A vesting schedule reverted</a></li><li><a class="" href="#my-lock-is-not-in-the-explorer">My lock is not in the explorer</a></li><li><a class="" href="#the-token-amount-looks-wrong">The token amount looks wrong</a></li><li><a class="" href="#i-sent-tokens-directly-to-a-contract-address">I sent tokens directly to a contract address</a></li><li><a class="" href="#still-stuck">Still stuck</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HoodLock Contract Addresses and ABI Reference | Robinhood Chain</title>
+<meta name="description" content="Verified addresses, functions and events for the HoodLock locker, burner and vesting contracts on Robinhood Chain, with the guarantees each one enforces.">
+<link rel="canonical" href="https://hoodlock.tech/docs/contracts">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="HoodLock Contract Addresses and ABI Reference | Robinhood Chain">
+<meta property="og:description" content="Verified addresses, functions and events for the HoodLock locker, burner and vesting contracts on Robinhood Chain, with the guarantees each one enforces.">
+<meta property="og:url" content="https://hoodlock.tech/docs/contracts">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HoodLock Contract Addresses and ABI Reference | Robinhood Chain">
+<meta name="twitter:description" content="Verified addresses, functions and events for the HoodLock locker, burner and vesting contracts on Robinhood Chain, with the guarantees each one enforces.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Contracts","item":"https://hoodlock.tech/docs/contracts"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"HoodLock Contract Addresses and ABI Reference | Robinhood Chain","description":"Verified addresses, functions and events for the HoodLock locker, burner and vesting contracts on Robinhood Chain, with the guarantees each one enforces.","url":"https://hoodlock.tech/docs/contracts","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/contracts"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts" aria-current="page">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Contracts</li></ol></nav>
+<h1>Contract <span class="serif">reference.</span></h1>
+<p class="lede">Three contracts, all deployed on Robinhood Chain and all verified on Blockscout. Read them yourself before you send anyone to them — that is the point of publishing the addresses.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="addresses">Addresses<a class="anchor" href="#addresses" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Contract</th><th>Address</th><th>Purpose</th></tr></thead><tbody><tr><td>Locker</td><td><a href="https://robinhoodchain.blockscout.com/address/0xd0f7d8c6e9f6d80c297bebe4f7fd1b9c8125c32f?tab=contract"><code>0xd0f7d8c6e9f6d80c297bebe4f7fd1b9c8125c32f</code></a></td><td>Holds ERC-20 tokens until a date</td></tr><tr><td>Burner</td><td><a href="https://robinhoodchain.blockscout.com/address/0x6bf43ca706faa8ea46803299c191484e82280652?tab=contract"><code>0x6bf43ca706faa8ea46803299c191484e82280652</code></a></td><td>Sends tokens to the dead address, on the record</td></tr><tr><td>Vesting</td><td><a href="https://robinhoodchain.blockscout.com/address/0x910e19bcC4bce46999994Ed7297E0Fc4431ec72E?tab=contract"><code>0x910e19bcC4bce46999994Ed7297E0Fc4431ec72E</code></a></td><td>Releases tokens gradually to a beneficiary</td></tr></tbody></table></div>
+<p>All three are verified, so the source you read on Blockscout is the bytecode that runs. The network
+parameters are on the <a href="/docs/network">network page</a>.</p>
+
+<div class="callout callout-info"><div class="ct">Note</div><p>None of these contracts has a function that lets us move your tokens. That is a property of the
+code, not a promise — the section on each contract below points at the specific functions to check.</p></div>
+
+<h2 id="locker">Locker<a class="anchor" href="#locker" aria-label="Link to this section">#</a></h2>
+<p>One vault, many locks. Each lock records an owner, a token, an amount and an unlock time.</p>
+
+<h3 id="functions">Functions<a class="anchor" href="#functions" aria-label="Link to this section">#</a></h3>
+<div class="tablewrap"><table><thead><tr><th>Function</th><th>Notes</th></tr></thead><tbody><tr><td><code>lock(address token, uint256 amount, uint256 unlockTime)</code> <b>payable</b></td><td>Returns the new lock id. Requires <code>msg.value >= fee</code>, a non-zero token, a positive amount and a future unlock time. <b>Excess ETH is refunded.</b></td></tr><tr><td><code>withdraw(uint256 id)</code></td><td>Only the lock's owner, only once, and only at or after <code>unlockTime</code>.</td></tr><tr><td><code>extend(uint256 id, uint256 newUnlockTime)</code></td><td>Requires <code>newUnlockTime &gt; unlockTime</code>. A lock can be pushed further out but <b>never pulled in</b>.</td></tr><tr><td><code>transferLockOwnership(uint256 id, address newOwner)</code></td><td>Moves the right to withdraw. The tokens do not move.</td></tr><tr><td><code>locks(id)</code>, <code>lockedAmount(id)</code>, <code>isUnlocked(id)</code>, <code>timeRemaining(id)</code></td><td>Views. <code>lockedAmount</code> returns 0 once withdrawn.</td></tr><tr><td><code>locksByOwner(address)</code>, <code>locksByToken(address)</code>, <code>totalLocks()</code></td><td>Enumeration, used by <a href="/docs/lock-explorer">the explorer</a> and by proof pages.</td></tr></tbody></table></div>
+
+<h3 id="events">Events<a class="anchor" href="#events" aria-label="Link to this section">#</a></h3>
+<div class="codewrap"><span class="lang">solidity</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>event Locked(uint256 indexed id, address indexed owner, address indexed token, uint256 amount, uint256 unlockTime);
+event Withdrawn(uint256 indexed id, address indexed owner, uint256 amount);
+event Extended(uint256 indexed id, uint256 newUnlockTime);
+event LockOwnershipTransferred(uint256 indexed id, address indexed from, address indexed to);</code></pre></div>
+
+<h3 id="what-the-code-guarantees">What the code guarantees<a class="anchor" href="#what-the-code-guarantees" aria-label="Link to this section">#</a></h3>
+<ul><li>Locked tokens can only be withdrawn by the lock's owner, and only at or after the unlock time.</li><li>There is no admin function that can move locked tokens.</li><li><code>unlockTime</code> can only ever be extended.</li><li>The amount recorded is the amount actually received, so fee-on-transfer tokens are stored honestly rather than over-credited.</li></ul>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>The locker has <b>no hard cap on the fee</b>. The admin can change it, and a change applies to new
+locks only — an existing lock is never re-priced. The vesting contract does have a cap; see below.</p></div>
+
+<h2 id="burner">Burner<a class="anchor" href="#burner" aria-label="Link to this section">#</a></h2>
+<p>A burn registry rather than a vault. Tokens are moved from your wallet to the dead address in a
+single transfer and never rest in the contract.</p>
+
+<div class="tablewrap"><table><thead><tr><th>Function</th><th>Notes</th></tr></thead><tbody><tr><td><code>burn(address token, uint256 amount)</code> <b>payable</b></td><td><code>transferFrom(msg.sender, DEAD, amount)</code> in one hop. Returns the burn id. Excess ETH is refunded.</td></tr><tr><td><code>DEAD()</code></td><td><code>0x000000000000000000000000000000000000dEaD</code></td></tr><tr><td><code>burns(id)</code>, <code>burnsByBurner</code>, <code>burnsByToken</code></td><td>Views.</td></tr><tr><td><code>totalBurnedOf(address token)</code></td><td>Cumulative amount burned through this contract for one token.</td></tr></tbody></table></div>
+<div class="codewrap"><span class="lang">solidity</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>event Burned(uint256 indexed id, address indexed burner, address indexed token, uint256 amount);</code></pre></div>
+<div class="callout callout-danger"><div class="ct">Irreversible</div><p>Burning cannot be undone, and not because we decline to undo it — nothing can move tokens out
+of the dead address. Read <a href="/blog/burning-vs-locking-liquidity">burning versus locking</a> before choosing it.</p></div>
+
+<h2 id="vesting">Vesting<a class="anchor" href="#vesting" aria-label="Link to this section">#</a></h2>
+<p>Linear release with an optional cliff. Schedules are irrevocable: there is no revoke, no sweep and
+no rescue function in the contract.</p>
+
+<div class="tablewrap"><table><thead><tr><th>Function</th><th>Notes</th></tr></thead><tbody><tr><td><code>create(address token, address beneficiary, uint256 amount, uint64 start, uint64 cliff, uint64 end)</code> <b>payable</b></td><td>Requires <code>start &lt;= cliff &lt;= end</code>, <code>end &gt; start</code>, and <code>end &gt; block.timestamp + MIN_DURATION</code>.</td></tr><tr><td><code>createMany(...)</code></td><td>Batch, up to <code>MAX_BATCH</code> beneficiaries. Requires <code>msg.value == fee * n</code>.</td></tr><tr><td><code>claim(uint256 id)</code></td><td>Beneficiary only. <b>Claiming is free</b> — the fee is charged once, at creation.</td></tr><tr><td><code>claimable(uint256 id)</code></td><td>0 before the cliff; linear between cliff and end; the exact remainder at end, so nothing is left as dust.</td></tr><tr><td><code>transferBeneficiary(uint256 id, address newBeneficiary)</code></td><td>Current beneficiary only.</td></tr></tbody></table></div>
+
+<h3 id="constants">Constants<a class="anchor" href="#constants" aria-label="Link to this section">#</a></h3>
+<div class="tablewrap"><table><thead><tr><th>Constant</th><th>Value</th><th>What it protects</th></tr></thead><tbody><tr><td><code>MAX_FEE</code></td><td>0.05 ETH</td><td>A hard ceiling the admin can never exceed.</td></tr><tr><td><code>MIN_DURATION</code></td><td>24 hours</td><td>Stops a schedule that would be fully vested on arrival.</td></tr><tr><td><code>MAX_BATCH</code></td><td>200</td><td>Bounds gas on <code>createMany</code>.</td></tr></tbody></table></div>
+
+<div class="callout callout-warn"><div class="ct">Careful</div><p><b>The exact-fee rule differs from the other two contracts.</b> <code>create</code> requires
+<code>msg.value == fee</code> exactly and has no refund path, while the locker and burner accept an
+overpayment and refund the difference. Read the fee immediately before building the transaction rather
+than caching it.</p></div>
+
+<div class="callout callout-info"><div class="ct">Note</div><p><b>A validation gap worth knowing about.</b> The REST API checks that
+<code>end - start &gt;= 86400</code>, but the contract checks <code>end &gt; block.timestamp +
+MIN_DURATION</code>. A schedule with a back-dated <code>start</code> can satisfy the API and still revert
+on-chain. If you build your own UI, check against <code>block.timestamp</code>, not against
+<code>start</code>.</p></div>
+
+<div class="codewrap"><span class="lang">solidity</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>event VestingCreated(uint256 indexed id, address indexed token, address indexed beneficiary,
+                     address creator, uint256 total, uint64 start, uint64 cliff, uint64 end);
+event Claimed(uint256 indexed id, address indexed beneficiary, uint256 amount);
+event BeneficiaryTransferred(uint256 indexed id, address indexed from, address indexed to);</code></pre></div>
+
+<h2 id="administration">Administration<a class="anchor" href="#administration" aria-label="Link to this section">#</a></h2>
+<p>Across all three contracts the admin can change only the fee, the fee collector and the admin key.
+No admin function reads or moves user tokens.</p>
+<ul><li>Locker and burner forward the fee per transaction. Vesting accrues fees in-contract and the collector pulls them with <code>withdrawFees()</code>.</li><li>Vesting uses a <b>two-step admin transfer</b> — <code>transferAdmin</code> then <code>acceptAdmin</code> — so a mistyped address cannot strand the role.</li></ul>
+<p>How to confirm any of this yourself is covered in <a href="/docs/security">the security model</a>, and reading
+a contract on the explorer is covered in <a href="/blog/how-to-verify-a-token-contract-on-blockscout">this walkthrough</a>.</p>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/network">Network</a> — chain id, RPC and explorer</li><li><a href="/docs/api">REST API</a> — build your own interface</li><li><a href="/docs/security">Security model</a> — what the code does and does not allow</li><li><a href="/blog/custodial-vs-non-custodial-locking">Custodial vs non-custodial locking</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/troubleshooting"><span class="d">Previous</span>Troubleshooting</a><a class="next" href="/docs/network"><span class="d">Next</span>Network</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#addresses">Addresses</a></li><li><a class="" href="#locker">Locker</a></li><li><a class="lvl3" href="#functions">Functions</a></li><li><a class="lvl3" href="#events">Events</a></li><li><a class="lvl3" href="#what-the-code-guarantees">What the code guarantees</a></li><li><a class="" href="#burner">Burner</a></li><li><a class="" href="#vesting">Vesting</a></li><li><a class="lvl3" href="#constants">Constants</a></li><li><a class="" href="#administration">Administration</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

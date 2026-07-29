@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Locker for Robinhood Chain | HoodLock</title>
+<meta name="description" content="A non-custodial locker for any ERC-20 on Robinhood Chain: one flat fee, an extend-only unlock date, and a public proof page for every lock.">
+<link rel="canonical" href="https://hoodlock.tech/docs/token-locker">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Token Locker for Robinhood Chain | HoodLock">
+<meta property="og:description" content="A non-custodial locker for any ERC-20 on Robinhood Chain: one flat fee, an extend-only unlock date, and a public proof page for every lock.">
+<meta property="og:url" content="https://hoodlock.tech/docs/token-locker">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Token Locker for Robinhood Chain | HoodLock">
+<meta name="twitter:description" content="A non-custodial locker for any ERC-20 on Robinhood Chain: one flat fee, an extend-only unlock date, and a public proof page for every lock.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Token locker","item":"https://hoodlock.tech/docs/token-locker"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Token Locker for Robinhood Chain | HoodLock","description":"A non-custodial locker for any ERC-20 on Robinhood Chain: one flat fee, an extend-only unlock date, and a public proof page for every lock.","url":"https://hoodlock.tech/docs/token-locker","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/token-locker"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker" aria-current="page">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Token locker</li></ol></nav>
+<h1>Token <span class="serif">locker.</span></h1>
+<p class="lede">Move a balance into a contract that will only ever release it back to you, and only on or after a date you choose. Everything about it is public except the ability to undo it.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="what-it-does">What it does<a class="anchor" href="#what-it-does" aria-label="Link to this section">#</a></h2>
+<p>The locker holds ERC-20 tokens against a record: an owner, a token, an amount and an unlock time.
+Until that time passes, nothing can withdraw them — not the owner, not us. After it passes, only the
+owner can.</p>
+<p>That is the whole product. Its value is not the holding, which is easy, but the fact that a stranger
+can verify the holding without asking anyone.</p>
+
+<h2 id="what-it-guarantees">What it guarantees<a class="anchor" href="#what-it-guarantees" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Guarantee</th><th>Enforced by</th></tr></thead><tbody><tr><td>Only the lock's owner can withdraw</td><td><code>onlyLockOwner</code> on <code>withdraw</code></td></tr><tr><td>Not before the unlock time</td><td>A timestamp check in <code>withdraw</code></td></tr><tr><td>No admin can move locked tokens</td><td>The absence of any such function — there is nothing to disable</td></tr><tr><td>The unlock date can only move later</td><td><code>extend</code> requires a strictly greater timestamp</td></tr><tr><td>The recorded amount is the amount received</td><td>Balance measured before and after transfer, so fee-on-transfer tokens are recorded honestly</td></tr></tbody></table></div>
+<p>Each of these is checkable in the source on Blockscout — the <a href="/docs/contracts">contract reference</a>
+names the exact functions.</p>
+
+<h2 id="what-it-does-not-do">What it does not do<a class="anchor" href="#what-it-does-not-do" aria-label="Link to this section">#</a></h2>
+<ul><li>It does not release tokens automatically. Withdrawal is a transaction the owner sends when they choose — see <a href="/docs/when-a-lock-expires">when a lock expires</a>.</li><li>It does not stop a lock from being transferred. Ownership can move to another wallet; the tokens stay put.</li><li>It does not make a token safe. A locked supply says nothing about the contract's transfer logic — that is a separate check.</li></ul>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>A lock is evidence about one balance, not a verdict on a project. <a href="/blog/rug-pull-red-flags-checklist">The red-flag checklist</a>
+covers what else to look at.</p></div>
+
+<h2 id="what-can-be-locked">What can be locked<a class="anchor" href="#what-can-be-locked" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Asset</th><th>Lockable</th><th>Why</th></tr></thead><tbody><tr><td>Project tokens, treasury, creator supply</td><td>Yes</td><td>Ordinary ERC-20 balances.</td></tr><tr><td>v2-style LP tokens</td><td>Yes</td><td>A v2 pool position <i>is</i> an ERC-20 token.</td></tr><tr><td>Uniswap v3 / v4 positions</td><td>No</td><td>Those positions are NFTs, and the locker holds ERC-20s.</td></tr></tbody></table></div>
+<p><a href="/docs/liquidity-locker">Locking liquidity</a> goes into which kind you are holding and how to tell.</p>
+
+<h2 id="cost">Cost<a class="anchor" href="#cost" aria-label="Link to this section">#</a></h2>
+<p>A flat fee per lock — currently 0.005 ETH, read live from the contract — plus gas. No percentage of
+the tokens, at any point, including withdrawal. <a href="/docs/fees">Fees</a> has the detail.</p>
+<div class="callout callout-info"><div class="ct">Note</div><p>Changing the fee affects new locks only. An existing lock is never re-priced, and withdrawal is
+always free.</p></div>
+
+<h2 id="the-proof-page">The proof page<a class="anchor" href="#the-proof-page" aria-label="Link to this section">#</a></h2>
+<p>Every lock gets a URL that renders the current state straight from the chain: token, amount, share of
+supply, unlock date and status. It opens without a wallet and without an account, which is what makes it
+usable as evidence in a listing application or a community post.</p>
+<p>See <a href="/docs/proof-of-lock">proof of lock</a>, or browse existing locks in <a href="/docs/lock-explorer">the explorer</a>.</p>
+
+<h2 id="get-started">Get started<a class="anchor" href="#get-started" aria-label="Link to this section">#</a></h2>
+<ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a> — the step-by-step</li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a> — pushing a date further out</li><li><a href="/docs/how-to-verify-a-lock">Verify someone else's lock</a> — checking a claim you were shown</li></ul>
+<div class="cta-box"><h2>Lock tokens</h2><p>Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.</p><a class="btn" href="/app/locks">Open HoodLock →</a></div>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a> — for supply released over time</li><li><a href="/docs/security">Security model</a></li><li><a href="/blog/what-is-a-liquidity-lock">What is a liquidity lock?</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/how-to-verify-a-lock"><span class="d">Previous</span>Verify someone else&#39;s lock</a><a class="next" href="/docs/liquidity-locker"><span class="d">Next</span>Liquidity locker</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#what-it-does">What it does</a></li><li><a class="" href="#what-it-guarantees">What it guarantees</a></li><li><a class="" href="#what-it-does-not-do">What it does not do</a></li><li><a class="" href="#what-can-be-locked">What can be locked</a></li><li><a class="" href="#cost">Cost</a></li><li><a class="" href="#the-proof-page">The proof page</a></li><li><a class="" href="#get-started">Get started</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HoodLock REST API Reference | Build Your Own Locking UI</title>
+<meta name="description" content="Endpoints for building your own lock, burn and vesting interface on Robinhood Chain: config, attribution and prepared transaction intents.">
+<link rel="canonical" href="https://hoodlock.tech/docs/api">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="HoodLock REST API Reference | Build Your Own Locking UI">
+<meta property="og:description" content="Endpoints for building your own lock, burn and vesting interface on Robinhood Chain: config, attribution and prepared transaction intents.">
+<meta property="og:url" content="https://hoodlock.tech/docs/api">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HoodLock REST API Reference | Build Your Own Locking UI">
+<meta name="twitter:description" content="Endpoints for building your own lock, burn and vesting interface on Robinhood Chain: config, attribution and prepared transaction intents.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"REST API","item":"https://hoodlock.tech/docs/api"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"HoodLock REST API Reference | Build Your Own Locking UI","description":"Endpoints for building your own lock, burn and vesting interface on Robinhood Chain: config, attribution and prepared transaction intents.","url":"https://hoodlock.tech/docs/api","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/api"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api" aria-current="page">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>REST API</li></ol></nav>
+<h1>REST <span class="serif">API.</span></h1>
+<p class="lede">For teams that want their own interface rather than the embed widget. The API prepares transactions; the user's wallet still signs and submits them, so nothing here can move funds.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="base-url-and-format">Base URL and format<a class="anchor" href="#base-url-and-format" aria-label="Link to this section">#</a></h2>
+<p>All endpoints live under <code>https://hoodlock.tech/api/dev</code>, take and return JSON, and send
+permissive CORS headers so they work from a browser as well as a server.</p>
+<div class="callout callout-info"><div class="ct">Note</div><p>These routes carry <code>X-Robots-Tag: noindex</code>, which is why this page — not the JSON —
+is the documented surface.</p></div>
+
+<h2 id="authentication">Authentication<a class="anchor" href="#authentication" aria-label="Link to this section">#</a></h2>
+<p>One credential: a public API key of the form <code>pk_</code> followed by 48 hex characters. You get
+it by registering a developer handle in the <a href="/docs/embed">developer dashboard</a>.</p>
+<div class="tablewrap"><table><thead><tr><th>Method</th><th>How the key is passed</th></tr></thead><tbody><tr><td><code>GET</code></td><td>query string — <code>?key=pk_…</code></td></tr><tr><td><code>POST</code></td><td>a <code>key</code> field in the JSON body</td></tr></tbody></table></div>
+<div class="callout callout-warn"><div class="ct">Careful</div><p><b>There is no header form.</b> The CORS policy allows <code>Content-Type</code> only, so an
+<code>Authorization</code> header will be blocked on cross-origin requests. Use the query string or the
+body field.</p></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>The key is public on purpose, in the same sense as a Stripe publishable key. It credits locks to
+you and does nothing else — it cannot move funds, read balances or reach admin. Claiming earnings
+requires a signature from your wallet, which the key cannot produce. Embedding it in frontend source is
+the intended use.</p></div>
+
+<h2 id="get-apidevconfig">GET /api/dev/config<a class="anchor" href="#get-apidevconfig" aria-label="Link to this section">#</a></h2>
+<p>Everything your interface needs to build a transaction. Call it once at boot rather than hardcoding
+addresses or fees — the fee is read from the contracts and can change.</p>
+<div class="codewrap"><span class="lang">shell</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>curl &quot;https://hoodlock.tech/api/dev/config?key=pk_YOUR_KEY&quot;</code></pre></div>
+<div class="codewrap"><span class="lang">json</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>{
+  &quot;chainId&quot;: 4663,
+  &quot;rpc&quot;: &quot;https://rpc.mainnet.chain.robinhood.com&quot;,
+  &quot;explorer&quot;: &quot;https://robinhoodchain.blockscout.com&quot;,
+  &quot;locker&quot;: &quot;0xd0f7d8c6e9f6d80c297bebe4f7fd1b9c8125c32f&quot;,
+  &quot;burner&quot;: &quot;0x6bf43ca706faa8ea46803299c191484e82280652&quot;,
+  &quot;vesting&quot;: &quot;0x910e19bcC4bce46999994Ed7297E0Fc4431ec72E&quot;,
+  &quot;fees&quot;:    { &quot;lock&quot;: &quot;5000000000000000&quot;, &quot;burn&quot;: &quot;5000000000000000&quot;, &quot;vesting&quot;: &quot;5000000000000000&quot; },
+  &quot;feesEth&quot;: { &quot;lock&quot;: 0.005, &quot;burn&quot;: 0.005, &quot;vesting&quot;: 0.005 },
+  &quot;commission&quot;: 0.5,
+  &quot;code&quot;: &quot;your-handle&quot;
+}</code></pre></div>
+<p><code>feeWei</code> and <code>feeEth</code> are also present at the top level and hold the
+<b>lock</b> fee; they predate the per-product fields and are kept so older integrations keep working.
+Prefer <code>fees</code>. A product that is not configured on the chain returns <code>null</code>.</p>
+<p>Errors: <code>404 {"error":"unknown key"}</code>, or <code>503</code> if the database is unavailable.</p>
+
+<h2 id="transaction-intents">Transaction intents<a class="anchor" href="#transaction-intents" aria-label="Link to this section">#</a></h2>
+<p>Each intent validates your inputs, encodes the call and returns an unsigned transaction. You submit
+it from the user's wallet.</p>
+<div class="codewrap"><span class="lang">json</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>{ &quot;to&quot;: &quot;0x…&quot;, &quot;data&quot;: &quot;0x…&quot;, &quot;value&quot;: &quot;5000000000000000&quot;, &quot;chainId&quot;: 4663, &quot;note&quot;: &quot;…&quot; }</code></pre></div>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>For locks and vesting the token must be approved for <code>to</code> first — the intent covers
+the HoodLock call, not the ERC-20 approval. The <code>note</code> field in the response says so too.</p></div>
+
+<h3 id="post-apidevlock-intent">POST /api/dev/lock-intent<a class="anchor" href="#post-apidevlock-intent" aria-label="Link to this section">#</a></h3>
+<div class="tablewrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>key</code></td><td>string</td><td>Your API key.</td></tr><tr><td><code>token</code></td><td>address</td><td>The ERC-20 to lock.</td></tr><tr><td><code>amount</code></td><td>string</td><td>Integer string, in the token's smallest unit.</td></tr><tr><td><code>unlockTime</code></td><td>string</td><td>Unix seconds. Must be in the future.</td></tr></tbody></table></div>
+<div class="codewrap"><span class="lang">shell</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>curl -X POST https://hoodlock.tech/api/dev/lock-intent \
+  -H &quot;content-type: application/json&quot; \
+  -d &#39;{&quot;key&quot;:&quot;pk_YOUR_KEY&quot;,
+       &quot;token&quot;:&quot;0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73&quot;,
+       &quot;amount&quot;:&quot;1000000000000000000000&quot;,
+       &quot;unlockTime&quot;:&quot;1790000000&quot;}&#39;</code></pre></div>
+
+<h3 id="post-apidevburn-intent">POST /api/dev/burn-intent<a class="anchor" href="#post-apidevburn-intent" aria-label="Link to this section">#</a></h3>
+<p>Fields: <code>key</code>, <code>token</code>, <code>amount</code>. Returns <code>404</code> if
+burning is not configured on the chain.</p>
+<div class="callout callout-danger"><div class="ct">Irreversible</div><p>Burning is irreversible. Show the user what is about to happen in your own UI — the intent
+endpoint will not stop them.</p></div>
+
+<h3 id="post-apidevvesting-intent">POST /api/dev/vesting-intent<a class="anchor" href="#post-apidevvesting-intent" aria-label="Link to this section">#</a></h3>
+<div class="tablewrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>key</code></td><td>string</td><td>Your API key.</td></tr><tr><td><code>token</code></td><td>address</td><td>The ERC-20 to vest.</td></tr><tr><td><code>amount</code></td><td>string</td><td>Integer string, smallest unit.</td></tr><tr><td><code>beneficiary</code></td><td>address</td><td>Who receives the tokens.</td></tr><tr><td><code>end</code></td><td>string</td><td>Unix seconds. Must be after <code>start</code>.</td></tr><tr><td><code>start</code></td><td>string, optional</td><td>Defaults to now.</td></tr><tr><td><code>cliff</code></td><td>string, optional</td><td>Defaults to <code>start</code>. Must satisfy <code>start ≤ cliff ≤ end</code>.</td></tr></tbody></table></div>
+<p>The contract's rules are checked here, so a schedule that would revert generally never reaches a
+signature prompt.</p>
+<div class="callout callout-warn"><div class="ct">Careful</div><p><b>One case slips through.</b> This endpoint checks <code>end - start ≥ 86400</code>, while the
+contract checks <code>end &gt; block.timestamp + MIN_DURATION</code>. A back-dated <code>start</code> can
+satisfy the API and still revert on-chain. Validate against <code>block.timestamp</code> in your own UI.</p></div>
+
+<h2 id="post-apidevattribute">POST /api/dev/attribute<a class="anchor" href="#post-apidevattribute" aria-label="Link to this section">#</a></h2>
+<p>Credits a wallet to your handle so locks it makes afterwards earn you commission. Call it when the
+user connects, before they transact.</p>
+<div class="codewrap"><span class="lang">shell</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>curl -X POST https://hoodlock.tech/api/dev/attribute \
+  -H &quot;content-type: application/json&quot; \
+  -d &#39;{&quot;key&quot;:&quot;pk_YOUR_KEY&quot;,&quot;wallet&quot;:&quot;0xUSER&quot;}&#39;</code></pre></div>
+<p>Returns <code>{"ok":true}</code>, or <code>{"ok":false,"reason":"…"}</code> with <b>HTTP 200</b> — a
+refusal is an expected outcome, not an error.</p>
+<div class="tablewrap"><table><thead><tr><th>Reason</th><th>Meaning</th></tr></thead><tbody><tr><td><code>bad-wallet</code></td><td>Not a valid address.</td></tr><tr><td><code>already-attributed</code></td><td>Another partner got there first. First touch wins and is permanent.</td></tr><tr><td><code>established-wallet</code></td><td>The wallet was already known to HoodLock before you introduced it.</td></tr><tr><td><code>already-locked</code></td><td>The wallet has locked, burned or vested before.</td></tr><tr><td><code>unknown-code</code></td><td>The handle behind the key no longer exists.</td></tr></tbody></table></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>Only genuinely new wallets count, and only actions taken after attribution. That is deliberate:
+it stops a partner from claiming users who were already here. It also means calling this endpoint on
+every page load is harmless — repeats are refused, not double-counted.</p></div>
+
+<h2 id="rate-limits">Rate limits<a class="anchor" href="#rate-limits" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Endpoint</th><th>Requests per minute per IP</th></tr></thead><tbody><tr><td><code>/api/dev/attribute</code></td><td>30</td></tr><tr><td><code>*-intent</code></td><td>60</td></tr></tbody></table></div>
+<p>Over the limit returns <code>429 {"error":"rate limited"}</code>.</p>
+
+<h2 id="a-minimal-integration">A minimal integration<a class="anchor" href="#a-minimal-integration" aria-label="Link to this section">#</a></h2>
+<div class="codewrap"><span class="lang">javascript</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>const cfg = await (await fetch(`/api/dev/config?key=${KEY}`)).json();
+
+// after the user connects
+await fetch(&quot;https://hoodlock.tech/api/dev/attribute&quot;, {
+  method: &quot;POST&quot;, headers: { &quot;content-type&quot;: &quot;application/json&quot; },
+  body: JSON.stringify({ key: KEY, wallet: account }),
+});
+
+// 1. approve, 2. lock
+const intent = await (await fetch(&quot;https://hoodlock.tech/api/dev/lock-intent&quot;, {
+  method: &quot;POST&quot;, headers: { &quot;content-type&quot;: &quot;application/json&quot; },
+  body: JSON.stringify({ key: KEY, token, amount, unlockTime }),
+})).json();
+
+await walletClient.sendTransaction({
+  to: intent.to, data: intent.data, value: BigInt(intent.value),
+});</code></pre></div>
+
+<h2 id="getting-paid">Getting paid<a class="anchor" href="#getting-paid" aria-label="Link to this section">#</a></h2>
+<p>Partners earn <b>50%</b> of the fee on every action generated by a wallet they introduced. Earnings
+accrue automatically and are claimed from the developer dashboard with a wallet signature, once the
+balance passes $10. The API key plays no part in that — see <a href="/docs/embed">the embed widget page</a>.</p>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/embed">Embed widget</a> — the no-code alternative</li><li><a href="/docs/contracts">Contracts</a> — what the intents encode</li><li><a href="/docs/network">Network</a> — RPC and indexing limits</li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/network"><span class="d">Previous</span>Network</a><a class="next" href="/docs/embed"><span class="d">Next</span>Embed widget</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#base-url-and-format">Base URL and format</a></li><li><a class="" href="#authentication">Authentication</a></li><li><a class="" href="#get-apidevconfig">GET /api/dev/config</a></li><li><a class="" href="#transaction-intents">Transaction intents</a></li><li><a class="lvl3" href="#post-apidevlock-intent">POST /api/dev/lock-intent</a></li><li><a class="lvl3" href="#post-apidevburn-intent">POST /api/dev/burn-intent</a></li><li><a class="lvl3" href="#post-apidevvesting-intent">POST /api/dev/vesting-intent</a></li><li><a class="" href="#post-apidevattribute">POST /api/dev/attribute</a></li><li><a class="" href="#rate-limits">Rate limits</a></li><li><a class="" href="#a-minimal-integration">A minimal integration</a></li><li><a class="" href="#getting-paid">Getting paid</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

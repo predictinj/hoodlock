@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lock LP Tokens with HoodLock | Step-by-Step</title>
+<meta name="description" content="Find your LP token address, confirm it is a v2-style ERC-20 position, and lock it in the HoodLock app. With the checks that catch a wrong address first.">
+<link rel="canonical" href="https://hoodlock.tech/docs/how-to-lock-liquidity">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Lock LP Tokens with HoodLock | Step-by-Step">
+<meta property="og:description" content="Find your LP token address, confirm it is a v2-style ERC-20 position, and lock it in the HoodLock app. With the checks that catch a wrong address first.">
+<meta property="og:url" content="https://hoodlock.tech/docs/how-to-lock-liquidity">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lock LP Tokens with HoodLock | Step-by-Step">
+<meta name="twitter:description" content="Find your LP token address, confirm it is a v2-style ERC-20 position, and lock it in the HoodLock app. With the checks that catch a wrong address first.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Lock LP tokens","item":"https://hoodlock.tech/docs/how-to-lock-liquidity"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Lock LP Tokens with HoodLock | Step-by-Step","description":"Find your LP token address, confirm it is a v2-style ERC-20 position, and lock it in the HoodLock app. With the checks that catch a wrong address first.","url":"https://hoodlock.tech/docs/how-to-lock-liquidity","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/how-to-lock-liquidity"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity" aria-current="page">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Lock LP tokens</li></ol></nav>
+<h1>Lock <span class="serif">LP tokens.</span></h1>
+<p class="lede">An LP token from a v2-style pool is an ordinary ERC-20, so locking it uses the same flow as any other token. The work is in identifying the right one.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<div class="callout callout-info"><div class="ct">Note</div><p>New to the idea? <a href="/blog/what-is-a-liquidity-lock">What a liquidity lock is</a> covers why it
+matters and <a href="/blog/what-are-lp-tokens">what LP tokens actually are</a> covers the mechanics. This page is
+the procedure.</p></div>
+
+<h2 id="first-confirm-you-can-lock-it">First: confirm you can lock it<a class="anchor" href="#first-confirm-you-can-lock-it" aria-label="Link to this section">#</a></h2>
+<p>Only v2-style positions are ERC-20 tokens. Uniswap v3 and v4 positions are NFTs and cannot be held by
+the locker — no amount of trying will make that work, so check before you start.</p>
+<div class="tablewrap"><table><thead><tr><th>Check</th><th>v2-style (lockable)</th><th>v3 / v4 (not lockable)</th></tr></thead><tbody><tr><td>Appears in your wallet as a token balance</td><td>Yes</td><td>No</td></tr><tr><td>Symbol</td><td><code>UNI-V2</code>, <code>SLP</code> or similar</td><td>None — it is an NFT</td></tr><tr><td>Pair contract has <code>totalSupply()</code></td><td>Yes</td><td>No</td></tr></tbody></table></div>
+<p><a href="/docs/liquidity-locker">The liquidity locker page</a> goes into how to tell them apart in more
+detail, including what to do if your launchpad already locked the position for you.</p>
+
+<h2 id="find-the-lp-token-address">Find the LP token address<a class="anchor" href="#find-the-lp-token-address" aria-label="Link to this section">#</a></h2>
+<p>This is the step people get wrong, because there are two addresses in play and only one is right.</p>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>You need the <b>pair contract address</b>, not the address of either token in the pair. Locking
+requires the LP token itself — the thing minted to you when you added liquidity.</p></div>
+<ul><li><b>From your wallet.</b> The LP balance is usually listed with the pair symbol. Copy its contract address from there.</li><li><b>From the DEX.</b> Open your position and copy the pool or pair address.</li><li><b>From the explorer.</b> On the pair contract, <code>token0()</code> and <code>token1()</code> should return the two tokens you supplied. If they do, you have the right address.</li></ul>
+
+<h2 id="lock-it">Lock it<a class="anchor" href="#lock-it" aria-label="Link to this section">#</a></h2>
+<ol class="steps"><li><b>Open the locker.</b> Go to <a href="/app/locks">the lock form</a> and connect the wallet holding the LP tokens.</li><li><b>Paste the LP token address.</b> The form will resolve it and show the pair, which is your
+   confirmation that you have the right contract. If it shows something you do not recognise, stop and
+   re-check the address.</li><li><b>Enter the amount.</b> <b>Max</b> locks the whole position. Locking all of it is the common choice
+   here — a partially locked pool answers the question only partially.</li><li><b>Pick an unlock date.</b> Long enough to outlast whatever people are worried about. See below.</li><li><b>Approve, then lock.</b> Two transactions: authorise the amount, then create the lock.</li><li><b>Publish the proof link.</b> Put it where buyers look — pinned post, docs, listing applications.
+   <a href="/docs/proof-of-lock">Proof of lock</a> covers the shape.</li></ol>
+
+<h2 id="choosing-the-duration">Choosing the duration<a class="anchor" href="#choosing-the-duration" aria-label="Link to this section">#</a></h2>
+<p>There is no correct number, but there are defensible ones. A pool locked for thirty days says the
+team plans to be around for thirty days, and readers will treat it exactly that literally.</p>
+<ul><li><b>Match your roadmap.</b> A lock that expires before your first milestone invites the obvious question.</li><li><b>Extend rather than over-promise.</b> Dates move later but never earlier, so a shorter lock you extend as you ship builds a record that a single long lock cannot.</li><li><b>Say when it expires.</b> Someone will notice the date regardless. Naming it yourself costs nothing and reads better.</li></ul>
+<p><a href="/blog/how-long-should-you-lock-liquidity">How long should you lock liquidity</a> works through the
+trade-off properly.</p>
+
+<h2 id="after-locking">After locking<a class="anchor" href="#after-locking" aria-label="Link to this section">#</a></h2>
+<ul><li>The pool keeps trading. Locking the LP token does not freeze the pool — swaps, fees and price all continue as normal.</li><li>Fees accrued to a v2 position stay in the reserves and are realised when the LP is eventually withdrawn.</li><li>The lock is visible in <a href="/docs/lock-explorer">the explorer</a> immediately.</li></ul>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>Locking liquidity says nothing about the token contract itself. A locked pool on a token that
+can be minted at will is not the reassurance it appears to be —
+<a href="/blog/how-to-verify-a-token-contract-on-blockscout">read the contract</a> as well.</p></div>
+
+<div class="cta-box"><h2>Lock your LP tokens</h2><p>Same flat 0.005 ETH as any lock, and a proof page anyone can open without a wallet.</p><a class="btn" href="/app/locks">Open HoodLock →</a></div>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/blog/how-to-check-if-liquidity-is-locked">How to check if liquidity is locked</a></li><li><a href="/blog/burning-vs-locking-liquidity">Burning vs locking liquidity</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/how-to-lock-tokens"><span class="d">Previous</span>Lock tokens</a><a class="next" href="/docs/how-to-create-vesting"><span class="d">Next</span>Create a vesting schedule</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#first-confirm-you-can-lock-it">First: confirm you can lock it</a></li><li><a class="" href="#find-the-lp-token-address">Find the LP token address</a></li><li><a class="" href="#lock-it">Lock it</a></li><li><a class="" href="#choosing-the-duration">Choosing the duration</a></li><li><a class="" href="#after-locking">After locking</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

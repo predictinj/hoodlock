@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Writing Your Own Lock Contract vs Using HoodLock</title>
+<meta name="description" content="Locking tokens yourself is a twenty-line contract. An honest look at when that is the right call and what the twenty lines leave you to build afterwards.">
+<link rel="canonical" href="https://hoodlock.tech/docs/vs/diy-locking">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Writing Your Own Lock Contract vs Using HoodLock">
+<meta property="og:description" content="Locking tokens yourself is a twenty-line contract. An honest look at when that is the right call and what the twenty lines leave you to build afterwards.">
+<meta property="og:url" content="https://hoodlock.tech/docs/vs/diy-locking">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Writing Your Own Lock Contract vs Using HoodLock">
+<meta name="twitter:description" content="Locking tokens yourself is a twenty-line contract. An honest look at when that is the right call and what the twenty lines leave you to build afterwards.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"vs locking it yourself","item":"https://hoodlock.tech/docs/vs/diy-locking"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Writing Your Own Lock Contract vs Using HoodLock","description":"Locking tokens yourself is a twenty-line contract. An honest look at when that is the right call and what the twenty lines leave you to build afterwards.","url":"https://hoodlock.tech/docs/vs/diy-locking","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/vs/diy-locking"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking" aria-current="page">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>vs locking it yourself</li></ol></nav>
+<h1>Rolling your <span class="serif">own.</span></h1>
+<p class="lede">A timelock is genuinely simple to write. If you have the skills, the case for building it yourself is stronger than most vendors will admit — so here is the honest version, including where it stops being simple.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="the-part-that-is-easy">The part that is easy<a class="anchor" href="#the-part-that-is-easy" aria-label="Link to this section">#</a></h2>
+<p>A single-beneficiary timelock is short enough to read in one screen, and there is nothing clever in it.</p>
+<div class="codewrap"><span class="lang">solidity</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>contract Timelock {
+    address public immutable owner;
+    IERC20  public immutable token;
+    uint256 public immutable unlockTime;
+
+    constructor(address t, uint256 u) { owner = msg.sender; token = IERC20(t); unlockTime = u; }
+
+    function withdraw() external {
+        require(msg.sender == owner, &quot;not owner&quot;);
+        require(block.timestamp &gt;= unlockTime, &quot;locked&quot;);
+        token.transfer(owner, token.balanceOf(address(this)));
+    }
+}</code></pre></div>
+<p>If your team writes Solidity, deploying this is an afternoon including tests. Anyone claiming the
+mechanism itself is hard is selling something.</p>
+
+<h2 id="the-part-that-is-not">The part that is not<a class="anchor" href="#the-part-that-is-not" aria-label="Link to this section">#</a></h2>
+<p>The contract is the smallest component of the job. What follows is the rest of it.</p>
+<div class="tablewrap"><table><thead><tr><th>What you still need</th><th>Why it is not optional</th></tr></thead><tbody><tr><td><b>Verified source on the explorer</b></td><td>An unverified lock contract proves nothing to anyone. If they cannot read it, they cannot check it.</td></tr><tr><td><b>A page a non-technical holder can read</b></td><td>Most of the people you are reassuring cannot read a contract. A link to a raw address does not do the job.</td></tr><tr><td><b>Correct handling of odd tokens</b></td><td>Fee-on-transfer tokens deposit less than you sent. Tokens that return no boolean break naive transfers. Both are common.</td></tr><tr><td><b>An extend path</b></td><td>Without one you have to withdraw and re-lock, which creates exactly the gap a lock exists to avoid.</td></tr><tr><td><b>Ongoing discoverability</b></td><td>A bespoke contract appears in no explorer, no aggregator and no directory. Nobody finds it unless you tell them.</td></tr><tr><td><b>Credibility of a contract only you have seen</b></td><td>A one-off address is precisely the shape a fake lock takes. Yours is real; it looks the same from outside.</td></tr></tbody></table></div>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>That last row is the one teams underestimate. A custom lock contract asks holders to audit your
+code before they can trust your commitment — which is a larger ask than the commitment itself, and most of
+them will simply decline.</p></div>
+
+<h2 id="when-rolling-your-own-is-right">When rolling your own is right<a class="anchor" href="#when-rolling-your-own-is-right" aria-label="Link to this section">#</a></h2>
+<p>There are real cases, and we would rather name them than pretend otherwise.</p>
+<ul><li><b>You need logic no general locker has.</b> Multi-sig release, oracle conditions, milestone-gated unlocks, governance-controlled schedules.</li><li><b>The asset is not an ERC-20.</b> An NFT position, a staked receipt or a bespoke token standard needs a contract built for it.</li><li><b>You are locking at a scale where a per-lock fee actually matters.</b> At a large enough count, deployment amortises.</li><li><b>Your team already ships audited Solidity</b> and the lock is a small addition to an existing system you maintain anyway.</li></ul>
+
+<h2 id="when-it-is-not">When it is not<a class="anchor" href="#when-it-is-not" aria-label="Link to this section">#</a></h2>
+<ul><li><b>To save the fee.</b> A flat 0.005 ETH against an afternoon of engineering plus indefinite maintenance is not a close call.</li><li><b>Because a general locker feels like a dependency.</b> It is not one — the contracts run without our site, and you can call <code>withdraw</code> from a block explorer if hoodlock.tech vanishes entirely.</li><li><b>Because you want control.</b> A lock exists to <i>remove</i> your control. A contract you wrote and could redeploy reads as less binding, not more.</li></ul>
+<div class="callout callout-info"><div class="ct">Note</div><p>That third point is the counterintuitive one. The value of using a shared, public, verified
+locker is precisely that you did not write it — nobody has to consider whether you left yourself a door.
+<a href="/docs/security">The security model</a> names the functions to check, and they are the same functions on
+every lock we hold.</p></div>
+
+<h2 id="a-middle-path">A middle path<a class="anchor" href="#a-middle-path" aria-label="Link to this section">#</a></h2>
+<p>Use both. Lock the ordinary balances — creator supply, treasury, LP — with a general locker so they
+are discoverable and checkable without effort, and write bespoke contracts only where you genuinely need
+logic that does not exist. Most teams that build their own end up wanting the shared one anyway for the
+straightforward cases.</p>
+
+<h2 id="what-you-would-be-comparing-against">What you would be comparing against<a class="anchor" href="#what-you-would-be-comparing-against" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th></th><th>Your own contract</th><th>HoodLock</th></tr></thead><tbody><tr><td>Cost</td><td>Engineering time, then gas</td><td>0.005 ETH flat, plus gas</td></tr><tr><td>Verification</td><td>Yours to do</td><td>Verified on Blockscout</td></tr><tr><td>Public proof page</td><td>Yours to build</td><td>Generated per record</td></tr><tr><td>Extend without a gap</td><td>Yours to implement</td><td>Built in, free</td></tr><tr><td>Fee-on-transfer safety</td><td>Yours to handle</td><td>Records the amount actually received</td></tr><tr><td>Discoverable by strangers</td><td>No</td><td><a href="/docs/lock-explorer">In the explorer</a></td></tr><tr><td>Custom release logic</td><td><b>Anything you write</b></td><td>Linear vesting, or a single date</td></tr></tbody></table></div>
+<p><a href="/blog/how-to-choose-a-token-locker">How to choose a token locker</a> covers the criteria to apply
+to any option, including this one.</p>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/contracts">Contracts</a> — what ours actually do</li><li><a href="/docs/security">Security model</a></li><li><a href="/docs/api">REST API</a> — if you want your own interface, not your own contract</li><li><a href="/blog/custodial-vs-non-custodial-locking">Custodial vs non-custodial locking</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/vs/multi-chain-lockers"><span class="d">Previous</span>vs multi-chain lockers</a><a class="next" href="/docs/faq"><span class="d">Next</span>FAQ</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#the-part-that-is-easy">The part that is easy</a></li><li><a class="" href="#the-part-that-is-not">The part that is not</a></li><li><a class="" href="#when-rolling-your-own-is-right">When rolling your own is right</a></li><li><a class="" href="#when-it-is-not">When it is not</a></li><li><a class="" href="#a-middle-path">A middle path</a></li><li><a class="" href="#what-you-would-be-comparing-against">What you would be comparing against</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

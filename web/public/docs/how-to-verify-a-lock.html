@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Verify a Token Lock on Robinhood Chain | HoodLock</title>
+<meta name="description" content="Someone showed you a lock. Here is how to confirm it is real, that it covers the token you are actually buying, and that the amount means what they say.">
+<link rel="canonical" href="https://hoodlock.tech/docs/how-to-verify-a-lock">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="How to Verify a Token Lock on Robinhood Chain | HoodLock">
+<meta property="og:description" content="Someone showed you a lock. Here is how to confirm it is real, that it covers the token you are actually buying, and that the amount means what they say.">
+<meta property="og:url" content="https://hoodlock.tech/docs/how-to-verify-a-lock">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to Verify a Token Lock on Robinhood Chain | HoodLock">
+<meta name="twitter:description" content="Someone showed you a lock. Here is how to confirm it is real, that it covers the token you are actually buying, and that the amount means what they say.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Verify someone else's lock","item":"https://hoodlock.tech/docs/how-to-verify-a-lock"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"How to Verify a Token Lock on Robinhood Chain | HoodLock","description":"Someone showed you a lock. Here is how to confirm it is real, that it covers the token you are actually buying, and that the amount means what they say.","url":"https://hoodlock.tech/docs/how-to-verify-a-lock","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/how-to-verify-a-lock"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock" aria-current="page">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Verify someone else&#39;s lock</li></ol></nav>
+<h1>Verify someone else's <span class="serif">lock.</span></h1>
+<p class="lede">A screenshot proves nothing and a symbol proves less. Four checks, none of which need a wallet, separate a real commitment from a claim that merely looks like one.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="check-the-token-address-not-the-ticker">Check the token address, not the ticker<a class="anchor" href="#check-the-token-address-not-the-ticker" aria-label="Link to this section">#</a></h2>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>This is the check that catches the most misdirection. Symbols are not unique and cost nothing to
+copy — a lock page for a token called <code>$PEPE</code> is a lock on <b>whichever contract that page
+names</b>, which may not be the one trading.</p></div>
+<ol class="steps"><li><b>Get the real address.</b> Take it from the DEX pair you would actually buy from, or the project's
+   own site. Not from a chat message and not from the screenshot.</li><li><b>Compare it to the proof page.</b> Character for character, or at least the first and last six.</li><li><b>If they differ, stop.</b> The lock is real and irrelevant — a locked balance of a lookalike token.</li></ol>
+
+<h2 id="check-the-share-of-supply">Check the share of supply<a class="anchor" href="#check-the-share-of-supply" aria-label="Link to this section">#</a></h2>
+<p>Token counts are meaningless without a denominator. Ten million tokens sounds like a lot until the
+supply turns out to be ten billion.</p>
+<p>Proof pages state the percentage of total supply directly, so this is usually one glance. If you are
+reading a raw explorer transaction instead, divide the locked amount by <code>totalSupply()</code> on the
+token contract.</p>
+<div class="callout callout-info"><div class="ct">Note</div><p>For liquidity specifically, the number that matters is what share of the <b>pool</b> is locked,
+not what share of the token supply. A pool with 90% of its LP locked and 10% loose can still be drained of
+that 10%.</p></div>
+
+<h2 id="check-the-date">Check the date<a class="anchor" href="#check-the-date" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>What you see</th><th>What it means</th></tr></thead><tbody><tr><td>Unlock date far out</td><td>A commitment, worth what the rest of the checks say</td></tr><tr><td>Unlock date within weeks</td><td>A countdown. Ask what happens on that day.</td></tr><tr><td>Already unlockable</td><td>The tokens can be withdrawn right now. The lock is history, not a guarantee.</td></tr><tr><td>Withdrawn</td><td>It ended. The page says so — read the status, not just the headline.</td></tr></tbody></table></div>
+<p>Locks can be extended but never shortened, so a date that has moved out since you last looked is a
+real signal. <a href="/docs/how-to-extend-a-lock">Extending a lock</a> explains the asymmetry.</p>
+
+<h2 id="check-what-is-not-locked">Check what is not locked<a class="anchor" href="#check-what-is-not-locked" aria-label="Link to this section">#</a></h2>
+<p>A lock is evidence about one balance. It says nothing about the rest of the supply, and that is
+usually where the risk lives.</p>
+<ul><li><b>Open the holder list.</b> <a href="/blog/how-to-read-token-holder-distribution">Reading holder distribution</a> covers what a healthy one looks like and what to discount.</li><li><b>Read the token contract.</b> A locked pool on a token that can be minted at will is not reassurance. <a href="/blog/how-to-verify-a-token-contract-on-blockscout">How to read a contract on Blockscout</a>.</li><li><b>Look for the rest of the team's supply.</b> One locked wallet and three unlocked ones is a different picture from what the one locked wallet suggests.</li></ul>
+
+<h2 id="search-it-yourself">Search it yourself<a class="anchor" href="#search-it-yourself" aria-label="Link to this section">#</a></h2>
+<p>You do not need a link from anyone. Paste the token address into <a href="/app/explore">the explorer</a> and
+you will see every lock, burn and vesting schedule against it, whoever created them. If a project claims a
+lock that does not appear there, it was not made with HoodLock — which does not make it fake, but does
+mean you should ask where it was made and verify it there.</p>
+
+<h2 id="what-a-lock-cannot-tell-you">What a lock cannot tell you<a class="anchor" href="#what-a-lock-cannot-tell-you" aria-label="Link to this section">#</a></h2>
+<p>Being precise about this is the difference between using locks well and over-trusting them.</p>
+<div class="tablewrap"><table><thead><tr><th>A lock proves</th><th>A lock does not prove</th></tr></thead><tbody><tr><td>Those tokens cannot move before that date</td><td>That the token contract is safe</td></tr><tr><td>Someone paid to commit publicly</td><td>That the team is competent or honest</td></tr><tr><td>The amount and the date, exactly</td><td>That the remaining supply is well distributed</td></tr></tbody></table></div>
+<p><a href="/blog/rug-pull-red-flags-checklist">The red-flag checklist</a> covers the checks that sit either
+side of this one.</p>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li><li><a href="/blog/how-to-check-if-liquidity-is-locked">How to check if liquidity is locked</a></li><li><a href="/blog/what-is-a-honeypot-token">Honeypot tokens — and how to avoid one</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/how-to-extend-a-lock"><span class="d">Previous</span>Extend a lock</a><a class="next" href="/docs/token-locker"><span class="d">Next</span>Token locker</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#check-the-token-address-not-the-ticker">Check the token address, not the ticker</a></li><li><a class="" href="#check-the-share-of-supply">Check the share of supply</a></li><li><a class="" href="#check-the-date">Check the date</a></li><li><a class="" href="#check-what-is-not-locked">Check what is not locked</a></li><li><a class="" href="#search-it-yourself">Search it yourself</a></li><li><a class="" href="#what-a-lock-cannot-tell-you">What a lock cannot tell you</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

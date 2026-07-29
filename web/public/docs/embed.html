@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HoodLock Embed Widget | Add Token Locking to Your Site</title>
+<meta name="description" content="Drop a lock, burn or vesting button onto your own site with one script tag, keep your own styling, and earn half the fee on what it generates.">
+<link rel="canonical" href="https://hoodlock.tech/docs/embed">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="HoodLock Embed Widget | Add Token Locking to Your Site">
+<meta property="og:description" content="Drop a lock, burn or vesting button onto your own site with one script tag, keep your own styling, and earn half the fee on what it generates.">
+<meta property="og:url" content="https://hoodlock.tech/docs/embed">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HoodLock Embed Widget | Add Token Locking to Your Site">
+<meta name="twitter:description" content="Drop a lock, burn or vesting button onto your own site with one script tag, keep your own styling, and earn half the fee on what it generates.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Embed widget","item":"https://hoodlock.tech/docs/embed"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"HoodLock Embed Widget | Add Token Locking to Your Site","description":"Drop a lock, burn or vesting button onto your own site with one script tag, keep your own styling, and earn half the fee on what it generates.","url":"https://hoodlock.tech/docs/embed","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/embed"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed" aria-current="page">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Embed widget</li></ol></nav>
+<h1>Embed <span class="serif">widget.</span></h1>
+<p class="lede">One script tag and a button. The flow opens in a modal on your page, the user signs in their own wallet, and the tokens never touch your site or ours.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<p>Include the script once, then mark any button with <code>data-hoodlock</code>. Everything except
+that attribute is optional — a lock-only integration is a button with nothing else on it.</p>
+<div class="codewrap"><span class="lang">html</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>&lt;script src=&quot;https://hoodlock.tech/embed.js&quot; data-key=&quot;pk_YOUR_KEY&quot;&gt;&lt;/script&gt;
+
+&lt;!-- lock is the default mode, so this is the whole integration --&gt;
+&lt;button data-hoodlock&gt;Lock tokens&lt;/button&gt;
+
+&lt;!-- pre-fill the token so the user cannot pick a different one --&gt;
+&lt;button data-hoodlock data-token=&quot;0xYourTokenAddress&quot;&gt;Lock tokens&lt;/button&gt;
+
+&lt;button data-hoodlock data-mode=&quot;burn&quot; data-token=&quot;0xYourTokenAddress&quot;&gt;Burn tokens&lt;/button&gt;
+
+&lt;button data-hoodlock data-mode=&quot;vesting&quot;
+        data-token=&quot;0xYourTokenAddress&quot;
+        data-beneficiary=&quot;0xTeamWallet&quot;&gt;Create vesting&lt;/button&gt;</code></pre></div>
+<div class="callout callout-info"><div class="ct">Note</div><p><code>0xYourTokenAddress</code> is a placeholder. Insert the real address from your own data
+when you render the page — it is different on every token page, so it is not a literal string to paste.</p></div>
+
+<h2 id="your-button-keeps-your-styling">Your button keeps your styling<a class="anchor" href="#your-button-keeps-your-styling" aria-label="Link to this section">#</a></h2>
+<p>The widget never touches how your button looks. It attaches a click handler and marks the element as
+wired; it sets no classes, no inline styles and no attributes that affect appearance. Style the button
+however you like — Tailwind, CSS modules, a design system component, anything.</p>
+<p>This is worth stating plainly because it is the usual objection to embedded widgets: most teams want
+the functionality and their own design. Here you get both, because the only thing we render is the modal.</p>
+
+<h2 id="attributes">Attributes<a class="anchor" href="#attributes" aria-label="Link to this section">#</a></h2>
+<h3 id="on-the-script-tag">On the script tag<a class="anchor" href="#on-the-script-tag" aria-label="Link to this section">#</a></h3>
+<div class="tablewrap"><table><thead><tr><th>Attribute</th><th>Required</th><th>What it does</th></tr></thead><tbody><tr><td><code>data-key</code></td><td>yes</td><td>Your public API key. Without it the widget logs an error and does nothing.</td></tr><tr><td><code>data-attribution</code></td><td>no</td><td>Set to <code>off</code> to leave out the “Secured by HoodLock” line.</td></tr></tbody></table></div>
+<h3 id="on-a-button">On a button<a class="anchor" href="#on-a-button" aria-label="Link to this section">#</a></h3>
+<div class="tablewrap"><table><thead><tr><th>Attribute</th><th>Required</th><th>What it does</th></tr></thead><tbody><tr><td><code>data-hoodlock</code></td><td>yes</td><td>Marks the button. Nothing else is needed for a lock.</td></tr><tr><td><code>data-mode</code></td><td>no</td><td><code>lock</code> (default), <code>burn</code> or <code>vesting</code>. An unrecognised value falls back to <code>lock</code>.</td></tr><tr><td><code>data-token</code></td><td>no</td><td>Pre-fills the token and makes the field read-only. Leave it out and the user picks from their own wallet.</td></tr><tr><td><code>data-beneficiary</code></td><td>no</td><td>Vesting only. Pre-fills the recipient; the user can still edit it.</td></tr><tr><td><code>data-unlock</code></td><td>no</td><td>Lock only. Pre-fills the unlock date as Unix seconds.</td></tr></tbody></table></div>
+
+<h2 id="javascript-api">JavaScript API<a class="anchor" href="#javascript-api" aria-label="Link to this section">#</a></h2>
+<p><code>window.HoodLock</code> is available once the script has loaded.</p>
+<div class="codewrap"><span class="lang">javascript</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>// open programmatically
+HoodLock.open({ token: &quot;0x…&quot;, unlockTime: 1790000000 });
+HoodLock.open({ mode: &quot;burn&quot;, token: &quot;0x…&quot; });
+HoodLock.open({ mode: &quot;vesting&quot;, token: &quot;0x…&quot;, beneficiary: &quot;0x…&quot; });
+
+// one handler for every product
+HoodLock.on(&quot;done&quot;, ({ type, txHash, id, token, amount }) =&gt; {
+  console.log(type, id, txHash);   // type: &quot;locked&quot; | &quot;burned&quot; | &quot;vested&quot;
+});
+
+// or listen per product
+HoodLock.on(&quot;locked&quot;, ({ txHash, id }) =&gt; refreshMyUi(id));
+
+HoodLock.close();   // close the modal
+HoodLock.wire();    // re-scan the DOM after rendering new buttons</code></pre></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>Call <code>HoodLock.wire()</code> after any client-side render that adds buttons. It only picks
+up elements it has not already wired, so calling it more than once is safe.</p></div>
+
+<h3 id="events">Events<a class="anchor" href="#events" aria-label="Link to this section">#</a></h3>
+<div class="tablewrap"><table><thead><tr><th>Event</th><th>Payload</th><th>When</th></tr></thead><tbody><tr><td><code>ready</code></td><td>—</td><td>The modal has loaded.</td></tr><tr><td><code>connected</code></td><td><code>{ account }</code></td><td>The user connected a wallet.</td></tr><tr><td><code>locked</code> / <code>burned</code> / <code>vested</code></td><td><code>{ txHash, id, token, amount }</code></td><td>The action succeeded.</td></tr><tr><td><code>done</code></td><td>the same payload plus <code>type</code></td><td>Fires alongside each of the three above.</td></tr><tr><td><code>error</code></td><td><code>{ message }</code></td><td>Something failed. The message is already human-readable.</td></tr><tr><td><code>close</code></td><td>—</td><td>The modal was dismissed.</td></tr></tbody></table></div>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>A payload can carry <code>unconfirmed: true</code>. That means the transaction was broadcast but
+the receipt could not be fetched — it has most likely landed. Treat it as provisional and confirm against
+the chain rather than telling the user it failed.</p></div>
+<p><code>id</code> is the on-chain record id and may be <code>null</code> if it could not be read back.
+<code>lockId</code> is an alias kept for older integrations.</p>
+
+<h2 id="the-attribution-line">The attribution line<a class="anchor" href="#the-attribution-line" aria-label="Link to this section">#</a></h2>
+<p>The widget adds one small line after the last HoodLock button on the page:</p>
+<div class="codewrap"><span class="lang">html</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>&lt;div class=&quot;hoodlock-attribution&quot;&gt;
+  &lt;a href=&quot;https://hoodlock.tech&quot; rel=&quot;noopener&quot;&gt;Secured by HoodLock&lt;/a&gt;
+&lt;/div&gt;</code></pre></div>
+<p>It inherits your text colour, appears once per page regardless of how many buttons you have, and is
+a plain followable link. Turn it off with <code>data-attribution="off"</code> on the script tag if it does
+not suit the design.</p>
+
+<h2 id="framing-and-csp">Framing and CSP<a class="anchor" href="#framing-and-csp" aria-label="Link to this section">#</a></h2>
+<p>The modal is an iframe from <code>hoodlock.tech/embed</code>. If your site sends a
+<code>Content-Security-Policy</code>, allow it:</p>
+<div class="codewrap"><span class="lang">text</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>frame-src https://hoodlock.tech;
+script-src https://hoodlock.tech;</code></pre></div>
+
+<h2 id="when-the-user-has-no-wallet">When the user has no wallet<a class="anchor" href="#when-the-user-has-no-wallet" aria-label="Link to this section">#</a></h2>
+<p>In-app browsers sometimes block wallet access inside an iframe. The widget detects that and offers a
+link that opens the same flow in a new tab, with your key carried through so the action still counts as
+yours. You do not need to handle it.</p>
+
+<h2 id="earnings">Earnings<a class="anchor" href="#earnings" aria-label="Link to this section">#</a></h2>
+<p>You earn <b>50%</b> of the fee on every lock, burn and vesting schedule created by a wallet you
+introduced. Only genuinely new wallets count, first touch is permanent, and only actions after
+attribution qualify. Claim to your wallet from <a href="/app/developers">the developer dashboard</a> once the
+balance passes $10.</p>
+<p>Prefer to build the interface yourself? The <a href="/docs/api">REST API</a> exposes the same three products
+as prepared transactions.</p>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/api">REST API</a> — build your own interface instead</li><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/fees">Fees</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/api"><span class="d">Previous</span>REST API</a><a class="next" href="/docs/vs/stonkbrokers"><span class="d">Next</span>vs StonkBrokers</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#install">Install</a></li><li><a class="" href="#your-button-keeps-your-styling">Your button keeps your styling</a></li><li><a class="" href="#attributes">Attributes</a></li><li><a class="lvl3" href="#on-the-script-tag">On the script tag</a></li><li><a class="lvl3" href="#on-a-button">On a button</a></li><li><a class="" href="#javascript-api">JavaScript API</a></li><li><a class="lvl3" href="#events">Events</a></li><li><a class="" href="#the-attribution-line">The attribution line</a></li><li><a class="" href="#framing-and-csp">Framing and CSP</a></li><li><a class="" href="#when-the-user-has-no-wallet">When the user has no wallet</a></li><li><a class="" href="#earnings">Earnings</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

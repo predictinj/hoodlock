@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Lock Tokens on Robinhood Chain | HoodLock Docs</title>
+<meta name="description" content="Step-by-step: lock any ERC-20 on Robinhood Chain, choose an unlock date you can defend, and share a proof link that opens without a wallet.">
+<link rel="canonical" href="https://hoodlock.tech/docs/how-to-lock-tokens">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="How to Lock Tokens on Robinhood Chain | HoodLock Docs">
+<meta property="og:description" content="Step-by-step: lock any ERC-20 on Robinhood Chain, choose an unlock date you can defend, and share a proof link that opens without a wallet.">
+<meta property="og:url" content="https://hoodlock.tech/docs/how-to-lock-tokens">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to Lock Tokens on Robinhood Chain | HoodLock Docs">
+<meta name="twitter:description" content="Step-by-step: lock any ERC-20 on Robinhood Chain, choose an unlock date you can defend, and share a proof link that opens without a wallet.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Lock tokens","item":"https://hoodlock.tech/docs/how-to-lock-tokens"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"How to Lock Tokens on Robinhood Chain | HoodLock Docs","description":"Step-by-step: lock any ERC-20 on Robinhood Chain, choose an unlock date you can defend, and share a proof link that opens without a wallet.","url":"https://hoodlock.tech/docs/how-to-lock-tokens","datePublished":"2026-07-29","dateModified":"2026-07-29","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/how-to-lock-tokens"}</script>
+<link rel="stylesheet" href="/docs/docs.css">
+<script defer src="/docs/docs.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens" aria-current="page">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Lock tokens</li></ol></nav>
+<h1>How to <span class="serif">lock tokens.</span></h1>
+<p class="lede">Locking moves a balance into a contract that will only release it back to you, and only on or after a date you set. It takes two transactions and about a minute.</p>
+<div class="meta">Updated 2026-07-29 · HoodLock Team</div>
+
+<h2 id="before-you-start">Before you start<a class="anchor" href="#before-you-start" aria-label="Link to this section">#</a></h2>
+<ul><li>The wallet holding the tokens, connected to Robinhood Chain. See <a href="/docs/connect-wallet">connecting a wallet</a> if the network is not in your wallet yet.</li><li>A little ETH for gas, plus the flat fee — currently 0.005 ETH, read live from the contract. See <a href="/docs/fees">fees</a>.</li><li>The token's contract address, if it is not already in your wallet's token list.</li></ul>
+
+<h2 id="lock-the-tokens">Lock the tokens<a class="anchor" href="#lock-the-tokens" aria-label="Link to this section">#</a></h2>
+<ol class="steps"><li><b>Open the locker.</b> Go to <a href="/app/locks">the lock form</a> and connect your wallet.</li><li><b>Pick the token.</b> Choose it from your wallet's balances, or paste the contract address. Take the
+   address from the project's own site or the DEX pair — never from a chat message, where lookalike
+   addresses are a standard scam.</li><li><b>Enter an amount.</b> <b>Max</b> fills in the whole balance. You can lock part of a holding and keep
+   the rest liquid; most teams do.</li><li><b>Choose an unlock date.</b> The presets cover the common cases. Anything in the future is valid.</li><li><b>Approve, then lock.</b> The first transaction lets the contract move that amount of that token; the
+   second creates the lock. Two prompts, in that order.</li><li><b>Share the proof link.</b> Every lock gets a page that reads live from the chain and opens without a
+   wallet. That link is the part that does the work — see <a href="/docs/proof-of-lock">proof of lock</a>.</li></ol>
+
+<h2 id="choosing-a-date-you-can-defend">Choosing a date you can defend<a class="anchor" href="#choosing-a-date-you-can-defend" aria-label="Link to this section">#</a></h2>
+<p>An unlock date is a claim about how long you intend to stay. The number matters less than whether it
+survives contact with a sceptical holder.</p>
+<div class="tablewrap"><table><thead><tr><th>Situation</th><th>A defensible starting point</th></tr></thead><tbody><tr><td>Creator allocation after a launch</td><td>6–12 months, extended as you ship</td></tr><tr><td>Treasury the project needs to spend from</td><td>Several tranches on different dates, not one block</td></tr><tr><td>Team and contributor supply</td><td>Vesting instead — see below</td></tr><tr><td>LP tokens from a v2-style pool</td><td>At least as long as your roadmap's first milestone</td></tr></tbody></table></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>Unlock dates can be pushed further out but <b>never pulled in</b>. That asymmetry is worth using:
+a shorter first lock you extend as you deliver builds a public record that a single long lock does not.
+See <a href="/docs/how-to-extend-a-lock">extending a lock</a>.</p></div>
+
+<h2 id="when-locking-is-the-wrong-tool">When locking is the wrong tool<a class="anchor" href="#when-locking-is-the-wrong-tool" aria-label="Link to this section">#</a></h2>
+<p>A lock releases everything on one date. That is the right shape for a single allocation you intend to
+hold, and the wrong shape for supply going to several people over time.</p>
+<ul><li><b>Use <a href="/docs/token-vesting">vesting</a></b> for team and contributor allocations — gradual release with an
+   optional cliff says something about time rather than about a single day.</li><li><b>Use <a href="/docs/token-burning">burning</a></b> when the supply should never come back. Burning is irreversible;
+   locking is not.</li></ul>
+<p><a href="/blog/token-locks-vs-vesting-vs-burning">Locks vs vesting vs burning</a> compares the three in full.</p>
+
+<h2 id="what-cannot-be-locked">What cannot be locked<a class="anchor" href="#what-cannot-be-locked" aria-label="Link to this section">#</a></h2>
+<p>HoodLock's locker holds ERC-20 tokens. That covers project tokens, treasury balances and v2-style LP
+tokens, which are themselves ERC-20.</p>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>A Uniswap v3 or v4 liquidity position is an <b>NFT</b>, not an ERC-20, so it cannot be locked here.
+Many launchpads on this chain already lock or burn those positions at graduation. <a href="/docs/how-to-lock-liquidity">Locking LP tokens</a>
+explains how to tell which kind you hold.</p></div>
+
+<h2 id="after-the-lock">After the lock<a class="anchor" href="#after-the-lock" aria-label="Link to this section">#</a></h2>
+<ul><li>The lock appears in <a href="/app/locks">My locks</a> and in <a href="/docs/lock-explorer">the explorer</a>.</li><li>Withdrawal becomes available at the unlock time, to the lock's owner only. Nothing happens automatically —
+   see <a href="/docs/when-a-lock-expires">when a lock expires</a>.</li><li>Ownership of the lock can be transferred; the tokens stay where they are.</li></ul>
+
+<div class="cta-box"><h2>Lock tokens now</h2><p>Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.</p><a class="btn" href="/app/locks">Open HoodLock →</a></div>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/docs/proof-of-lock">Proof of lock</a> — the link you share</li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/fees">Fees</a></li><li><a href="/blog/how-long-should-you-lock-liquidity">How long should you lock?</a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/fees"><span class="d">Previous</span>Fees</a><a class="next" href="/docs/how-to-lock-liquidity"><span class="d">Next</span>Lock LP tokens</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#before-you-start">Before you start</a></li><li><a class="" href="#lock-the-tokens">Lock the tokens</a></li><li><a class="" href="#choosing-a-date-you-can-defend">Choosing a date you can defend</a></li><li><a class="" href="#when-locking-is-the-wrong-tool">When locking is the wrong tool</a></li><li><a class="" href="#what-cannot-be-locked">What cannot be locked</a></li><li><a class="" href="#after-the-lock">After the lock</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>
