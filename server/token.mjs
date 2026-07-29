@@ -167,6 +167,51 @@ function faqs(d) {
 
 /* ---------- rendering ---------- */
 
+/* The ask at the bottom of a token page.
+ *
+ * Almost everyone who lands here arrived from a search about the token, which
+ * means they are deciding whether to buy it — not looking for somewhere to lock
+ * their own supply. "Is this your project? Start locking" asked that visitor for
+ * something they had no reason to want, on the majority of these pages, since
+ * most tokens have no lock.
+ *
+ * So an unlocked token asks the holder to ask the team, in public, with the
+ * check attached. That serves the reader's actual interest and puts the request
+ * in front of the one person who might lock it. A locked token gets the proof,
+ * because a link that settles the question is the thing worth passing on.
+ *
+ * The share is an X intent URL — a plain link, no JavaScript, like the rest of
+ * the page. Its wording stays factual: "no locks on HoodLock", never "not
+ * locked", because we cannot see other lockers and must not help anyone imply
+ * we can.
+ */
+function ctaBox(d) {
+  const sym = esc(d.symbol);
+  const share = (text, url) =>
+    esc(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`);
+  const site = "https://hoodlock.tech";
+
+  if (d.activeLocks.length) {
+    const proof = `${site}/proof/lock/${d.activeLocks[0].id}`;
+    return `<div class="cta-box">
+  <h2 style="margin-top:0">Settle it for everyone else</h2>
+  <p>The proof page reads this lock live from Robinhood Chain and opens without a wallet, so anyone asking the same question about $${sym} can check it themselves.</p>
+  <a class="btn" href="${share(`$${sym} on Robinhood Chain is locked on HoodLock. Verify it yourself —`, proof)}"
+     target="_blank" rel="noopener">Share the proof on X →</a>
+  <p class="cta-alt"><a href="/proof/lock/${d.activeLocks[0].id}">Open the proof page</a> · <a href="/app/locks">Lock a token yourself</a></p>
+</div>`;
+  }
+
+  const url = `${site}/lock-checker?a=${String(d.address).toLowerCase()}`;
+  return `<div class="cta-box">
+  <h2 style="margin-top:0">Holding $${sym}?</h2>
+  <p>Nothing is locked on HoodLock for this token. If you would rather that changed, the quickest way is to ask in public — this posts the check with a link the team can act on.</p>
+  <a class="btn" href="${share(`Checked $${sym} on Robinhood Chain — no locks on HoodLock (it may be locked elsewhere). Team, can you lock it?`, url)}"
+     target="_blank" rel="noopener">Ask the team on X →</a>
+  <p class="cta-alt">Are you the project? <a href="/app/locks">Lock in one transaction</a> — flat 0.005 ETH, never a percentage of your tokens, and this page updates the moment it confirms.</p>
+</div>`;
+}
+
 export function renderTokenPage(d, { site = "https://hoodlock.tech", slug, noindex = false } = {}) {
   const url = `${site}/token/${slug}`;
   const stampIso = d.checkedAt.toISOString();
@@ -279,6 +324,7 @@ td:last-child{color:var(--ink);text-align:right}
 .cta-box{background:var(--card);border:1px solid rgba(0,224,90,.3);border-radius:16px;padding:24px;text-align:center;margin-top:40px}
 .cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:11px 24px;margin-top:10px}
 .cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+.cta-alt{font-size:13.5px;color:var(--ink3);margin:14px 0 0}
 .note{font-size:12.5px;color:var(--ink3);border-top:1px solid var(--line);margin-top:34px;padding-top:16px}
 footer{border-top:1px solid var(--line);margin-top:50px;padding:24px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em}
 @media(max-width:520px){h1{font-size:24px}td:first-child{width:46%}}
@@ -332,13 +378,7 @@ ${d.related?.length ? `<h2>Other tokens on Robinhood Chain</h2>
 <h2>Common questions</h2>
 ${faqList.map(([q, a]) => `<h3>${esc(q)}</h3>\n<p>${a}</p>`).join("\n")}
 
-<div class="cta-box">
-  <h2 style="margin-top:0">${d.activeLocks.length ? `Verify the $${esc(d.symbol)} lock yourself` : `Is this your project?`}</h2>
-  <p>${d.activeLocks.length
-      ? `Every HoodLock position has a permanent proof page that reads live from the chain — no wallet needed.`
-      : `Lock tokens, vest a team allocation or burn supply on Robinhood Chain, and get a proof link holders can check. This page updates the moment you do — no submission, no waiting.`}</p>
-  <a class="btn" href="${d.activeLocks.length ? `/proof/lock/${d.activeLocks[0].id}` : "/app/locks"}">${d.activeLocks.length ? "Open proof page →" : "Start locking →"}</a>
-</div>
+${ctaBox(d)}
 
 <div class="note">HoodLock reads this page from Robinhood Chain each time it is refreshed. Figures describe the chain at ${esc(stamp)} and are not financial advice. HoodLock is not affiliated with Robinhood Markets, Inc.</div>
 </main>

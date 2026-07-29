@@ -114,6 +114,80 @@ function faqs(k) {
   return [...common, ...own];
 }
 
+/* ---------- call to action ----------
+ *
+ * Who actually lands here matters more than how the button looks. Most of this
+ * traffic is somebody deciding whether to buy a token — they are never going to
+ * lock anything, so "Lock your tokens" is aimed at the wrong person and asks
+ * them for something they don't want.
+ *
+ * What that visitor does want is for the token to be locked. So does the
+ * project. So the CTA for an unlocked token hands the holder a way to ask, with
+ * the check result attached: it serves the person reading, and the person it
+ * reaches is the one who might become a customer.
+ *
+ * When the token IS locked, the useful thing is the proof — a link that settles
+ * the question for everyone else in that token's chat.
+ *
+ * The share is an X intent URL, which is a plain link. Like the rest of the
+ * page it needs no JavaScript.
+ */
+const APP = { lock: "/app/locks", burn: "/app/burn", vesting: "/app/vesting" };
+const VERB = { lock: "Lock a token", burn: "Burn tokens", vesting: "Create a schedule" };
+
+const xShare = (text, url) =>
+  `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+
+function ctaBlock(k, kind, q, token, recs, feeEth, site) {
+  const app = APP[kind];
+  /* The offer, not the instruction. A project's first two questions are what it
+     costs and whether we take a cut of their supply, and the answer to both is
+     the reason to choose us — so it belongs here, not three clicks away. */
+  const offer = `One transaction, a flat ${feeEth} ETH fee, and never a percentage of your tokens. Your holders can check the result on this page the moment it confirms.`;
+
+  if (!token) {
+    return `<div class="cta-box">
+  <h2>Locking your own token?</h2>
+  <p>${offer}</p>
+  <a class="btn" href="${app}">${VERB[kind]} →</a>
+</div>`;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const sym = esc(token.symbol);
+  const resultUrl = `${site}/${k.path}?a=${token.address}`;
+  const hit = kind === "lock" ? recs.locks.filter((l) => !l.withdrawn && l.unlock > now)
+    : kind === "burn" ? recs.burns
+    : recs.vesting;
+
+  if (hit.length) {
+    const proof = `${site}/proof/${kind}/${hit[0].id}`;
+    return `<div class="cta-box">
+  <h2>Settle it for everyone else</h2>
+  <p>The proof page reads this ${k.noun} live from Robinhood Chain and opens without a wallet, so anyone asking the same question in $${sym}'s chat can check it themselves.</p>
+  <a class="btn" href="${esc(xShare(`$${sym} on Robinhood Chain: ${k.found(hit.length)}. Verify it yourself —`, proof))}"
+     target="_blank" rel="noopener">Share the proof on X →</a>
+  <p class="cta-alt"><a href="${proof}">Open the proof page</a> · <a href="${app}">${esc(VERB[kind])} yourself</a></p>
+</div>`;
+  }
+
+  /* Deliberately factual: the share says "no records on HoodLock", never "not
+     locked". Helping someone make a claim we can't stand behind would be worse
+     than not sharing at all. */
+  const ask = kind === "lock"
+    ? `Checked $${sym} on Robinhood Chain — no locks on HoodLock (it may be locked elsewhere). Team, can you lock it?`
+    : kind === "burn"
+      ? `Checked $${sym} on Robinhood Chain — no burns through HoodLock (supply may be burned elsewhere).`
+      : `Checked $${sym} on Robinhood Chain — no vesting on HoodLock. Team, is the allocation vested anywhere?`;
+
+  return `<div class="cta-box">
+  <h2>Holding $${sym}?</h2>
+  <p>Then the quickest way to get this answered is to ask for it in public. This posts the check with a link, so the team can act on it and everyone else can see the same result.</p>
+  <a class="btn" href="${esc(xShare(ask, resultUrl))}" target="_blank" rel="noopener">Ask the team on X →</a>
+  <p class="cta-alt">Are you the project? <a href="${app}">${esc(VERB[kind])} in one transaction</a> — flat ${feeEth} ETH, no cut of your supply.</p>
+</div>`;
+}
+
 /* ---------- result ---------- */
 
 function resultBlock(k, kind, q, token, recs, bad) {
@@ -186,7 +260,7 @@ function resultBlock(k, kind, q, token, recs, bad) {
 
 /* ---------- page ---------- */
 
-export function renderChecker({ kind, q = "", token = null, recs = null, bad = false, site = SITE }) {
+export function renderChecker({ kind, q = "", token = null, recs = null, bad = false, feeEth = 0.005, site = SITE }) {
   const k = KINDS[kind];
   const url = `${site}/${k.path}`;
   const list = faqs(k);
@@ -292,6 +366,9 @@ p,li{color:var(--ink2);font-size:15px}p{margin-bottom:12px}
 .cta-box h2{margin-top:0}
 .cta-box .btn{display:inline-block;background:var(--neon);color:#03130a;font-weight:700;border-radius:10px;padding:11px 24px;margin-top:8px}
 .cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
+/* One primary action; the alternatives stay quiet underneath so the choice is
+   still obvious. */
+.cta-alt{font-size:13.5px;color:var(--dim);margin:14px 0 0}
 .note{font-size:12.5px;color:var(--dim);border-top:1px solid var(--line);margin-top:36px;padding-top:16px}
 footer{border-top:1px solid var(--line);margin-top:50px;padding:24px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.08em}
 @media(max-width:520px){
@@ -344,11 +421,7 @@ ${list.map(([qq, a]) => `<h3>${esc(qq)}</h3>\n<p>${a}</p>`).join("\n")}
 <ul>${k.related.map(([h, t]) => `<li><a href="${h}">${esc(t)}</a></li>`).join("")}</ul>
 <p style="margin-top:14px">Checking something else? ${OTHERS[kind].map(([o, t]) => `<a href="/${KINDS[o].path}">${esc(t)}</a>`).join(" · ")} · <a href="/app/explore">browse every record</a></p>
 
-<div class="cta-box">
-  <h2>Locking your own token?</h2>
-  <p>Lock, burn or vest on Robinhood Chain for a flat fee, and get a proof link your holders can check on this page the moment it confirms.</p>
-  <a class="btn" href="/app/locks">Open HoodLock →</a>
-</div>
+${ctaBlock(k, kind, q, token, recs, feeEth, site)}
 
 <div class="note">HoodLock reads Robinhood Chain live on every search. Nothing here is financial advice, and a record's existence says nothing about whether a token is a good investment. HoodLock is not affiliated with Robinhood Markets, Inc.</div>
 </main>

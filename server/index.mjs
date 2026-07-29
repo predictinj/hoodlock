@@ -1298,11 +1298,14 @@ app.get("/token/:slug", async (req, res) => {
 for (const [kind, k] of Object.entries(KINDS)) {
   app.get(`/${k.path}`, async (req, res) => {
     const raw = String(req.query.a || "").trim();
+    // Fees are read from the contracts at boot, so the CTA can never quote a
+    // number the chain has moved on from.
+    const feeEth = kind === "burn" ? BURN_FEE_ETH : kind === "vesting" ? VEST_FEE_ETH : FEE_ETH;
     const m = /^(0x[0-9a-fA-F]{40})$/.exec(raw);
     res.set("Cache-Control", raw ? "public, max-age=30" : HTML_CACHE);
 
-    if (!raw) return res.type("html").send(renderChecker({ kind, site: SITE }));
-    if (!m) return res.type("html").send(renderChecker({ kind, q: raw, bad: true, site: SITE }));
+    if (!raw) return res.type("html").send(renderChecker({ kind, feeEth, site: SITE }));
+    if (!m) return res.type("html").send(renderChecker({ kind, q: raw, bad: true, feeEth, site: SITE }));
 
     const addr = m[1].toLowerCase();
     try {
@@ -1321,10 +1324,10 @@ for (const [kind, k] of Object.entries(KINDS)) {
         : (recs.locks.length || recs.burns.length || recs.vesting.length)
           ? { address: addr, name: "Unknown token", symbol: "???", decimals: 18 }
           : null;
-      return res.type("html").send(renderChecker({ kind, q: raw, token, recs, site: SITE }));
+      return res.type("html").send(renderChecker({ kind, q: raw, token, recs, feeEth, site: SITE }));
     } catch (e) {
       console.log("[hoodlock] checker failed:", e?.message || e);
-      return res.type("html").send(renderChecker({ kind, q: raw, site: SITE }));
+      return res.type("html").send(renderChecker({ kind, q: raw, feeEth, site: SITE }));
     }
   });
 }
