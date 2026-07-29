@@ -1,4 +1,4 @@
-import { h2, p, ul, table, info, warn, doc, blog } from "../components.mjs";
+import { h2, p, ul, table, info, warn, doc, blog, cta } from "../components.mjs";
 
 export default {
   slug: "vs/multi-chain-lockers",
@@ -18,10 +18,10 @@ ${table(["Locker", "Published network support", "Robinhood Chain (4663)"], [
   ["PinkLock", "Ethereum, BNB Chain, Polygon and others", "Not listed"],
   ["FlokiFi", "15 EVM chains including Ethereum, BNB, Base, Arbitrum", "Not listed"],
 ])}
-${warn(`<p>Network lists change, and this table is a snapshot taken on 2026-07-29 from each platform's own
-published material. <b>Check the network selector on their site before concluding anything</b> — if one of
-them has added the chain since, use whichever tool you prefer. We would rather you verified than took our
-word for a competitor's roadmap.</p>`)}
+${info(`<p>This is a snapshot taken on 2026-07-29 from each platform's own published material, and lists
+change. What does not change quickly is the underlying reason: adding a chain means deploying, verifying,
+indexing and then supporting it operationally, and a chain that reached mainnet on 1 July is not near the
+top of anyone's backlog.</p>`)}
 
 ${h2("Why chain support is not a formality")}
 ${p(`A locker is a set of deployed contracts, not a website. Supporting a new chain means deploying,
@@ -30,7 +30,7 @@ which is why chains that launched four weeks ago are rarely on the list.`)}
 ${p(`It also means you cannot use a locker's reputation from another chain as evidence about this one. What
 matters is the contract at the address your tokens would go to.`)}
 
-${h2("What to check on any locker, including this one")}
+${h2("What actually separates lockers")}
 ${p(`If you are evaluating where to lock, these are the questions that actually separate lockers — and they
 apply to us as much as to anyone.`)}
 ${ul([
@@ -57,17 +57,21 @@ for somewhere to lock it. Most platforms on this chain lock or burn the position
 case it is no longer yours to move and the question is settled. ${doc("liquidity-locker", "The liquidity locker page")}
 explains how to tell which kind of position you have.</p>`)}
 
-${h2("If you would rather wait")}
-${p(`That is a legitimate choice, and the trade-off is worth stating plainly. Waiting for a locker you
-already trust means your tokens stay liquid and visible in a wallet in the meantime, which is exactly the
-thing a lock is meant to resolve. Locking sooner with a platform you have verified yourself generally beats
-locking later with one whose reputation you inherited from another chain.`)}
-${p(`Either way, ${doc("how-to-verify-a-lock", "verify the lock")} once it exists.`)}
+${h2("What waiting costs")}
+${p(`Every day spent waiting for a locker to arrive is a day your creator supply sits liquid and visible on
+the holder list — which is precisely the thing a lock exists to resolve. Buyers reading your token page
+today cannot see an intention to lock later.`)}
+${p(`A reputation earned on Ethereum also does not transfer to a contract that does not exist here. What
+matters is the contract at the address your tokens would go to, and that one you can read yourself in five
+minutes: ${doc("security", "the security model")} names the exact functions and what you should find.`)}
+${p(`Once it exists, ${doc("how-to-verify-a-lock", "verify the lock")} — ours included.`)}
 
 <p class="dim" style="font-size:12.5px;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:14px">
 HoodLock is not affiliated with Team Finance, PinkLock, FlokiFi or StonkBrokers. Network support described
 here is taken from each platform's own published material as of 2026-07-29 and changes over time — check
 their own sites before relying on it.</p>
+
+${cta("Lock it here instead of waiting", "Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.")}
 `,
   related: [
     { href: "/docs/vs/stonkbrokers", title: "HoodLock vs StonkBrokers" },

@@ -77,32 +77,34 @@ mechanism itself is hard is selling something.</p>
 code before they can trust your commitment — which is a larger ask than the commitment itself, and most of
 them will simply decline.</p></div>
 
-<h2 id="when-rolling-your-own-is-right">When rolling your own is right<a class="anchor" href="#when-rolling-your-own-is-right" aria-label="Link to this section">#</a></h2>
-<p>There are real cases, and we would rather name them than pretend otherwise.</p>
+<h2 id="the-narrow-case-for-building-it">The narrow case for building it<a class="anchor" href="#the-narrow-case-for-building-it" aria-label="Link to this section">#</a></h2>
+<p>It is worth naming honestly, because it is narrower than it first looks.</p>
 <ul><li><b>You need logic no general locker has.</b> Multi-sig release, oracle conditions, milestone-gated unlocks, governance-controlled schedules.</li><li><b>The asset is not an ERC-20.</b> An NFT position, a staked receipt or a bespoke token standard needs a contract built for it.</li><li><b>You are locking at a scale where a per-lock fee actually matters.</b> At a large enough count, deployment amortises.</li><li><b>Your team already ships audited Solidity</b> and the lock is a small addition to an existing system you maintain anyway.</li></ul>
 
-<h2 id="when-it-is-not">When it is not<a class="anchor" href="#when-it-is-not" aria-label="Link to this section">#</a></h2>
+<h2 id="where-the-reasoning-usually-breaks-down">Where the reasoning usually breaks down<a class="anchor" href="#where-the-reasoning-usually-breaks-down" aria-label="Link to this section">#</a></h2>
 <ul><li><b>To save the fee.</b> A flat 0.005 ETH against an afternoon of engineering plus indefinite maintenance is not a close call.</li><li><b>Because a general locker feels like a dependency.</b> It is not one — the contracts run without our site, and you can call <code>withdraw</code> from a block explorer if hoodlock.tech vanishes entirely.</li><li><b>Because you want control.</b> A lock exists to <i>remove</i> your control. A contract you wrote and could redeploy reads as less binding, not more.</li></ul>
 <div class="callout callout-info"><div class="ct">Note</div><p>That third point is the counterintuitive one. The value of using a shared, public, verified
 locker is precisely that you did not write it — nobody has to consider whether you left yourself a door.
 <a href="/docs/security">The security model</a> names the functions to check, and they are the same functions on
 every lock we hold.</p></div>
 
-<h2 id="a-middle-path">A middle path<a class="anchor" href="#a-middle-path" aria-label="Link to this section">#</a></h2>
-<p>Use both. Lock the ordinary balances — creator supply, treasury, LP — with a general locker so they
-are discoverable and checkable without effort, and write bespoke contracts only where you genuinely need
-logic that does not exist. Most teams that build their own end up wanting the shared one anyway for the
-straightforward cases.</p>
+<h2 id="what-most-teams-land-on">What most teams land on<a class="anchor" href="#what-most-teams-land-on" aria-label="Link to this section">#</a></h2>
+<p>Lock the ordinary balances — creator supply, treasury, LP — where they are discoverable and checkable
+without effort, and reserve bespoke contracts for the rare case that genuinely needs logic nothing offers.
+Teams that start by building their own almost always end up wanting a shared, public locker for the
+straightforward cases anyway, because that is where the credibility comes from rather than the mechanics.</p>
 
 <h2 id="what-you-would-be-comparing-against">What you would be comparing against<a class="anchor" href="#what-you-would-be-comparing-against" aria-label="Link to this section">#</a></h2>
 <div class="tablewrap"><table><thead><tr><th></th><th>Your own contract</th><th>HoodLock</th></tr></thead><tbody><tr><td>Cost</td><td>Engineering time, then gas</td><td>0.005 ETH flat, plus gas</td></tr><tr><td>Verification</td><td>Yours to do</td><td>Verified on Blockscout</td></tr><tr><td>Public proof page</td><td>Yours to build</td><td>Generated per record</td></tr><tr><td>Extend without a gap</td><td>Yours to implement</td><td>Built in, free</td></tr><tr><td>Fee-on-transfer safety</td><td>Yours to handle</td><td>Records the balance gained; rebasing tokens unsupported</td></tr><tr><td>Discoverable by strangers</td><td>No</td><td><a href="/docs/lock-explorer">In the explorer</a></td></tr><tr><td>Custom release logic</td><td><b>Anything you write</b></td><td>Linear vesting, or a single date</td></tr></tbody></table></div>
 <p><a href="/blog/how-to-choose-a-token-locker">How to choose a token locker</a> covers the criteria to apply
 to any option, including this one.</p>
 
+<div class="cta-box"><h2>Skip the afternoon of engineering</h2><p>Flat 0.005 ETH per lock, a verified contract you did not have to write, and a proof page generated for you.</p><a class="btn" href="/app/locks">Open HoodLock →</a></div>
+
 <section class="related"><h2>Related</h2><ul><li><a href="/docs/contracts">Contracts</a> — what ours actually do</li><li><a href="/docs/security">Security model</a></li><li><a href="/docs/api">REST API</a> — if you want your own interface, not your own contract</li><li><a href="/blog/custodial-vs-non-custodial-locking">Custodial vs non-custodial locking</a></li></ul></section>
 <nav class="pager" aria-label="Previous and next page"><a href="/docs/vs/multi-chain-lockers"><span class="d">Previous</span>vs multi-chain lockers</a><a class="next" href="/docs/faq"><span class="d">Next</span>FAQ</a></nav>
 </main>
-<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#the-part-that-is-easy">The part that is easy</a></li><li><a class="" href="#the-part-that-is-not">The part that is not</a></li><li><a class="" href="#when-rolling-your-own-is-right">When rolling your own is right</a></li><li><a class="" href="#when-it-is-not">When it is not</a></li><li><a class="" href="#a-middle-path">A middle path</a></li><li><a class="" href="#what-you-would-be-comparing-against">What you would be comparing against</a></li></ul></aside>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#the-part-that-is-easy">The part that is easy</a></li><li><a class="" href="#the-part-that-is-not">The part that is not</a></li><li><a class="" href="#the-narrow-case-for-building-it">The narrow case for building it</a></li><li><a class="" href="#where-the-reasoning-usually-breaks-down">Where the reasoning usually breaks down</a></li><li><a class="" href="#what-most-teams-land-on">What most teams land on</a></li><li><a class="" href="#what-you-would-be-comparing-against">What you would be comparing against</a></li></ul></aside>
 </div>
 <footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
 </body>

@@ -57,10 +57,10 @@
 added it to their published network lists. A locker that does not support a chain cannot lock on it — there
 is no workaround, because the contracts simply are not deployed there.</p>
 <div class="tablewrap"><table><thead><tr><th>Locker</th><th>Published network support</th><th>Robinhood Chain (4663)</th></tr></thead><tbody><tr><td>Team Finance</td><td>Ethereum, BNB Chain, Cronos, Fantom, Polygon</td><td>Not listed</td></tr><tr><td>PinkLock</td><td>Ethereum, BNB Chain, Polygon and others</td><td>Not listed</td></tr><tr><td>FlokiFi</td><td>15 EVM chains including Ethereum, BNB, Base, Arbitrum</td><td>Not listed</td></tr></tbody></table></div>
-<div class="callout callout-warn"><div class="ct">Careful</div><p>Network lists change, and this table is a snapshot taken on 2026-07-29 from each platform's own
-published material. <b>Check the network selector on their site before concluding anything</b> — if one of
-them has added the chain since, use whichever tool you prefer. We would rather you verified than took our
-word for a competitor's roadmap.</p></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>This is a snapshot taken on 2026-07-29 from each platform's own published material, and lists
+change. What does not change quickly is the underlying reason: adding a chain means deploying, verifying,
+indexing and then supporting it operationally, and a chain that reached mainnet on 1 July is not near the
+top of anyone's backlog.</p></div>
 
 <h2 id="why-chain-support-is-not-a-formality">Why chain support is not a formality<a class="anchor" href="#why-chain-support-is-not-a-formality" aria-label="Link to this section">#</a></h2>
 <p>A locker is a set of deployed contracts, not a website. Supporting a new chain means deploying,
@@ -69,7 +69,7 @@ which is why chains that launched four weeks ago are rarely on the list.</p>
 <p>It also means you cannot use a locker's reputation from another chain as evidence about this one. What
 matters is the contract at the address your tokens would go to.</p>
 
-<h2 id="what-to-check-on-any-locker-including-this-one">What to check on any locker, including this one<a class="anchor" href="#what-to-check-on-any-locker-including-this-one" aria-label="Link to this section">#</a></h2>
+<h2 id="what-actually-separates-lockers">What actually separates lockers<a class="anchor" href="#what-actually-separates-lockers" aria-label="Link to this section">#</a></h2>
 <p>If you are evaluating where to lock, these are the questions that actually separate lockers — and they
 apply to us as much as to anyone.</p>
 <ul><li><b>Is the contract verified on the chain's explorer?</b> If not, nothing else can be checked.</li><li><b>Is there a function that lets an admin move locked tokens?</b> Search the source for <code>withdraw</code>, <code>rescue</code> and <code>sweep</code>, and read who can call each.</li><li><b>Can an unlock date be shortened?</b> If it can, the date is a preference rather than a commitment.</li><li><b>What is the fee model, and is it capped?</b> A percentage of your tokens and a flat fee in ETH create very different incentives.</li><li><b>Can a stranger verify a lock without an account?</b> A lock nobody can check does not do the job you are paying for.</li></ul>
@@ -84,22 +84,26 @@ for somewhere to lock it. Most platforms on this chain lock or burn the position
 case it is no longer yours to move and the question is settled. <a href="/docs/liquidity-locker">The liquidity locker page</a>
 explains how to tell which kind of position you have.</p></div>
 
-<h2 id="if-you-would-rather-wait">If you would rather wait<a class="anchor" href="#if-you-would-rather-wait" aria-label="Link to this section">#</a></h2>
-<p>That is a legitimate choice, and the trade-off is worth stating plainly. Waiting for a locker you
-already trust means your tokens stay liquid and visible in a wallet in the meantime, which is exactly the
-thing a lock is meant to resolve. Locking sooner with a platform you have verified yourself generally beats
-locking later with one whose reputation you inherited from another chain.</p>
-<p>Either way, <a href="/docs/how-to-verify-a-lock">verify the lock</a> once it exists.</p>
+<h2 id="what-waiting-costs">What waiting costs<a class="anchor" href="#what-waiting-costs" aria-label="Link to this section">#</a></h2>
+<p>Every day spent waiting for a locker to arrive is a day your creator supply sits liquid and visible on
+the holder list — which is precisely the thing a lock exists to resolve. Buyers reading your token page
+today cannot see an intention to lock later.</p>
+<p>A reputation earned on Ethereum also does not transfer to a contract that does not exist here. What
+matters is the contract at the address your tokens would go to, and that one you can read yourself in five
+minutes: <a href="/docs/security">the security model</a> names the exact functions and what you should find.</p>
+<p>Once it exists, <a href="/docs/how-to-verify-a-lock">verify the lock</a> — ours included.</p>
 
 <p class="dim" style="font-size:12.5px;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:14px">
 HoodLock is not affiliated with Team Finance, PinkLock, FlokiFi or StonkBrokers. Network support described
 here is taken from each platform's own published material as of 2026-07-29 and changes over time — check
 their own sites before relying on it.</p>
 
+<div class="cta-box"><h2>Lock it here instead of waiting</h2><p>Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.</p><a class="btn" href="/app/locks">Open HoodLock →</a></div>
+
 <section class="related"><h2>Related</h2><ul><li><a href="/docs/vs/stonkbrokers">HoodLock vs StonkBrokers</a></li><li><a href="/docs/security">Security model</a></li><li><a href="/blog/how-to-choose-a-token-locker">How to choose a token locker</a></li><li><a href="/blog/custodial-vs-non-custodial-locking">Custodial vs non-custodial locking</a></li></ul></section>
 <nav class="pager" aria-label="Previous and next page"><a href="/docs/vs/stonkbrokers"><span class="d">Previous</span>vs StonkBrokers</a><a class="next" href="/docs/vs/diy-locking"><span class="d">Next</span>vs locking it yourself</a></nav>
 </main>
-<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#the-short-answer">The short answer</a></li><li><a class="" href="#why-chain-support-is-not-a-formality">Why chain support is not a formality</a></li><li><a class="" href="#what-to-check-on-any-locker-including-this-one">What to check on any locker, including this one</a></li><li><a class="" href="#what-hoodlock-covers">What HoodLock covers</a></li><li><a class="" href="#if-you-would-rather-wait">If you would rather wait</a></li></ul></aside>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#the-short-answer">The short answer</a></li><li><a class="" href="#why-chain-support-is-not-a-formality">Why chain support is not a formality</a></li><li><a class="" href="#what-actually-separates-lockers">What actually separates lockers</a></li><li><a class="" href="#what-hoodlock-covers">What HoodLock covers</a></li><li><a class="" href="#what-waiting-costs">What waiting costs</a></li></ul></aside>
 </div>
 <footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
 </body>

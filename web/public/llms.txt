@@ -60,7 +60,7 @@ HoodLock is not affiliated with Robinhood Markets, Inc.
 
 ## Comparisons
 
-- [vs StonkBrokers](https://hoodlock.tech/docs/vs/stonkbrokers): Both run on Robinhood Chain and they hold different assets. What each covers, how the pricing models differ, and which question you are actually asking.
+- [vs StonkBrokers](https://hoodlock.tech/docs/vs/stonkbrokers): One charges a flat 0.005 ETH whatever your position is worth. The other takes a percentage of it, or a fifth of every fee you collect. What that costs in practice.
 - [vs multi-chain lockers](https://hoodlock.tech/docs/vs/multi-chain-lockers): The established multi-chain lockers do not list Robinhood Chain among their supported networks. What that means in practice and what to check before assuming.
 - [vs locking it yourself](https://hoodlock.tech/docs/vs/diy-locking): Locking tokens yourself is a twenty-line contract. An honest look at when that is the right call and what the twenty lines leave you to build afterwards.
 

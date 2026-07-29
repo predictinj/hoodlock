@@ -1,4 +1,4 @@
-import { h2, p, ul, table, code, info, warn, doc, blog } from "../components.mjs";
+import { h2, p, ul, table, code, info, warn, doc, blog, cta } from "../components.mjs";
 
 export default {
   slug: "vs/diy-locking",
@@ -41,8 +41,8 @@ ${warn(`<p>That last row is the one teams underestimate. A custom lock contract 
 code before they can trust your commitment — which is a larger ask than the commitment itself, and most of
 them will simply decline.</p>`)}
 
-${h2("When rolling your own is right")}
-${p(`There are real cases, and we would rather name them than pretend otherwise.`)}
+${h2("The narrow case for building it")}
+${p(`It is worth naming honestly, because it is narrower than it first looks.`)}
 ${ul([
   "<b>You need logic no general locker has.</b> Multi-sig release, oracle conditions, milestone-gated unlocks, governance-controlled schedules.",
   "<b>The asset is not an ERC-20.</b> An NFT position, a staked receipt or a bespoke token standard needs a contract built for it.",
@@ -50,7 +50,7 @@ ${ul([
   "<b>Your team already ships audited Solidity</b> and the lock is a small addition to an existing system you maintain anyway.",
 ])}
 
-${h2("When it is not")}
+${h2("Where the reasoning usually breaks down")}
 ${ul([
   "<b>To save the fee.</b> A flat 0.005 ETH against an afternoon of engineering plus indefinite maintenance is not a close call.",
   "<b>Because a general locker feels like a dependency.</b> It is not one — the contracts run without our site, and you can call <code>withdraw</code> from a block explorer if hoodlock.tech vanishes entirely.",
@@ -61,11 +61,11 @@ locker is precisely that you did not write it — nobody has to consider whether
 ${doc("security", "The security model")} names the functions to check, and they are the same functions on
 every lock we hold.</p>`)}
 
-${h2("A middle path")}
-${p(`Use both. Lock the ordinary balances — creator supply, treasury, LP — with a general locker so they
-are discoverable and checkable without effort, and write bespoke contracts only where you genuinely need
-logic that does not exist. Most teams that build their own end up wanting the shared one anyway for the
-straightforward cases.`)}
+${h2("What most teams land on")}
+${p(`Lock the ordinary balances — creator supply, treasury, LP — where they are discoverable and checkable
+without effort, and reserve bespoke contracts for the rare case that genuinely needs logic nothing offers.
+Teams that start by building their own almost always end up wanting a shared, public locker for the
+straightforward cases anyway, because that is where the credibility comes from rather than the mechanics.`)}
 
 ${h2("What you would be comparing against")}
 ${table(["", "Your own contract", "HoodLock"], [
@@ -79,6 +79,8 @@ ${table(["", "Your own contract", "HoodLock"], [
 ])}
 ${p(`${blog("how-to-choose-a-token-locker", "How to choose a token locker")} covers the criteria to apply
 to any option, including this one.`)}
+
+${cta("Skip the afternoon of engineering", "Flat 0.005 ETH per lock, a verified contract you did not have to write, and a proof page generated for you.")}
 `,
   related: [
     { href: "/docs/contracts", title: "Contracts", note: "what ours actually do" },
