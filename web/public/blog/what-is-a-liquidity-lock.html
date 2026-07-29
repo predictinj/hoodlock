@@ -53,10 +53,10 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
 <main>
 <div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
-<h1>What is a liquidity lock — and why it <span class="serif">matters.</span></h1>
+<h1>What is a liquidity lock, and why it <span class="serif">matters.</span></h1>
 <div class="meta">Published 2026-07-24 · HoodLock Team</div>
 
-<p>A <b>liquidity lock</b> is a smart contract that holds a project's LP (liquidity pool) tokens until a fixed date. While the lock is active, the team physically cannot remove the liquidity backing their token — which removes the single most common exit scam in crypto: the rug pull.</p>
+<p>A <b>liquidity lock</b> is a smart contract that holds a project's LP (liquidity pool) tokens until a fixed date. While the lock is active, the team physically cannot remove the liquidity backing their token, which removes the single most common exit scam in crypto: the rug pull.</p>
 
 <div class="box"><p style="margin-bottom:0"><b>How this works on Robinhood Chain.</b> Liquidity here lives in Uniswap v3 and v4 positions, which are NFTs rather than the ERC-20 "LP tokens" older chains use. HoodLock locks ERC-20 tokens, so it cannot hold one of those positions today — token locks, burns and vesting all work as described, but locking liquidity itself is not something we can do on this chain yet. The general explanation below still applies to how liquidity locking works elsewhere.</p></div>
 
@@ -64,7 +64,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <p>When a team creates a token and pairs it with ETH in a DEX pool, they receive LP tokens representing that liquidity. If they keep those LP tokens in their own wallet, nothing stops them from withdrawing the entire pool once buyers have piled in — the price instantly collapses to zero and holders are left with worthless tokens. That's a rug pull, and it happens every day on every chain.</p>
 
 <h2>How a lock changes the math</h2>
-<p>When LP tokens sit in a time-locked contract, the team <i>cannot</i> pull liquidity before the unlock date — not if they get greedy, not if they get hacked, not if they change their minds. A long lock doesn't guarantee a project succeeds, but it removes the fastest way to steal from holders. It converts a promise ("we won't rug") into a mathematical fact.</p>
+<p>When LP tokens sit in a time-locked contract, the team <i>cannot</i> pull liquidity before the unlock date, not if they get greedy, not if they get hacked, not if they change their minds. A long lock doesn't guarantee a project succeeds, but it removes the fastest way to steal from holders. It converts a promise ("we won't rug") into a mathematical fact.</p>
 
 <h2>What a real lock must have</h2>
 <div class="box">
@@ -72,7 +72,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <li><b>Verified contract source</b> — if you can't read the locker's code, the lock proves nothing.</li>
 <li><b>No admin functions over funds</b> — some "lockers" let their own admins withdraw anything. Check for owner/admin withdrawal paths.</li>
 <li><b>Extend-only unlock times</b> — a lock that can be shortened is not a lock.</li>
-<li><b>Public verifiability</b> — anyone should be able to check the lock without trusting a screenshot.</li>
+<li><b>Public verifiability</b>. Anyone should be able to check the lock without trusting a screenshot.</li>
 </ul>
 </div>
 <p>The <a href="https://robinhoodchain.blockscout.com/address/0xD0f7d8c6e9f6D80c297bEbe4F7fD1B9C8125C32F?tab=contract" rel="noopener" target="_blank">HoodLock locker contract</a> on Robinhood Chain meets all four: verified source, zero admin access to locked funds, extend-only dates, owner-only withdrawals after unlock.</p>
@@ -81,10 +81,10 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <ol>
 <li>Open <a href="/app/explore">hoodlock.tech/app/explore</a>.</li>
 <li>Paste the token contract address (or the team's wallet).</li>
-<li>Every lock for that token appears with amount, unlock date, TVL and status — read straight from the chain.</li>
+<li>Every lock for that token appears with amount, unlock date, TVL and status. Read straight from the chain.</li>
 <li>Click a lock to open its proof page and confirm the actual transaction on Blockscout.</li>
 </ol>
-<p>No account, no wallet connection, no trust required — that's the point.</p>
+<p>No account, no wallet connection, no trust required. That's the point.</p>
 
 
 <h2>Common questions</h2>
@@ -93,7 +93,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <h3>How long should liquidity be locked?</h3>
 <p>Longer is stronger. Serious projects commonly lock for 6–12 months or more, and extend the lock as the project matures. Watch for locks that expire soon after launch.</p>
 <h3>Can a locked position be unlocked early?</h3>
-<p>Not on HoodLock. Unlock times are extend-only — they can be pushed later but never shortened, and only the lock owner can withdraw once the date passes.</p>
+<p>Not on HoodLock. Unlock times are extend-only. They can be pushed later but never shortened, and only the lock owner can withdraw once the date passes.</p>
 
 <h2>Keep reading</h2>
 <ul>
@@ -106,7 +106,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 
 <div class="cta-box">
   <h2 style="margin-top:0">Check a lock before you buy</h2>
-  <p>Paste a contract address and see every lock HoodLock holds on that token — the amount, the unlock date and a proof link. No wallet needed.</p>
+  <p>Paste a contract address and see every lock HoodLock holds on that token: the amount, the unlock date and a proof link. No wallet needed.</p>
   <a class="btn" href="/lock-checker">Check a token →</a>
 </div>
 </main>

@@ -12,7 +12,7 @@ export default {
 ${h2("Why it only moves one way")}
 ${p(`<code>extend</code> requires the new timestamp to be strictly greater than the current one. There is
 no function that shortens a lock, so a team cannot quietly bring a date forward when it becomes
-inconvenient — and nobody has to take their word for it.`)}
+inconvenient, and nobody has to take their word for it.`)}
 ${p(`That is what makes an unlock date meaningful as a commitment rather than a preference. See the
 ${doc("contracts", "contract reference")} for the exact check.`)}
 
@@ -34,7 +34,7 @@ ${table(["Approach", "What a reader sees"], [
   ["One 12-month lock set at launch", "A decision made once, before anything was proven"],
   ["A 3-month lock extended three times", "A team that kept choosing to stay, on the record, after each milestone"],
 ])}
-${p(`The second costs the same — extending is free — and produces a history rather than a single data
+${p(`The second costs the same — extending is free, and produces a history rather than a single data
 point. It also avoids the trap of a long lock set optimistically at launch that the team later resents.`)}
 ${p(`${blog("how-long-should-you-lock-liquidity", "How long should you lock liquidity")} works through
 choosing the first duration.`)}
@@ -44,7 +44,7 @@ ${warn(`<p>An unlock date that passes without comment is read as a countdown tha
 stay locked, <b>extend before it expires</b>, not after — a lock that lapses for a week and is then
 re-created is a different fact from one that never lapsed, and holders who are watching will notice which
 one happened.</p>`)}
-${p(`Nothing happens automatically at expiry — see ${doc("when-a-lock-expires", "when a lock expires")}.`)}
+${p(`Nothing happens automatically at expiry. See ${doc("when-a-lock-expires", "when a lock expires")}.`)}
 
 ${h2("What extending does not change")}
 ${ul([

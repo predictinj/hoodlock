@@ -35,7 +35,7 @@ ${table(["What you see", "What it means"], [
   ["Unlock date far out", "A commitment, worth what the rest of the checks say"],
   ["Unlock date within weeks", "A countdown. Ask what happens on that day."],
   ["Already unlockable", "The tokens can be withdrawn right now. The lock is history, not a guarantee."],
-  ["Withdrawn", "It ended. The page says so — read the status, not just the headline."],
+  ["Withdrawn", "It ended. The page says so. Read the status, not just the headline."],
 ])}
 ${p(`Locks can be extended but never shortened, so a date that has moved out since you last looked is a
 real signal. ${doc("how-to-extend-a-lock", "Extending a lock")} explains the asymmetry.`)}
@@ -52,7 +52,7 @@ ${ul([
 ${h2("Search it yourself")}
 ${p(`You do not need a link from anyone. Paste the token address into ${app("explore", "the explorer")} and
 you will see every lock, burn and vesting schedule against it, whoever created them. If a project claims a
-lock that does not appear there, it was not made with HoodLock — which does not make it fake, but does
+lock that does not appear there, it was not made with HoodLock, which does not make it fake, but does
 mean you should ask where it was made and verify it there.`)}
 
 ${h2("What a lock cannot tell you")}
@@ -70,6 +70,6 @@ side of this one.`)}
     { href: "/docs/proof-of-lock", title: "Proof of lock" },
     { href: "/docs/lock-explorer", title: "Lock explorer" },
     { href: "/blog/how-to-check-if-liquidity-is-locked", title: "How to check if liquidity is locked" },
-    { href: "/blog/what-is-a-honeypot-token", title: "Honeypot tokens — and how to avoid one" },
+    { href: "/blog/what-is-a-honeypot-token", title: "Honeypot tokens, and how to avoid one" },
   ],
 };

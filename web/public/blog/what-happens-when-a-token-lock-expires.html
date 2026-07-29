@@ -57,7 +57,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <p>The short answer: nothing automatic. No transfer fires, no tokens move, no notification goes out. The unlock date simply changes what the HoodLock contract on Robinhood Chain will allow.</p>
 
 <h2>Mechanically, at the unlock date</h2>
-<p>Before the date, a withdrawal transaction reverts. After it, the same transaction succeeds — but only if the lock owner sends it. The tokens sit in the contract indefinitely until someone actively claims them, and no other address can take them at any point. There is no expiry deadline and no risk of the position being swept.</p>
+<p>Before the date, a withdrawal transaction reverts. After it, the same transaction succeeds, but only if the lock owner sends it. The tokens sit in the contract indefinitely until someone actively claims them, and no other address can take them at any point. There is no expiry deadline and no risk of the position being swept.</p>
 <p>This matters more than it sounds. An expired lock is not an event; it's a change in permission. Plenty of locks stay unclaimed for months past their date simply because nobody got around to it.</p>
 
 <h2>What it means if you hold the token</h2>
@@ -72,7 +72,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 </div>
 
 <h2>What it means if you're the team</h2>
-<p>An unlock date is a communication event whether or not you treat it as one. Holders can see it coming — that's the entire point of a public lock — so the choice is between explaining it in advance or letting people draw conclusions.</p>
+<p>An unlock date is a communication event whether or not you treat it as one. Holders can see it coming. That's the entire point of a public lock, so the choice is between explaining it in advance or letting people draw conclusions.</p>
 <p>The strongest move is to extend before the date arrives rather than after. On HoodLock unlock times are <b>extend-only</b>, so an extension is permanent, visible, and cannot later be walked back. Extending a week early reads as a plan; extending a week late reads as a reaction.</p>
 
 <h2>Why extending beats re-locking</h2>
@@ -103,7 +103,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 
 <div class="cta-box">
   <h2 style="margin-top:0">Locks that can only be extended</h2>
-  <p>Unlock dates on HoodLock can be pushed later, never shortened — and every change is public.</p>
+  <p>Unlock dates on HoodLock can be pushed later, never shortened, and every change is public.</p>
   <a class="btn" href="/app/locks">Start locking →</a>
 </div>
 </main>

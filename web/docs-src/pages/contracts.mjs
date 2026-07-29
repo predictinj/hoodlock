@@ -99,7 +99,7 @@ ${p(`Linear release with an optional cliff. There is no revoke, no sweep and no 
 contract, so no HoodLock function can cancel or alter a schedule once it exists.`)}
 ${warn(`<p><b>“Irrevocable” describes this contract, not the token.</b> A token that is upgradeable,
 pausable, mintable, or that can blacklist an address, can still make a schedule worthless or unclaimable
-after the fact — and the schedule's creator is very often the token's deployer, which means they may
+after the fact, and the schedule's creator is very often the token's deployer, which means they may
 retain exactly that power.</p>
 <p>The reverse also holds: because there is no rescue path, a token that is paused or that freezes the
 beneficiary locks the tokens <b>permanently</b>, with no recourse from anyone. Irrevocable and
@@ -142,7 +142,7 @@ ${p(`Across all three contracts the admin can change only the fee, the fee colle
 No admin function reads or moves user tokens.`)}
 ${ul([
   "Locker and burner forward the fee per transaction. Vesting accrues fees in-contract and the collector pulls them with <code>withdrawFees()</code>.",
-  "Vesting uses a <b>two-step admin transfer</b> — <code>transferAdmin</code> then <code>acceptAdmin</code> — so a mistyped address cannot strand the role.",
+  "Vesting uses a <b>two-step admin transfer</b> — <code>transferAdmin</code> then <code>acceptAdmin</code>, so a mistyped address cannot strand the role.",
 ])}
 ${p(`How to confirm any of this yourself is covered in ${doc("security", "the security model")}, and reading
 a contract on the explorer is covered in ${blog("how-to-verify-a-token-contract-on-blockscout", "this walkthrough")}.`)}

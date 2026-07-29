@@ -7,7 +7,7 @@ export default {
   desc: "One flat ETH fee per lock, burn or vesting schedule on Robinhood Chain. No percentage cut, free withdrawals and free claims, with the caps written into the code.",
   updated: "2026-07-29",
   h1: 'Fees.',
-  lede: "One flat fee in ETH, charged once, at creation. No percentage of your tokens is taken at any point — not on the way in, not on the way out.",
+  lede: "One flat fee in ETH, charged once, at creation. No percentage of your tokens is taken at any point, not on the way in, not on the way out.",
   body: `
 ${h2("What you pay")}
 ${table(["Action", "Fee", "Charged"], [
@@ -33,7 +33,7 @@ ${h2("Overpayment")}
 ${table(["Contract", "Behaviour"], [
   ["Locker", "Accepts more than the fee and <b>refunds the difference</b>"],
   ["Burner", "Accepts more than the fee and <b>refunds the difference</b>"],
-  ["Vesting", "Requires <code>msg.value == fee</code> <b>exactly</b> — no refund path"],
+  ["Vesting", "Requires <code>msg.value == fee</code> <b>exactly</b>. No refund path"],
 ])}
 ${warn(`<p>The vesting contract's exact-fee rule is the one asymmetry worth remembering when you build a
 transaction by hand. Read the fee immediately before sending rather than reusing a value from earlier in

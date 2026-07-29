@@ -2,7 +2,7 @@
  * contract, the structured data and the chrome are defined once.
  *
  * On schema choice: HowTo rich results were retired by Google in 2023, so the
- * step-by-step guides use TechArticle rather than HowTo — it describes what they
+ * step-by-step guides use TechArticle rather than HowTo. It describes what they
  * are and is still consumed. FAQPage is emitted only where every answer is also
  * rendered visibly, which is both the policy and the honest thing to do.
  */

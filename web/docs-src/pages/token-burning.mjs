@@ -7,7 +7,7 @@ export default {
   desc: "Send tokens to the dead address with a permanent on-chain record. What a burn actually proves, what it costs, and where the token itself sets the limit.",
   updated: "2026-07-29",
   h1: 'Token <span class="serif">burning.</span>',
-  lede: "Sending tokens to an address nobody holds the key to, with a permanent public record of it. Final from our side — though whether it truly reduces supply depends on the token.",
+  lede: "Sending tokens to an address nobody holds the key to, with a permanent public record of it. Final from our side, though whether it truly reduces supply depends on the token.",
   body: `
 ${h2("What happens")}
 ${p(`The burner moves tokens from your wallet to the dead address in a single transfer and writes a record:
@@ -32,7 +32,7 @@ burn record.</p>`)}
 ${warn(`<p><b>The recorded amount comes from the token itself.</b> The registry measures the dead address's
 balance before and after, which means a token that reports whatever it likes can produce a burn record for
 far more than was actually sent. A burn of a token you did not verify is a claim, not proof.</p>
-<p>Before treating any burn — including one shown to you — as supply reduction: check the token's contract
+<p>Before treating any burn, including one shown to you — as supply reduction: check the token's contract
 address rather than its symbol, and check whether it is mintable or upgradeable.
 ${blog("how-to-verify-a-token-contract-on-blockscout", "How to read a contract on Blockscout")}.</p>`)}
 
@@ -65,7 +65,7 @@ launchpad already did it at graduation. Several on this chain do, and you cannot
 longer control.</p>`)}
 
 ${h2("Cost")}
-${p(`A flat fee — currently 0.005 ETH, read live from the contract — plus gas. Overpayment is refunded.
+${p(`A flat fee, currently 0.005 ETH, read live from the contract, plus gas. Overpayment is refunded.
 No percentage of the tokens. See ${doc("fees", "fees")}.`)}
 
 ${h2("Doing it")}

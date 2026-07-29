@@ -4,10 +4,10 @@ export default {
   slug: "token-vesting",
   navTitle: "Token vesting",
   seoTitle: "How HoodLock Vesting Works | Linear Release, Cliffs and Limits",
-  desc: "The release formula, the cliff, what the contract can and cannot undo, and the hard limits written into it — plus when a lock is the better instrument.",
+  desc: "The release formula, the cliff, what the contract can and cannot undo, and the hard limits written into it, plus when a lock is the better instrument.",
   updated: "2026-07-29",
   h1: 'Token <span class="serif">vesting.</span>',
-  lede: "A lock says “not before this date”. Vesting says “a little at a time, starting here, finishing there” — which is what team and contributor allocations actually need.",
+  lede: "A lock says “not before this date”. Vesting says “a little at a time, starting here, finishing there”, which is what team and contributor allocations actually need.",
   body: `
 ${h2("How release is calculated")}
 ${p(`A schedule has four numbers: a total, a start, an optional cliff and an end. Between start and end the
@@ -30,8 +30,7 @@ sweep and no rescue. Check the beneficiary address and the amount before you sig
 undone by us.</p>`)}
 ${warn(`<p><b>The token is the exception, and it matters.</b> A token that is upgradeable, pausable,
 mintable, or that can blacklist an address can still make a schedule worthless or unclaimable after the
-fact. Where the schedule's creator is also the token's deployer — the common case for team vesting —
-they may retain exactly that power, whatever this contract does.</p>
+fact. Where the schedule's creator is also the token's deployer — the common case for team vesting. They may retain exactly that power, whatever this contract does.</p>
 <p>It cuts the other way too. Because there is no rescue path, a token that pauses or freezes the
 beneficiary locks the tokens <b>permanently</b>, with no recourse from anyone. Irrevocable and
 unrecoverable are the same property.</p>`)}
@@ -47,7 +46,7 @@ ${h2("Claiming")}
 ${ul([
   "<b>The beneficiary claims</b>, not the creator. Claiming is a transaction they send when they choose.",
   "<b>Claims are free.</b> The fee is charged once, at creation. Claiming costs gas only.",
-  "<b>Nothing arrives automatically.</b> Unclaimed tokens accumulate and stay claimable — there is no expiry.",
+  "<b>Nothing arrives automatically.</b> Unclaimed tokens accumulate and stay claimable. There is no expiry.",
   "<b>The beneficiary can be transferred</b> by the current beneficiary, for a wallet change or a handover.",
 ])}
 

@@ -54,18 +54,18 @@
 
 <h2 id="what-it-does">What it does<a class="anchor" href="#what-it-does" aria-label="Link to this section">#</a></h2>
 <p>The locker holds ERC-20 tokens against a record: an owner, a token, an amount and an unlock time.
-Until that time passes, nothing can withdraw them — not the owner, not us. After it passes, only the
+Until that time passes, nothing can withdraw them, not the owner, not us. After it passes, only the
 owner can.</p>
 <p>That is the whole product. Its value is not the holding, which is easy, but the fact that a stranger
 can verify the holding without asking anyone.</p>
 
 <h2 id="what-it-guarantees">What it guarantees<a class="anchor" href="#what-it-guarantees" aria-label="Link to this section">#</a></h2>
-<div class="tablewrap"><table><thead><tr><th>Guarantee</th><th>Enforced by</th></tr></thead><tbody><tr><td>Only the lock's owner can withdraw</td><td><code>onlyLockOwner</code> on <code>withdraw</code></td></tr><tr><td>Not before the unlock time</td><td>A timestamp check in <code>withdraw</code></td></tr><tr><td>No admin can move locked tokens</td><td>The absence of any such function — there is nothing to disable</td></tr><tr><td>The unlock date can only move later</td><td><code>extend</code> requires a strictly greater timestamp</td></tr><tr><td>The recorded amount is the balance the contract gained</td><td>Measured before and after the transfer. Correct for simple fee-on-transfer; <b>not</b> for rebasing or reflection tokens, which are unsupported</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Guarantee</th><th>Enforced by</th></tr></thead><tbody><tr><td>Only the lock's owner can withdraw</td><td><code>onlyLockOwner</code> on <code>withdraw</code></td></tr><tr><td>Not before the unlock time</td><td>A timestamp check in <code>withdraw</code></td></tr><tr><td>No admin can move locked tokens</td><td>The absence of any such function. There is nothing to disable</td></tr><tr><td>The unlock date can only move later</td><td><code>extend</code> requires a strictly greater timestamp</td></tr><tr><td>The recorded amount is the balance the contract gained</td><td>Measured before and after the transfer. Correct for simple fee-on-transfer; <b>not</b> for rebasing or reflection tokens, which are unsupported</td></tr></tbody></table></div>
 <p>Each of these is checkable in the source on Blockscout — the <a href="/docs/contracts">contract reference</a>
 names the exact functions.</p>
 
 <h2 id="what-it-does-not-do">What it does not do<a class="anchor" href="#what-it-does-not-do" aria-label="Link to this section">#</a></h2>
-<ul><li>It does not release tokens automatically. Withdrawal is a transaction the owner sends when they choose — see <a href="/docs/when-a-lock-expires">when a lock expires</a>.</li><li>It does not stop a lock from being transferred. Ownership can move to another wallet; the tokens stay put.</li><li>It does not make a token safe. A locked supply says nothing about the contract's transfer logic — that is a separate check.</li></ul>
+<ul><li>It does not release tokens automatically. Withdrawal is a transaction the owner sends when they choose. See <a href="/docs/when-a-lock-expires">when a lock expires</a>.</li><li>It does not stop a lock from being transferred. Ownership can move to another wallet; the tokens stay put.</li><li>It does not make a token safe. A locked supply says nothing about the contract's transfer logic — that is a separate check.</li></ul>
 <div class="callout callout-warn"><div class="ct">Careful</div><p>A lock is evidence about one balance, not a verdict on a project. <a href="/blog/rug-pull-red-flags-checklist">The red-flag checklist</a>
 covers what else to look at.</p></div>
 
@@ -74,7 +74,7 @@ covers what else to look at.</p></div>
 <p><a href="/docs/liquidity-locker">Locking liquidity</a> goes into which kind you are holding and how to tell.</p>
 
 <h2 id="cost">Cost<a class="anchor" href="#cost" aria-label="Link to this section">#</a></h2>
-<p>A flat fee per lock — currently 0.005 ETH, read live from the contract — plus gas. No percentage of
+<p>A flat fee per lock, currently 0.005 ETH, read live from the contract, plus gas. No percentage of
 the tokens, at any point, including withdrawal. <a href="/docs/fees">Fees</a> has the detail.</p>
 <div class="callout callout-info"><div class="ct">Note</div><p>Changing the fee affects new locks only. An existing lock is never re-priced, and withdrawal is
 always free.</p></div>

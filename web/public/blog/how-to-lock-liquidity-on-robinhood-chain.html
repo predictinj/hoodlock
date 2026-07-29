@@ -70,21 +70,21 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <h2>Step-by-step: lock tokens in under a minute</h2>
 <ol>
 <li><b>Open the app.</b> Go to <a href="/app/locks">hoodlock.tech/app/locks</a> and connect your wallet. The app adds Robinhood Chain automatically if your wallet doesn't have it yet.</li>
-<li><b>Pick the token.</b> Paste the token contract address — or simply pick it from the dropdown that lists every token in your wallet. The app verifies the symbol, decimals and your balance on-chain.</li>
+<li><b>Pick the token.</b> Paste the token contract address, or simply pick it from the dropdown that lists every token in your wallet. The app verifies the symbol, decimals and your balance on-chain.</li>
 <li><b>Set the amount.</b> Type it or hit <b>MAX</b>.</li>
-<li><b>Choose the unlock date.</b> Use the presets (7D, 1M, 3M, 6M, 1Y) or pick a custom date. Remember: locks are <b>extend-only</b> — you can always push the date later, never earlier.</li>
+<li><b>Choose the unlock date.</b> Use the presets (7D, 1M, 3M, 6M, 1Y) or pick a custom date. Remember: locks are <b>extend-only</b>. You can always push the date later, never earlier.</li>
 <li><b>Approve and lock.</b> Two wallet confirmations: an ERC-20 approval, then the lock itself. Done.</li>
 </ol>
 
 <h2>Share the proof</h2>
-<p>Every lock gets a public proof page like <code>hoodlock.tech/app?lock=0</code> that anyone can open — no wallet needed. It shows the amount, token, owner, unlock time and a direct link to the lock transaction on Blockscout. Drop it in your Telegram, pin it on X, put it in your docs. The contract speaks for itself.</p>
+<p>Every lock gets a public proof page like <code>hoodlock.tech/app?lock=0</code> that anyone can open. No wallet needed. It shows the amount, token, owner, unlock time and a direct link to the lock transaction on Blockscout. Drop it in your Telegram, pin it on X, put it in your docs. The contract speaks for itself.</p>
 
 <h2>Why HoodLock's locker can be trusted</h2>
 <div class="box">
 <ul style="margin-bottom:0">
 <li><b>Verified source code</b> — the locker at <code>0xD0f7…C32F</code> is verified on Blockscout; anyone can read every line.</li>
-<li><b>No admin path to funds</b> — nobody, including HoodLock, can touch locked tokens.</li>
-<li><b>Owner-only withdrawal</b> — only the lock owner can withdraw, and only after the unlock time.</li>
+<li><b>No admin path to funds</b>. Nobody, including HoodLock, can touch locked tokens.</li>
+<li><b>Owner-only withdrawal</b>, only the lock owner can withdraw, and only after the unlock time.</li>
 <li><b>Extend-only</b> — unlock dates can be pushed later but never shortened.</li>
 <li><b>Flat fee</b> — 0.005 ETH per lock. No percentage cuts of your tokens, ever.</li>
 </ul>
@@ -99,7 +99,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <h3>Can I lock LP tokens from the Robinhood Chain DEX?</h3>
 <p>Not yet. Liquidity on Robinhood Chain lives in Uniswap v3 and v4 positions, which are NFTs rather than ERC-20 LP tokens, and HoodLock's locker holds ERC-20 tokens only. You can lock any ERC-20 — team supply, treasury, or the project token itself — in under a minute.</p>
 <h3>How do holders verify my lock?</h3>
-<p>Every lock has a public proof page (hoodlock.tech/app?lock=&lt;id&gt;) showing amount, owner, unlock date and the on-chain transaction — no wallet needed to view it.</p>
+<p>Every lock has a public proof page (hoodlock.tech/app?lock=&lt;id&gt;) showing amount, owner, unlock date and the on-chain transaction. No wallet needed to view it.</p>
 
 <h2>Keep reading</h2>
 <ul>
@@ -111,7 +111,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 
 <div class="cta-box">
   <h2 style="margin-top:0">Lock tokens with on-chain proof</h2>
-  <p>Flat 0.005 ETH fee · extend-only locks · no admin access to funds — verified on Robinhood Chain.</p>
+  <p>Flat 0.005 ETH fee · extend-only locks · no admin access to funds, all verified on Robinhood Chain.</p>
   <a class="btn" href="/app/locks">Start locking →</a>
 </div>
 </main>

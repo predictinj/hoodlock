@@ -54,14 +54,14 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
 <h1>How to set up token vesting <span class="serif">that holds.</span></h1>
 <div class="meta">Published 2026-07-27 · HoodLock Team</div>
-<p>Vesting turns a promise about team allocations into something the contract enforces. Instead of holding 20% of supply in a wallet and asking people to trust you won't sell it tomorrow, you hand it to a contract that releases it gradually — and give your community a link that proves it.</p>
+<p>Vesting turns a promise about team allocations into something the contract enforces. Instead of holding 20% of supply in a wallet and asking people to trust you won't sell it tomorrow, you hand it to a contract that releases it gradually, and give your community a link that proves it.</p>
 
 <h2>Before you create a schedule</h2>
 <p>Vesting on HoodLock is <b>irrevocable</b>. Once a schedule exists, it cannot be cancelled, paused or clawed back, and the tokens leave your wallet immediately. That's what makes it credible to holders, and it's also why the numbers need to be right the first time. Decide three things before you touch the form:</p>
 <ul>
 <li><b>Who receives it</b> — the beneficiary address, checked character by character.</li>
 <li><b>How much</b> — the exact token amount, not a percentage you'll convert in your head.</li>
-<li><b>Over what period, and after what cliff</b> — see the benchmarks below.</li>
+<li><b>Over what period, and after what cliff</b>. See the benchmarks below.</li>
 </ul>
 
 <h2>Creating the schedule</h2>
@@ -70,7 +70,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <li><b>Pick the token.</b> The field lists the tokens your wallet actually holds, so you're selecting rather than pasting.</li>
 <li><b>Enter the beneficiary and amount.</b> The beneficiary is the only address that can ever claim the tokens.</li>
 <li><b>Set the start, cliff and end.</b> Presets cover the common shapes; you can also type exact dates. The minimum total duration is 24 hours.</li>
-<li><b>Approve and confirm.</b> Two transactions: one to approve the token, one to create the schedule. The fee is a flat 0.005 ETH — no percentage of your tokens.</li>
+<li><b>Approve and confirm.</b> Two transactions: one to approve the token, one to create the schedule. The fee is a flat 0.005 ETH. No percentage of your tokens.</li>
 <li><b>Share the proof link.</b> Every schedule gets a permanent page showing the amount, dates and claim progress, readable without a wallet.</li>
 </ol>
 
@@ -96,10 +96,10 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 </div>
 
 <h2>Vesting or a lock?</h2>
-<p>Use a lock when the whole amount should become available on one date — that's the standard shape for LP. Use vesting when the amount should be released gradually to a person. <a href="/blog/token-locks-vs-vesting-vs-burning">The full comparison is here</a>.</p>
+<p>Use a lock when the whole amount should become available on one date. That's the standard shape for LP. Use vesting when the amount should be released gradually to a person. <a href="/blog/token-locks-vs-vesting-vs-burning">The full comparison is here</a>.</p>
 <h2>Common questions</h2>
 <h3>Can a vesting schedule be cancelled?</h3>
-<p>No. Schedules created on HoodLock are irrevocable — there is no revoke, pause or clawback function. That is deliberate: a schedule the creator could cancel would not prove anything to holders.</p>
+<p>No. Schedules created on HoodLock are irrevocable. There is no revoke, pause or clawback function. That is deliberate: a schedule the creator could cancel would not prove anything to holders.</p>
 <h3>What happens if the beneficiary loses their wallet?</h3>
 <p>The tokens stay in the contract and remain claimable only by the beneficiary address. Because the position can be transferred by the current beneficiary, a wallet change has to be done while they still control the address.</p>
 <h3>Do I pay a percentage of the vested tokens?</h3>
@@ -118,7 +118,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 
 <div class="cta-box">
   <h2 style="margin-top:0">Create a vesting schedule</h2>
-  <p>Linear release, optional cliff, irrevocable once created — with a proof link your community can check.</p>
+  <p>Linear release, optional cliff, irrevocable once created, with a proof link your community can check.</p>
   <a class="btn" href="/app/vesting">Start vesting →</a>
 </div>
 </main>

@@ -26,10 +26,10 @@ const SITE = "https://hoodlock.tech";
 export const KINDS = {
   lock: {
     path: "lock-checker",
-    title: "Token Lock Checker — Robinhood Chain | HoodLock",
-    desc: "Paste a Robinhood Chain contract address and see every lock HoodLock holds on it — amount, unlock date and a proof link. Read live from the chain. No wallet needed.",
+    title: "Token Lock Checker for Robinhood Chain | HoodLock",
+    desc: "Paste a Robinhood Chain contract address and see every lock HoodLock holds on it, with the amount, the unlock date and a proof link. Read live from the chain. No wallet needed.",
     h1: "Is this token locked?",
-    lede: "Every lock HoodLock holds on a token — the amount, the unlock date, and a proof page anyone can open without a wallet. Read live from Robinhood Chain.",
+    lede: "Every lock HoodLock holds on a token: the amount, the unlock date, and a proof page anyone can open without a wallet. Read live from Robinhood Chain.",
     label: "Token or LP contract address",
     placeholder: "Paste a token or LP contract address",
     hint: "Any ERC-20 or LP token on Robinhood Chain. No wallet, no sign-in.",
@@ -44,10 +44,10 @@ export const KINDS = {
   },
   burn: {
     path: "burn-checker",
-    title: "Token Burn Checker — Robinhood Chain | HoodLock",
-    desc: "Paste a Robinhood Chain contract address and see every burn sent through HoodLock — amount, date and a proof link. Read live from the chain. No wallet needed.",
+    title: "Token Burn Checker for Robinhood Chain | HoodLock",
+    desc: "Paste a Robinhood Chain contract address and see every burn sent through HoodLock, with the amount, the date and a proof link. Read live from the chain. No wallet needed.",
     h1: "Has this token been burned?",
-    lede: "Every burn sent through HoodLock for a token — how much, when, and a proof page anyone can open without a wallet. Read live from Robinhood Chain.",
+    lede: "Every burn sent through HoodLock for a token: how much, when, and a proof page anyone can open without a wallet. Read live from Robinhood Chain.",
     label: "Token or LP contract address",
     placeholder: "Paste a token or LP contract address",
     hint: "Any ERC-20 or LP token on Robinhood Chain. No wallet, no sign-in.",
@@ -62,10 +62,10 @@ export const KINDS = {
   },
   vesting: {
     path: "vesting-checker",
-    title: "Token Vesting Checker — Robinhood Chain | HoodLock",
-    desc: "Paste a Robinhood Chain contract address and see every vesting schedule HoodLock holds for it — total, cliff, end date and a proof link. Read live from the chain.",
+    title: "Token Vesting Checker for Robinhood Chain | HoodLock",
+    desc: "Paste a Robinhood Chain contract address and see every vesting schedule HoodLock holds for it, with the total, the cliff, the end date and a proof link. Read live from the chain.",
     h1: "Does this token have vesting?",
-    lede: "Every vesting schedule HoodLock holds for a token — the total, the cliff, the end date, and a proof page anyone can open without a wallet. Read live from Robinhood Chain.",
+    lede: "Every vesting schedule HoodLock holds for a token: the total, the cliff, the end date, and a proof page anyone can open without a wallet. Read live from Robinhood Chain.",
     label: "Token contract address",
     placeholder: "Paste a token contract address",
     hint: "Any ERC-20 on Robinhood Chain. No wallet, no sign-in.",
@@ -90,7 +90,7 @@ const OTHERS = {
    stated the same way on all three pages. A blank result is not proof of a
    negative — it only means nothing was done here. */
 const scopeLine = (k) =>
-  `This checks HoodLock's own contracts on Robinhood Chain. If it finds ${k.nounPlural}, they are real and you can open the proof yourself. If it finds none, it means the token has no ${k.nounPlural} <b>on HoodLock</b> — it may still be ${k.noun === "burn" ? "burned" : k.noun === "lock" ? "locked" : "vesting"} somewhere else, or nowhere at all. We can only speak for our own contracts.`;
+  `This checks HoodLock's own contracts on Robinhood Chain. If it finds ${k.nounPlural}, they are real and you can open the proof yourself. If it finds none, it means the token has no ${k.nounPlural} <b>on HoodLock</b>. It may still be ${k.noun === "burn" ? "burned" : k.noun === "lock" ? "locked" : "vesting"} somewhere else, or nowhere at all. We can only speak for our own contracts.`;
 
 function faqs(k) {
   const common = [
@@ -99,7 +99,7 @@ function faqs(k) {
     ["Where does the answer come from?",
      `Straight from HoodLock's contracts on Robinhood Chain, re-read on every search. There is no database of submissions in between, so a ${k.noun} created a minute ago shows up on the next search.`],
     [`What if it shows no ${k.nounPlural}?`,
-     `It means this token has no ${k.nounPlural} on HoodLock. That is not the same as saying the token has none anywhere — another service may hold ${k.nounPlural} we cannot see. Treat a blank result as "not with us", not as proof.`],
+     `It means this token has no ${k.nounPlural} on HoodLock. That is not the same as saying the token has none anywhere. Another service may hold ${k.nounPlural} we cannot see. Treat a blank result as "not with us", not as proof.`],
     ["Can a project fake a result here?",
      "No. Every record shown is an on-chain record with a transaction behind it, and each one links to a proof page and to the block explorer. Nothing on this page is self-reported."],
   ];
@@ -107,7 +107,7 @@ function faqs(k) {
     lock: [["Does a lock mean the token is safe?",
       "It means those specific tokens cannot be moved until the unlock date, which removes one specific risk. It says nothing about the rest of the supply, who holds it, or whether the contract itself is sound. Check the <a href=\"/blog/rug-pull-red-flags-checklist\">rest of the checklist</a> too."]],
     burn: [["Is a burn reversible?",
-      "No. HoodLock sends burned tokens to the dead address in a single transaction, and nothing can retrieve them — not the project, and not us."]],
+      "No. HoodLock sends burned tokens to the dead address in a single transaction, and nothing can retrieve them, not the project and not us."]],
     vesting: [["Can a project cancel a vesting schedule?",
       "No. HoodLock vesting is irreversible once created: the schedule cannot be revoked, paused or clawed back, and the tokens release on the timetable written into the contract."]],
   }[k.noun === "vesting schedule" ? "vesting" : k.noun];
@@ -165,7 +165,7 @@ function ctaBlock(k, kind, q, token, recs, feeEth, site) {
     return `<div class="cta-box">
   <h2>Settle it for everyone else</h2>
   <p>The proof page reads this ${k.noun} live from Robinhood Chain and opens without a wallet, so anyone asking the same question in $${sym}'s chat can check it themselves.</p>
-  <a class="btn" href="${esc(xShare(`$${sym} on Robinhood Chain: ${k.found(hit.length)}. Verify it yourself —`, proof))}"
+  <a class="btn" href="${esc(xShare(`$${sym} on Robinhood Chain: ${k.found(hit.length)}. Verify it yourself:`, proof))}"
      target="_blank" rel="noopener">Share the proof on X →</a>
   <p class="cta-alt"><a href="${proof}">Open the proof page</a> · <a href="${app}">${esc(VERB[kind])} yourself</a></p>
 </div>`;
@@ -175,16 +175,16 @@ function ctaBlock(k, kind, q, token, recs, feeEth, site) {
      locked". Helping someone make a claim we can't stand behind would be worse
      than not sharing at all. */
   const ask = kind === "lock"
-    ? `Checked $${sym} on Robinhood Chain — no locks on HoodLock (it may be locked elsewhere). Team, can you lock it?`
+    ? `Checked $${sym} on Robinhood Chain. No locks on HoodLock, though it may be locked elsewhere. Team, can you lock it?`
     : kind === "burn"
-      ? `Checked $${sym} on Robinhood Chain — no burns through HoodLock (supply may be burned elsewhere).`
-      : `Checked $${sym} on Robinhood Chain — no vesting on HoodLock. Team, is the allocation vested anywhere?`;
+      ? `Checked $${sym} on Robinhood Chain. No burns through HoodLock, though supply may be burned elsewhere.`
+      : `Checked $${sym} on Robinhood Chain. No vesting on HoodLock. Team, is the allocation vested anywhere?`;
 
   return `<div class="cta-box">
   <h2>Holding $${sym}?</h2>
   <p>Then the quickest way to get this answered is to ask for it in public. This posts the check with a link, so the team can act on it and everyone else can see the same result.</p>
   <a class="btn" href="${esc(xShare(ask, resultUrl))}" target="_blank" rel="noopener">Ask the team on X →</a>
-  <p class="cta-alt">Are you the project? <a href="${app}">${esc(VERB[kind])} in one transaction</a> — flat ${feeEth} ETH, no cut of your supply.</p>
+  <p class="cta-alt">Are you the project? <a href="${app}">${esc(VERB[kind])} in one transaction</a> for a flat ${feeEth} ETH, with no cut of your supply.</p>
 </div>`;
 }
 
@@ -270,7 +270,7 @@ export function renderChecker({ kind, q = "", token = null, recs = null, bad = f
   const noindex = !!q;
 
   const ld = [
-    { "@context": "https://schema.org", "@type": "WebApplication", name: k.title.split(" —")[0],
+    { "@context": "https://schema.org", "@type": "WebApplication", name: k.title.split(" |")[0],
       url, applicationCategory: "FinanceApplication", operatingSystem: "Any",
       description: k.desc, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       publisher: { "@type": "Organization", name: "HoodLock", url: `${site}/` } },
@@ -412,7 +412,7 @@ ${resultBlock(k, kind, q, token, recs, bad)}
 <div class="scope" id="scope"><p style="margin:0">${scopeLine(k)}</p></div>
 
 <h2>How it works</h2>
-<p>Every ${k.noun} made through HoodLock is a transaction on Robinhood Chain, and the record lives in the contract — not in a listing we maintain. This page reads those contracts each time you search, so what you see is the chain's answer, not ours. Each result links to a permanent proof page and to the contract on Blockscout, so you can confirm it without taking our word for it.</p>
+<p>Every ${k.noun} made through HoodLock is a transaction on Robinhood Chain, and the record lives in the contract, not in a listing we maintain. This page reads those contracts each time you search, so what you see is the chain's answer, not ours. Each result links to a permanent proof page and to the contract on Blockscout, so you can confirm it without taking our word for it.</p>
 
 <h2>Common questions</h2>
 ${list.map(([qq, a]) => `<h3>${esc(qq)}</h3>\n<p>${a}</p>`).join("\n")}

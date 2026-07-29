@@ -63,7 +63,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <p>The top entries are usually supposed to hold a lot. Reading the raw list without filtering them out will make almost every token look dangerous:</p>
 <div class="box">
 <ul style="margin-bottom:0">
-<li><b>The liquidity pool contract</b> — that's the tradeable liquidity, and it's meant to be large.</li>
+<li><b>The liquidity pool contract</b>. That's the tradeable liquidity, and it's meant to be large.</li>
 <li><b>Locker contracts</b> — tokens held under a time lock aren't sellable until the unlock date.</li>
 <li><b>Vesting contracts</b> — same idea, released gradually rather than held by a person.</li>
 <li><b>Burn addresses</b> — <code>0x000…000</code> and <code>0x…dEaD</code> hold tokens that are permanently gone.</li>
@@ -93,7 +93,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <p>For a project that's set things up properly, the biggest holders should be explainable: the liquidity pool, a locker holding LP, a vesting contract holding the team allocation, and a treasury address. When a team's allocation sits in a <a href="/blog/how-to-set-up-token-vesting">vesting schedule</a> rather than a wallet, it shows up in the holder list as a contract with a proof page you can read — the distribution and the commitment become the same fact.</p>
 
 <h2>Put it together</h2>
-<p>Holder distribution answers "who can dump on me." It doesn't answer whether liquidity can be pulled — that's <a href="/blog/how-to-check-if-liquidity-is-locked">a separate check</a> — or whether you can sell at all, which is <a href="/blog/what-is-a-honeypot-token">the honeypot question</a>. Run all three.</p>
+<p>Holder distribution answers "who can dump on me." It doesn't answer whether liquidity can be pulled. That's <a href="/blog/how-to-check-if-liquidity-is-locked">a separate check</a>, or whether you can sell at all, which is <a href="/blog/what-is-a-honeypot-token">the honeypot question</a>. Run all three.</p>
 <h2>Common questions</h2>
 <h3>What is a healthy token holder distribution?</h3>
 <p>After excluding contracts such as the liquidity pool, lockers, vesting contracts and burn addresses, top-ten wallet concentration under about 30% is normal for a young project. Above 50% in wallets means a handful of holders effectively set the price.</p>

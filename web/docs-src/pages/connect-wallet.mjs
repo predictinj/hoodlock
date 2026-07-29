@@ -33,7 +33,7 @@ ${h2("What connecting does and does not do")}
 ${ul([
   "<b>It does not give us access to anything.</b> Connecting shares your address. It grants no permission to move tokens.",
   "<b>Browsing needs nothing.</b> Proof pages, the explorer and these docs all work with no wallet at all.",
-  "<b>Approvals are per token, per amount.</b> Locking asks the token contract to authorise a specific amount for the locker — not a blanket permission over your wallet.",
+  "<b>Approvals are per token, per amount.</b> Locking asks the token contract to authorise a specific amount for the locker, not a blanket permission over your wallet.",
 ])}
 
 ${h2("When it fails")}
@@ -50,8 +50,7 @@ ${doc("network", "network page")}, then reconnect.`)}
 
 ${h3("“HTTP request failed” or a transaction that will not send")}
 ${p(`Usually the public RPC rate-limiting a read-heavy session. Reload and try again. If a lock
-transaction was submitted but the confirmation never arrived, check <b>My locks</b> before retrying —
-it very likely landed, and sending again would create a second lock and charge a second fee.`)}
+transaction was submitted but the confirmation never arrived, check <b>My locks</b> before retrying. It very likely landed, and sending again would create a second lock and charge a second fee.`)}
 ${p(`More cases in ${doc("troubleshooting", "troubleshooting")}.`)}
 
 ${h3("Approval succeeded but the lock did not")}

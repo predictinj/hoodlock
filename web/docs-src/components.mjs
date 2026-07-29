@@ -52,7 +52,7 @@ export const info = (html) => callout("info", html);
 export const warn = (html) => callout("warn", html);
 export const danger = (html) => callout("danger", html);
 
-/** Code block with a copy button. `lang` is a label only — no highlighting. */
+/** Code block with a copy button. `lang` is a label only. No highlighting. */
 export const code = (source, lang = "") =>
   `<div class="codewrap">${lang ? `<span class="lang">${esc(lang)}</span>` : ""}` +
   `<button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button>` +

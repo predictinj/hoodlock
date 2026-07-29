@@ -20,7 +20,7 @@ ${table(["Common belief", "Reality"], [
   ["There is a grace period", "There is not. The moment passes and withdrawal is available."],
 ])}
 ${info(`<p>Because withdrawal is a deliberate act, an expired lock that has not been withdrawn is
-informative in itself — it says the owner had the option and has not taken it.</p>`)}
+informative in itself. It says the owner had the option and has not taken it.</p>`)}
 
 ${h2("What holders see")}
 ${p(`The proof page and the explorer both switch the status from locked to unlockable, and then to
@@ -36,14 +36,14 @@ ${table(["Option", "Cost", "How it reads"], [
   ["Withdraw and re-lock", "A new fee", "Weakest. There is a gap, and gaps get noticed."],
   ["Withdraw", "Gas only", "Honest, if you say why."],
 ])}
-${p(`Extending is almost always the right move if you intend to stay locked — see
+${p(`Extending is almost always the right move if you intend to stay locked. See
 ${doc("how-to-extend-a-lock", "extending a lock")}. It is free, it happens before the gap rather than
 after, and it keeps the record unbroken.`)}
 
 ${h2("Withdrawing")}
 ${steps([
   `<b>Open My locks</b> in ${app("locks", "the app")} with the owning wallet.`,
-  `<b>Find the expired lock</b> — it will show as unlockable.`,
+  `<b>Find the expired lock</b>. It will show as unlockable.`,
   `<b>Withdraw.</b> One transaction, gas only. <b>There is no withdrawal fee.</b>`,
 ])}
 ${p(`The full amount returns to the lock's current owner. If ownership was transferred at some point, it

@@ -27,7 +27,7 @@ const strip = (html) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(
  *
  * The site already has 35 blog articles. A /docs page that targets the same
  * query as one of them puts two of our own URLs in front of the same search,
- * and the ranking one wins at the other's expense — so writing it actively
+ * and the ranking one wins at the other's expense, so writing it actively
  * costs us traffic rather than adding any.
  *
  * Rather than leaving that as a rule someone has to remember, the build checks
@@ -37,7 +37,7 @@ const strip = (html) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(
  *   >= FAIL   the two pages are chasing the same query. Retitle, or declare it.
  *   >= WARN   close enough to be worth a second look. Printed, not fatal.
  *
- * A page may declare `overlaps: ["blog-slug"]` to accept a collision — but only
+ * A page may declare `overlaps: ["blog-slug"]` to accept a collision, but only
  * if it also links to that article, so the acknowledgement routes authority to
  * the canonical page instead of competing with it.
  * ------------------------------------------------------------------------- */
@@ -248,7 +248,7 @@ async function main() {
   const navSlugs = new Set(PAGES.map((p) => p.slug));
   for (const p of pages) {
     if (p.slug && !navSlugs.has(p.slug) && !p.slug.startsWith("vs/")) {
-      throw new Error(`${p.slug} is not in nav.mjs — it would be orphaned`);
+      throw new Error(`${p.slug} is not in nav.mjs. It would be orphaned`);
     }
   }
 

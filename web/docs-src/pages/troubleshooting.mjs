@@ -16,13 +16,13 @@ ${p(`This affects reading, not signing. Your transactions go through your wallet
 
 ${h2("A transaction was submitted but never confirmed")}
 ${warn(`<p><b>Check before retrying.</b> Open ${app("locks", "My locks")} or the explorer and look for the
-record. A lock that was created but whose receipt was lost looks identical to one that failed — and
+record. A lock that was created but whose receipt was lost looks identical to one that failed, and
 sending again creates a <b>second lock</b> and charges a <b>second fee</b>.</p>`)}
 ${p(`If the widget reported <code>unconfirmed: true</code>, that means exactly this: broadcast succeeded,
 receipt unknown, most likely landed.`)}
 
 ${h2("The approval went through but the lock did not")}
-${p(`These are two separate transactions and the approval is not wasted — it sits unused until you use it.
+${p(`These are two separate transactions and the approval is not wasted. It sits unused until you use it.
 Start the lock again; you should not be asked to approve the same amount twice.`)}
 ${p(`If you are asked to approve again, the amount you are now locking is larger than what you approved.`)}
 

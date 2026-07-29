@@ -20,7 +20,7 @@ ${table(["Contract", "Who can move tokens out", "Under what condition"], [
 ])}
 ${info(`<p>Note the absence rather than the presence. There is no <code>rescue</code>, no
 <code>sweep</code>, no <code>emergencyWithdraw</code> and no pause that redirects funds. A backdoor you
-cannot find is usually a backdoor that is not there — and you can check, because all three contracts are
+cannot find is usually a backdoor that is not there, and you can check, because all three contracts are
 verified on Blockscout.</p>`)}
 
 ${h2("What admin can actually do")}
@@ -38,7 +38,7 @@ exceed it.</li>
 locks are never re-priced and withdrawal is always free, but the ceiling is not enforced in code.</li>
 </ul>`)}
 ${p(`The vesting contract uses a <b>two-step admin transfer</b> — <code>transferAdmin</code> then
-<code>acceptAdmin</code> — so a mistyped address cannot strand the role.`)}
+<code>acceptAdmin</code>, so a mistyped address cannot strand the role.`)}
 
 ${h2("Verify it yourself")}
 ${p(`This takes about five minutes and does not require trusting anything on this page.`)}
@@ -46,7 +46,7 @@ ${ul([
   "Open a contract from the " + doc("contracts", "contract reference") + " — the links go straight to the verified source tab.",
   "Confirm the source is <b>verified</b>. If it were not, nothing else here could be checked.",
   "Search the source for <code>withdraw</code>. Read every match and confirm each is gated on the owner or beneficiary.",
-  "Search for <code>onlyAdmin</code>. Read what those functions touch — you should find fees, the collector and the admin key, and nothing else.",
+  "Search for <code>onlyAdmin</code>. Read what those functions touch. You should find fees, the collector and the admin key, and nothing else.",
   "Check that the fee constant matches what the app charges you.",
 ])}
 ${p(`${blog("how-to-verify-a-token-contract-on-blockscout", "How to read a contract on Blockscout")} covers

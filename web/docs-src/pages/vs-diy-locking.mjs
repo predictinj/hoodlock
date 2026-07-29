@@ -38,7 +38,7 @@ ${table(["What you still need", "Why it is not optional"], [
   ["<b>Credibility of a contract only you have seen</b>", "A one-off address is precisely the shape a fake lock takes. Yours is real; it looks the same from outside."],
 ])}
 ${warn(`<p>That last row is the one teams underestimate. A custom lock contract asks holders to audit your
-code before they can trust your commitment — which is a larger ask than the commitment itself, and most of
+code before they can trust your commitment, which is a larger ask than the commitment itself, and most of
 them will simply decline.</p>`)}
 
 ${h2("The narrow case for building it")}
@@ -57,7 +57,7 @@ ${ul([
   "<b>Because you want control.</b> A lock exists to <i>remove</i> your control. A contract you wrote and could redeploy reads as less binding, not more.",
 ])}
 ${info(`<p>That third point is the counterintuitive one. The value of using a shared, public, verified
-locker is precisely that you did not write it — nobody has to consider whether you left yourself a door.
+locker is precisely that you did not write it. Nobody has to consider whether you left yourself a door.
 ${doc("security", "The security model")} names the functions to check, and they are the same functions on
 every lock we hold.</p>`)}
 

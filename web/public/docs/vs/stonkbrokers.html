@@ -49,18 +49,17 @@
 <main id="main">
 <nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>vs StonkBrokers</li></ol></nav>
 <h1>HoodLock vs <span class="serif">StonkBrokers.</span></h1>
-<p class="lede">The difference that decides it is pricing. We charge a flat fee in ETH that never moves with the size of your position. They take a percentage of the position — or a fifth of every fee it ever collects.</p>
+<p class="lede">The difference that decides it is pricing. We charge a flat fee in ETH that never moves with the size of your position. They take a percentage of the position, or a fifth of every fee it ever collects.</p>
 <div class="meta">Updated 2026-07-29 · HoodLock Team</div>
 
-<div class="callout callout-info"><div class="ct">Note</div><p>Figures below come from each platform's own published material as of 2026-07-29. Terms change —
-verify before relying on them.</p></div>
+<div class="callout callout-info"><div class="ct">Note</div><p>Figures below come from each platform's own published material as of 2026-07-29. Terms change. Verify before relying on them.</p></div>
 
 <h2 id="cost-on-a-real-position">Cost, on a real position<a class="anchor" href="#cost-on-a-real-position" aria-label="Link to this section">#</a></h2>
 <p>This is where the two models separate, and it is not close.</p>
 <div class="tablewrap"><table><thead><tr><th></th><th>HoodLock</th><th>StonkBrokers</th></tr></thead><tbody><tr><td>Model</td><td><b>Flat fee in ETH</b></td><td>0.5% of the position, or 20% of every fee collect</td></tr><tr><td>A $10,000 position</td><td><b>0.005 ETH</b></td><td>$50 upfront, or 20% of every collect</td></tr><tr><td>A $100,000 position</td><td><b>0.005 ETH — unchanged</b></td><td>$500 upfront, or 20% of every collect</td></tr><tr><td>A $1,000,000 position</td><td><b>0.005 ETH — still unchanged</b></td><td>$5,000 upfront, or 20% of every collect</td></tr><tr><td>Withdrawing</td><td><b>Free</b></td><td>—</td></tr><tr><td>Extending a lock</td><td><b>Free</b></td><td>—</td></tr></tbody></table></div>
 <div class="callout callout-warn"><div class="ct">Careful</div><p>The percentage-of-fees option is charged on <b>every</b> collect for the life of the lock, not
 once. On a pool doing real volume it keeps taking a fifth, indefinitely.</p></div>
-<p>We take <b>no percentage of your tokens at any point</b> — not on the way in, not on the way out. A
+<p>We take <b>no percentage of your tokens at any point</b>, not on the way in, not on the way out. A
 locker paid out of the thing it is holding has a reason to want you locking more of it; charging a flat fee
 in ETH removes that incentive entirely. <a href="/docs/fees">The full fee breakdown</a>.</p>
 
@@ -82,14 +81,14 @@ HoodLock is built for. <a href="/docs/liquidity-locker">How to tell which positi
 <h2 id="verifying-either-one">Verifying either one<a class="anchor" href="#verifying-either-one" aria-label="Link to this section">#</a></h2>
 <p>Both publish contracts you can read. Ours are verified on Blockscout, the vesting contract was built
 against a written threat model with a full test suite, and <b>no admin function in any of the three can move
-a user's tokens</b> — you can confirm that yourself in about five minutes.</p>
+a user's tokens</b>. You can confirm that yourself in about five minutes.</p>
 <p><a href="/docs/security">The security model</a> names the exact functions to search for and what you should
 find. Run that same check on any locker you are considering; it is the one that actually separates them.</p>
 
 <h2 id="the-short-version">The short version<a class="anchor" href="#the-short-version" aria-label="Link to this section">#</a></h2>
-<ul><li><b>Flat 0.005 ETH, charged once.</b> Never a percentage of your tokens, never a cut of your fees. Withdrawing and extending are free.</li><li><b>Four products in one place.</b> Locking, LP locking, vesting and burning, with one proof page format across all of them.</li><li><b>Built for what is actually in your wallet.</b> On this chain liquidity is usually locked at graduation, so creator supply and team allocations are the open question — and they are ours.</li><li><b>Free to integrate.</b> <a href="/docs/embed">An embed widget</a> and <a href="/docs/api">a REST API</a>, with partners earning half the fee on what they generate.</li></ul>
+<ul><li><b>Flat 0.005 ETH, charged once.</b> Never a percentage of your tokens, never a cut of your fees. Withdrawing and extending are free.</li><li><b>Four products in one place.</b> Locking, LP locking, vesting and burning, with one proof page format across all of them.</li><li><b>Built for what is actually in your wallet.</b> On this chain liquidity is usually locked at graduation, so creator supply and team allocations are the open question, and they are ours.</li><li><b>Free to integrate.</b> <a href="/docs/embed">An embed widget</a> and <a href="/docs/api">a REST API</a>, with partners earning half the fee on what they generate.</li></ul>
 
-<div class="cta-box"><h2>Lock with a flat fee</h2><p>0.005 ETH whatever your position is worth. No percentage, ever — and a proof page anyone can open without a wallet.</p><a class="btn" href="/app/locks">Open HoodLock →</a></div>
+<div class="cta-box"><h2>Lock with a flat fee</h2><p>0.005 ETH whatever your position is worth. No percentage, ever, and a proof page anyone can open without a wallet.</p><a class="btn" href="/app/locks">Open HoodLock →</a></div>
 
 <h2 id="what-no-lock-can-tell-you">What no lock can tell you<a class="anchor" href="#what-no-lock-can-tell-you" aria-label="Link to this section">#</a></h2>
 <p>A lock on any platform is evidence about one balance. It says nothing about the token contract or how
@@ -99,7 +98,7 @@ lock itself.</p>
 
 <p class="dim" style="font-size:12.5px;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:14px">
 HoodLock is not affiliated with StonkBrokers. Terms described here come from their published material as of
-2026-07-29 and change over time — verify on-chain before relying on them. Dollar figures are arithmetic on
+2026-07-29 and change over time. Verify on-chain before relying on them. Dollar figures are arithmetic on
 the published percentages, shown for scale, not quotes.</p>
 
 <section class="related"><h2>Related</h2><ul><li><a href="/docs/fees">Fees</a> — flat, and why that matters</li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/security">Security model</a></li><li><a href="/blog/how-to-choose-a-token-locker">How to choose a token locker</a></li></ul></section>

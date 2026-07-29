@@ -12,14 +12,14 @@ export default {
 ${h2("What you need")}
 ${ul([
   "A wallet with the tokens you want to lock, on Robinhood Chain.",
-  "A little ETH for gas, plus the flat fee — currently 0.005 ETH.",
+  "A little ETH for gas, plus the flat fee, currently 0.005 ETH.",
   "Nothing else. There is no account, no sign-up and no email.",
 ])}
 
 ${h2("Do it")}
 ${steps([
   `<b>Open the app.</b> Go to ${app("locks", "hoodlock.tech/app/locks")} and connect. The app will ask
-   your wallet to switch to Robinhood Chain, and to add the network if it does not have it — see
+   your wallet to switch to Robinhood Chain, and to add the network if it does not have it. See
    ${doc("connect-wallet", "connecting a wallet")} if that step fails.`,
   `<b>Choose what to lock.</b> Pick a token from your balances or paste its contract address. <b>Max</b>
    fills the whole balance; locking part of a holding is normal.`,
@@ -27,15 +27,15 @@ ${steps([
    in, so a shorter first lock you extend as you deliver is usually the better play.`,
   `<b>Approve, then lock.</b> Two prompts. The first authorises the contract for that amount; the second
    creates the lock.`,
-  `<b>Share the proof link.</b> That link is the deliverable — it reads live from the chain and opens
+  `<b>Share the proof link.</b> That link is the deliverable. It reads live from the chain and opens
    without a wallet.`,
 ])}
 
 ${h2("Which product do you actually want?")}
 ${table(["If you want to…", "Use", "Reversible?"], [
   ["Hold a balance until a date", doc("token-locker", "a lock"), "Yes, after the date"],
-  ["Release supply gradually to someone", doc("token-vesting", "vesting"), "No — no HoodLock function can alter it"],
-  ["Remove supply permanently", doc("token-burning", "a burn"), "No — not by us; the token can still mint"],
+  ["Release supply gradually to someone", doc("token-vesting", "vesting"), "No. No HoodLock function can alter it"],
+  ["Remove supply permanently", doc("token-burning", "a burn"), "No, not by us; the token can still mint"],
   ["Prove a pool cannot be pulled", doc("liquidity-locker", "an LP lock"), "Yes, after the date"],
 ])}
 ${info(`<p>Not sure between the first three? ${blog("token-locks-vs-vesting-vs-burning", "Locks vs vesting vs burning")}

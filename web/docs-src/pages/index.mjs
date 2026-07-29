@@ -45,7 +45,7 @@ ${cards([
 ${h2("For developers")}
 ${p(`Add locking to your own product and earn half the fee on what it generates.`)}
 ${cards([
-  { href: "/docs/embed", title: "Embed widget", desc: "One script tag and a button. Your styling stays yours — we only render the modal." },
+  { href: "/docs/embed", title: "Embed widget", desc: "One script tag and a button. Your styling stays yours. We only render the modal." },
   { href: "/docs/api", title: "REST API", desc: "Prepared transactions for lock, burn and vesting if you want your own interface." },
   { href: "/docs/contracts", title: "Contracts", desc: "Verified addresses, functions, events and the guarantees each one enforces." },
   { href: "/docs/network", title: "Network", desc: "Chain id, RPC, explorer, deploy blocks and the indexing limits that matter." },

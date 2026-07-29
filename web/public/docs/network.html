@@ -76,7 +76,7 @@ with the functions and events each one exposes.</p>
 
 <h2 id="reading-history">Reading history<a class="anchor" href="#reading-history" aria-label="Link to this section">#</a></h2>
 <p>If you are indexing HoodLock events yourself, one limit on the public RPC matters more than anything
-else about it — and it is not the one you might expect.</p>
+else about it, and it is not the one you might expect.</p>
 <div class="tablewrap"><table><thead><tr><th>Limit</th><th>Measured behaviour</th></tr></thead><tbody><tr><td><code>eth_getLogs</code> result size</td><td><b>Hard cap at 10,000 logs.</b> Exceeding it returns <code>logs matched by query exceeds limit of 10000</code> and no partial result.</td></tr><tr><td><code>eth_getLogs</code> block span</td><td><b>No fixed span limit.</b> A single call spanning two million blocks succeeds provided the result stays under the cap.</td></tr></tbody></table></div>
 <div class="callout callout-info"><div class="ct">Note</div><p>This means you should chunk by <b>result volume, not by block count</b>. A quiet contract can be
 backfilled in one or two calls across its whole history; a busy one needs narrow windows even over a few

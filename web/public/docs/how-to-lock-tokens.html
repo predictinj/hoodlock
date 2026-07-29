@@ -53,7 +53,7 @@
 <div class="meta">Updated 2026-07-29 · HoodLock Team</div>
 
 <h2 id="before-you-start">Before you start<a class="anchor" href="#before-you-start" aria-label="Link to this section">#</a></h2>
-<ul><li>The wallet holding the tokens, connected to Robinhood Chain. See <a href="/docs/connect-wallet">connecting a wallet</a> if the network is not in your wallet yet.</li><li>A little ETH for gas, plus the flat fee — currently 0.005 ETH, read live from the contract. See <a href="/docs/fees">fees</a>.</li><li>The token's contract address, if it is not already in your wallet's token list.</li></ul>
+<ul><li>The wallet holding the tokens, connected to Robinhood Chain. See <a href="/docs/connect-wallet">connecting a wallet</a> if the network is not in your wallet yet.</li><li>A little ETH for gas, plus the flat fee, currently 0.005 ETH, read live from the contract. See <a href="/docs/fees">fees</a>.</li><li>The token's contract address, if it is not already in your wallet's token list.</li></ul>
 
 <h2 id="lock-the-tokens">Lock the tokens<a class="anchor" href="#lock-the-tokens" aria-label="Link to this section">#</a></h2>
 <ol class="steps"><li><b>Open the locker.</b> Go to <a href="/app/locks">the lock form</a> and connect your wallet.</li><li><b>Pick the token.</b> Choose it from your wallet's balances, or paste the contract address. Take the
@@ -61,12 +61,12 @@
    addresses are a standard scam.</li><li><b>Enter an amount.</b> <b>Max</b> fills in the whole balance. You can lock part of a holding and keep
    the rest liquid; most teams do.</li><li><b>Choose an unlock date.</b> The presets cover the common cases. Anything in the future is valid.</li><li><b>Approve, then lock.</b> The first transaction lets the contract move that amount of that token; the
    second creates the lock. Two prompts, in that order.</li><li><b>Share the proof link.</b> Every lock gets a page that reads live from the chain and opens without a
-   wallet. That link is the part that does the work — see <a href="/docs/proof-of-lock">proof of lock</a>.</li></ol>
+   wallet. That link is the part that does the work. See <a href="/docs/proof-of-lock">proof of lock</a>.</li></ol>
 
 <h2 id="choosing-a-date-you-can-defend">Choosing a date you can defend<a class="anchor" href="#choosing-a-date-you-can-defend" aria-label="Link to this section">#</a></h2>
 <p>An unlock date is a claim about how long you intend to stay. The number matters less than whether it
 survives contact with a sceptical holder.</p>
-<div class="tablewrap"><table><thead><tr><th>Situation</th><th>A defensible starting point</th></tr></thead><tbody><tr><td>Creator allocation after a launch</td><td>6–12 months, extended as you ship</td></tr><tr><td>Treasury the project needs to spend from</td><td>Several tranches on different dates, not one block</td></tr><tr><td>Team and contributor supply</td><td>Vesting instead — see below</td></tr><tr><td>LP tokens from a v2-style pool</td><td>At least as long as your roadmap's first milestone</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Situation</th><th>A defensible starting point</th></tr></thead><tbody><tr><td>Creator allocation after a launch</td><td>6–12 months, extended as you ship</td></tr><tr><td>Treasury the project needs to spend from</td><td>Several tranches on different dates, not one block</td></tr><tr><td>Team and contributor supply</td><td>Vesting instead. See below</td></tr><tr><td>LP tokens from a v2-style pool</td><td>At least as long as your roadmap's first milestone</td></tr></tbody></table></div>
 <div class="callout callout-info"><div class="ct">Note</div><p>Unlock dates can be pushed further out but <b>never pulled in</b>. That asymmetry is worth using:
 a shorter first lock you extend as you deliver builds a public record that a single long lock does not.
 See <a href="/docs/how-to-extend-a-lock">extending a lock</a>.</p></div>
@@ -87,8 +87,7 @@ Many launchpads on this chain already lock or burn those positions at graduation
 explains how to tell which kind you hold.</p></div>
 
 <h2 id="after-the-lock">After the lock<a class="anchor" href="#after-the-lock" aria-label="Link to this section">#</a></h2>
-<ul><li>The lock appears in <a href="/app/locks">My locks</a> and in <a href="/docs/lock-explorer">the explorer</a>.</li><li>Withdrawal becomes available at the unlock time, to the lock's owner only. Nothing happens automatically —
-   see <a href="/docs/when-a-lock-expires">when a lock expires</a>.</li><li>Ownership of the lock can be transferred; the tokens stay where they are.</li></ul>
+<ul><li>The lock appears in <a href="/app/locks">My locks</a> and in <a href="/docs/lock-explorer">the explorer</a>.</li><li>Withdrawal becomes available at the unlock time, to the lock's owner only. Nothing happens automatically. See <a href="/docs/when-a-lock-expires">when a lock expires</a>.</li><li>Ownership of the lock can be transferred; the tokens stay where they are.</li></ul>
 
 <div class="cta-box"><h2>Lock tokens now</h2><p>Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.</p><a class="btn" href="/app/locks">Open HoodLock →</a></div>
 

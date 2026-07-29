@@ -10,7 +10,7 @@ export default {
   lede: "A lock nobody can see does no work. Every record gets a URL that renders current on-chain state, opens without a wallet, and is safe to hand to someone who does not trust you.",
   body: `
 ${h2("The problem it solves")}
-${p(`Telling people your tokens are locked is worth nothing — anyone can say it. Pointing at a block
+${p(`Telling people your tokens are locked is worth nothing. Anyone can say it. Pointing at a block
 explorer is technically sufficient and practically useless, because the person you are trying to convince
 usually cannot read one and should not have to.`)}
 ${p(`A proof page is the middle ground: it states the facts in plain language, and every fact on it is read

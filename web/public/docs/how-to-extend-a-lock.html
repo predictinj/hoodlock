@@ -55,7 +55,7 @@
 <h2 id="why-it-only-moves-one-way">Why it only moves one way<a class="anchor" href="#why-it-only-moves-one-way" aria-label="Link to this section">#</a></h2>
 <p><code>extend</code> requires the new timestamp to be strictly greater than the current one. There is
 no function that shortens a lock, so a team cannot quietly bring a date forward when it becomes
-inconvenient — and nobody has to take their word for it.</p>
+inconvenient, and nobody has to take their word for it.</p>
 <p>That is what makes an unlock date meaningful as a commitment rather than a preference. See the
 <a href="/docs/contracts">contract reference</a> for the exact check.</p>
 
@@ -69,7 +69,7 @@ they open it, so there is nothing to re-share.</p></div>
 <p>Most teams set one long lock at launch and never touch it. Extending repeatedly is the better play,
 and the reason is about evidence rather than mechanics.</p>
 <div class="tablewrap"><table><thead><tr><th>Approach</th><th>What a reader sees</th></tr></thead><tbody><tr><td>One 12-month lock set at launch</td><td>A decision made once, before anything was proven</td></tr><tr><td>A 3-month lock extended three times</td><td>A team that kept choosing to stay, on the record, after each milestone</td></tr></tbody></table></div>
-<p>The second costs the same — extending is free — and produces a history rather than a single data
+<p>The second costs the same — extending is free, and produces a history rather than a single data
 point. It also avoids the trap of a long lock set optimistically at launch that the team later resents.</p>
 <p><a href="/blog/how-long-should-you-lock-liquidity">How long should you lock liquidity</a> works through
 choosing the first duration.</p>
@@ -79,7 +79,7 @@ choosing the first duration.</p>
 stay locked, <b>extend before it expires</b>, not after — a lock that lapses for a week and is then
 re-created is a different fact from one that never lapsed, and holders who are watching will notice which
 one happened.</p></div>
-<p>Nothing happens automatically at expiry — see <a href="/docs/when-a-lock-expires">when a lock expires</a>.</p>
+<p>Nothing happens automatically at expiry. See <a href="/docs/when-a-lock-expires">when a lock expires</a>.</p>
 
 <h2 id="what-extending-does-not-change">What extending does not change<a class="anchor" href="#what-extending-does-not-change" aria-label="Link to this section">#</a></h2>
 <ul><li><b>The amount.</b> To lock more, create a second lock. Locks are independent records.</li><li><b>The owner.</b> Ownership transfers separately, and the tokens stay where they are.</li><li><b>Vesting schedules.</b> Those are irrevocable and have no extend function — the dates are fixed at creation.</li></ul>

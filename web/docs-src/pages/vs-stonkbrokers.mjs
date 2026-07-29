@@ -7,10 +7,9 @@ export default {
   desc: "One charges a flat 0.005 ETH whatever your position is worth. The other takes a percentage of it, or a fifth of every fee you collect. What that costs in practice.",
   updated: "2026-07-29",
   h1: 'HoodLock vs <span class="serif">StonkBrokers.</span>',
-  lede: "The difference that decides it is pricing. We charge a flat fee in ETH that never moves with the size of your position. They take a percentage of the position — or a fifth of every fee it ever collects.",
+  lede: "The difference that decides it is pricing. We charge a flat fee in ETH that never moves with the size of your position. They take a percentage of the position, or a fifth of every fee it ever collects.",
   body: `
-${info(`<p>Figures below come from each platform's own published material as of 2026-07-29. Terms change —
-verify before relying on them.</p>`)}
+${info(`<p>Figures below come from each platform's own published material as of 2026-07-29. Terms change. Verify before relying on them.</p>`)}
 
 ${h2("Cost, on a real position")}
 ${p(`This is where the two models separate, and it is not close.`)}
@@ -24,7 +23,7 @@ ${table(["", "HoodLock", "StonkBrokers"], [
 ])}
 ${warn(`<p>The percentage-of-fees option is charged on <b>every</b> collect for the life of the lock, not
 once. On a pool doing real volume it keeps taking a fifth, indefinitely.</p>`)}
-${p(`We take <b>no percentage of your tokens at any point</b> — not on the way in, not on the way out. A
+${p(`We take <b>no percentage of your tokens at any point</b>, not on the way in, not on the way out. A
 locker paid out of the thing it is holding has a reason to want you locking more of it; charging a flat fee
 in ETH removes that incentive entirely. ${doc("fees", "The full fee breakdown")}.`)}
 
@@ -54,7 +53,7 @@ HoodLock is built for. ${doc("liquidity-locker", "How to tell which position you
 ${h2("Verifying either one")}
 ${p(`Both publish contracts you can read. Ours are verified on Blockscout, the vesting contract was built
 against a written threat model with a full test suite, and <b>no admin function in any of the three can move
-a user's tokens</b> — you can confirm that yourself in about five minutes.`)}
+a user's tokens</b>. You can confirm that yourself in about five minutes.`)}
 ${p(`${doc("security", "The security model")} names the exact functions to search for and what you should
 find. Run that same check on any locker you are considering; it is the one that actually separates them.`)}
 
@@ -62,11 +61,11 @@ ${h2("The short version")}
 ${ul([
   "<b>Flat 0.005 ETH, charged once.</b> Never a percentage of your tokens, never a cut of your fees. Withdrawing and extending are free.",
   "<b>Four products in one place.</b> Locking, LP locking, vesting and burning, with one proof page format across all of them.",
-  "<b>Built for what is actually in your wallet.</b> On this chain liquidity is usually locked at graduation, so creator supply and team allocations are the open question — and they are ours.",
+  "<b>Built for what is actually in your wallet.</b> On this chain liquidity is usually locked at graduation, so creator supply and team allocations are the open question, and they are ours.",
   "<b>Free to integrate.</b> " + doc("embed", "An embed widget") + " and " + doc("api", "a REST API") + ", with partners earning half the fee on what they generate.",
 ])}
 
-${cta("Lock with a flat fee", "0.005 ETH whatever your position is worth. No percentage, ever — and a proof page anyone can open without a wallet.")}
+${cta("Lock with a flat fee", "0.005 ETH whatever your position is worth. No percentage, ever, and a proof page anyone can open without a wallet.")}
 
 ${h2("What no lock can tell you")}
 ${p(`A lock on any platform is evidence about one balance. It says nothing about the token contract or how
@@ -76,7 +75,7 @@ lock itself.`)}
 
 <p class="dim" style="font-size:12.5px;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:14px">
 HoodLock is not affiliated with StonkBrokers. Terms described here come from their published material as of
-2026-07-29 and change over time — verify on-chain before relying on them. Dollar figures are arithmetic on
+2026-07-29 and change over time. Verify on-chain before relying on them. Dollar figures are arithmetic on
 the published percentages, shown for scale, not quotes.</p>
 `,
   related: [

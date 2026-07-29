@@ -4,7 +4,7 @@ import { h2, p, cards, info, doc } from "../components.mjs";
  *
  * Every topic here already has a written article on /blog. Writing a second
  * version under /docs would put two of our own URLs in front of the same query,
- * and Google would pick one — so both would lose. This page routes to the
+ * and Google would pick one, so both would lose. This page routes to the
  * existing articles instead, which concentrates authority rather than splitting
  * it, and keeps /docs for product documentation where the intent is different.
  */
@@ -79,7 +79,7 @@ ${SECTIONS.map(([title, sub, items]) => h2(title) + p(sub) + cards(items)).join(
 ${h2("Locking after a launchpad launch")}
 ${p(`Every launchpad on Robinhood Chain handles liquidity and creator supply differently, and the
 difference decides what is actually left worth locking. One guide per platform, written from each one's
-own published mechanics — including the cases where the honest answer is that nothing needs locking.`)}
+own published mechanics, including the cases where the honest answer is that nothing needs locking.`)}
 ${cards(LAUNCHPADS.map(([slug, name]) => ({
   href: `/blog/${slug}`,
   title: name,

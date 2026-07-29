@@ -25,7 +25,7 @@ ${table(["Pool type", "What you hold", "Lockable here"], [
 ])}
 ${p(`HoodLock's locker holds ERC-20 tokens. A v2 LP token is one, so it locks exactly like any other
 balance. A v3 or v4 position is an NFT and cannot be held by this contract.`)}
-${info(`<p>Robinhood Chain has a large Uniswap v2 deployment — tens of thousands of pairs — so v2 LP
+${info(`<p>Robinhood Chain has a large Uniswap v2 deployment — tens of thousands of pairs, so v2 LP
 locking is a real, common case here, not a legacy footnote. Whether <i>your</i> pool is v2 depends on
 where your token launched.</p>`)}
 
@@ -43,7 +43,7 @@ ${p(`Several platforms lock or burn liquidity permanently at graduation. If your
 question is closed and locking again is not possible — the position is not yours to move.`)}
 ${p(`What usually remains in that case is different: fee revenue accruing to your wallet, a creator buy
 from the curve, or a treasury. Those are ordinary ERC-20 balances and they are what a holder looks at
-once liquidity is settled. The per-platform guides cover this launchpad by launchpad — see
+once liquidity is settled. The per-platform guides cover this launchpad by launchpad. See
 ${blog("lock-lp-tokens-from-a-hood-launcher-classic-launch", "the Hood Launcher guide")} for the one case
 on this chain where the creator is handed withdrawable LP directly.`)}
 

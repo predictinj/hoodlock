@@ -26,7 +26,7 @@ ${code(`<script src="https://hoodlock.tech/embed.js" data-key="pk_YOUR_KEY"></sc
         data-token="0xYourTokenAddress"
         data-beneficiary="0xTeamWallet">Create vesting</button>`, "html")}
 ${info(`<p><code>0xYourTokenAddress</code> is a placeholder. Insert the real address from your own data
-when you render the page — it is different on every token page, so it is not a literal string to paste.</p>`)}
+when you render the page. It is different on every token page, so it is not a literal string to paste.</p>`)}
 
 ${h2("Your button keeps your styling")}
 ${p(`The widget never touches how your button looks. It attaches a click handler and marks the element as
@@ -80,7 +80,7 @@ ${table(["Event", "Payload", "When"], [
   ["<code>close</code>", "—", "The modal was dismissed."],
 ])}
 ${warn(`<p>A payload can carry <code>unconfirmed: true</code>. That means the transaction was broadcast but
-the receipt could not be fetched — it has most likely landed. Treat it as provisional and confirm against
+the receipt could not be fetched. It has most likely landed. Treat it as provisional and confirm against
 the chain rather than telling the user it failed.</p>`)}
 ${p(`<code>id</code> is the on-chain record id and may be <code>null</code> if it could not be read back.
 <code>lockId</code> is an alias kept for older integrations.`)}

@@ -59,13 +59,13 @@ explorer or a different network moment is usually the cause rather than your wal
 
 <h2 id="a-transaction-was-submitted-but-never-confirmed">A transaction was submitted but never confirmed<a class="anchor" href="#a-transaction-was-submitted-but-never-confirmed" aria-label="Link to this section">#</a></h2>
 <div class="callout callout-warn"><div class="ct">Careful</div><p><b>Check before retrying.</b> Open <a href="/app/locks">My locks</a> or the explorer and look for the
-record. A lock that was created but whose receipt was lost looks identical to one that failed — and
+record. A lock that was created but whose receipt was lost looks identical to one that failed, and
 sending again creates a <b>second lock</b> and charges a <b>second fee</b>.</p></div>
 <p>If the widget reported <code>unconfirmed: true</code>, that means exactly this: broadcast succeeded,
 receipt unknown, most likely landed.</p>
 
 <h2 id="the-approval-went-through-but-the-lock-did-not">The approval went through but the lock did not<a class="anchor" href="#the-approval-went-through-but-the-lock-did-not" aria-label="Link to this section">#</a></h2>
-<p>These are two separate transactions and the approval is not wasted — it sits unused until you use it.
+<p>These are two separate transactions and the approval is not wasted. It sits unused until you use it.
 Start the lock again; you should not be asked to approve the same amount twice.</p>
 <p>If you are asked to approve again, the amount you are now locking is larger than what you approved.</p>
 

@@ -74,7 +74,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <h2>6. Transfer restrictions and hidden fees</h2>
 <p>Some contracts let an owner block selling, whitelist addresses, or change the transfer tax after launch. Buying works fine; selling doesn't. In verified source, look for owner-settable fee variables, blacklist mappings, and any condition on transfers that an address can toggle.</p>
 
-<h2>7. Ownership that was never renounced — or was faked</h2>
+<h2>7. Ownership that was never renounced, or was faked</h2>
 <p>Renouncing ownership removes the owner's privileged functions. Check whether it actually happened on-chain rather than trusting a claim, and note that renouncing is not automatically good: it also removes the ability to fix bugs. What matters is whether privileged functions exist and who can call them.</p>
 
 <h2>Running the checklist</h2>
@@ -93,7 +93,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <p>Every item here is about whether someone <i>can</i> take your money quickly. None of it tells you whether a project will succeed, whether the team will keep working, or whether the idea is any good. A token can pass all seven checks and still go to zero through ordinary failure. Verify the mechanics, then judge the rest on its merits.</p>
 <h2>Common questions</h2>
 <h3>What is the single biggest rug pull warning sign?</h3>
-<p>Unlocked liquidity. It is the fastest and most common exit, it can be executed in one transaction, and it is also the easiest thing on this list to verify — you can check it from the token contract address in under five minutes.</p>
+<p>Unlocked liquidity. It is the fastest and most common exit, it can be executed in one transaction, and it is also the easiest thing on this list to verify. You can check it from the token contract address in under five minutes.</p>
 <h3>Does renouncing ownership make a token safe?</h3>
 <p>Not by itself. Renouncing removes the owner's privileged functions, but it also removes the ability to fix bugs, and it does nothing about unlocked liquidity or concentrated holders. What matters is which privileged functions exist and who can call them.</p>
 <h3>How can I tell if a token contract has a mint function?</h3>
@@ -105,7 +105,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <li><a href="/lock-checker">Check a token now with the lock checker</a></li>
 <li><a href="/docs/how-to-verify-a-lock">Verify someone else's lock</a></li>
 <li><a href="/blog/how-to-check-if-liquidity-is-locked">How to check if liquidity is locked</a></li>
-<li><a href="/blog/what-is-a-honeypot-token">Honeypot tokens — and how to avoid one</a></li>
+<li><a href="/blog/what-is-a-honeypot-token">Honeypot tokens, and how to avoid one</a></li>
 <li><a href="/blog/how-to-read-token-holder-distribution">Reading holder distribution</a></li>
 </ul>
 

@@ -32,7 +32,7 @@ ${steps([
   `<b>Read the confirmation.</b> It states the amount and that the action is irreversible. This is the last
    point at which stopping costs nothing.`,
   `<b>Approve, then burn.</b> Two transactions. The tokens move from your wallet straight to the dead
-   address in a single transfer — they never sit in our contract.`,
+   address in a single transfer. They never sit in our contract.`,
   `<b>Share the proof link.</b> The page states the amount, the share of supply and the transaction.`,
 ])}
 

@@ -74,7 +74,7 @@ mechanism itself is hard is selling something.</p>
 <p>The contract is the smallest component of the job. What follows is the rest of it.</p>
 <div class="tablewrap"><table><thead><tr><th>What you still need</th><th>Why it is not optional</th></tr></thead><tbody><tr><td><b>Verified source on the explorer</b></td><td>An unverified lock contract proves nothing to anyone. If they cannot read it, they cannot check it.</td></tr><tr><td><b>A page a non-technical holder can read</b></td><td>Most of the people you are reassuring cannot read a contract. A link to a raw address does not do the job.</td></tr><tr><td><b>Correct handling of odd tokens</b></td><td>Fee-on-transfer tokens deposit less than you sent. Tokens that return no boolean break naive transfers. Both are common.</td></tr><tr><td><b>An extend path</b></td><td>Without one you have to withdraw and re-lock, which creates exactly the gap a lock exists to avoid.</td></tr><tr><td><b>Ongoing discoverability</b></td><td>A bespoke contract appears in no explorer, no aggregator and no directory. Nobody finds it unless you tell them.</td></tr><tr><td><b>Credibility of a contract only you have seen</b></td><td>A one-off address is precisely the shape a fake lock takes. Yours is real; it looks the same from outside.</td></tr></tbody></table></div>
 <div class="callout callout-warn"><div class="ct">Careful</div><p>That last row is the one teams underestimate. A custom lock contract asks holders to audit your
-code before they can trust your commitment — which is a larger ask than the commitment itself, and most of
+code before they can trust your commitment, which is a larger ask than the commitment itself, and most of
 them will simply decline.</p></div>
 
 <h2 id="the-narrow-case-for-building-it">The narrow case for building it<a class="anchor" href="#the-narrow-case-for-building-it" aria-label="Link to this section">#</a></h2>
@@ -84,7 +84,7 @@ them will simply decline.</p></div>
 <h2 id="where-the-reasoning-usually-breaks-down">Where the reasoning usually breaks down<a class="anchor" href="#where-the-reasoning-usually-breaks-down" aria-label="Link to this section">#</a></h2>
 <ul><li><b>To save the fee.</b> A flat 0.005 ETH against an afternoon of engineering plus indefinite maintenance is not a close call.</li><li><b>Because a general locker feels like a dependency.</b> It is not one — the contracts run without our site, and you can call <code>withdraw</code> from a block explorer if hoodlock.tech vanishes entirely.</li><li><b>Because you want control.</b> A lock exists to <i>remove</i> your control. A contract you wrote and could redeploy reads as less binding, not more.</li></ul>
 <div class="callout callout-info"><div class="ct">Note</div><p>That third point is the counterintuitive one. The value of using a shared, public, verified
-locker is precisely that you did not write it — nobody has to consider whether you left yourself a door.
+locker is precisely that you did not write it. Nobody has to consider whether you left yourself a door.
 <a href="/docs/security">The security model</a> names the functions to check, and they are the same functions on
 every lock we hold.</p></div>
 

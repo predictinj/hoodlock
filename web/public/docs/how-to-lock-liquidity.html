@@ -58,8 +58,8 @@ the procedure.</p></div>
 
 <h2 id="first-confirm-you-can-lock-it">First: confirm you can lock it<a class="anchor" href="#first-confirm-you-can-lock-it" aria-label="Link to this section">#</a></h2>
 <p>Only v2-style positions are ERC-20 tokens. Uniswap v3 and v4 positions are NFTs and cannot be held by
-the locker — no amount of trying will make that work, so check before you start.</p>
-<div class="tablewrap"><table><thead><tr><th>Check</th><th>v2-style (lockable)</th><th>v3 / v4 (not lockable)</th></tr></thead><tbody><tr><td>Appears in your wallet as a token balance</td><td>Yes</td><td>No</td></tr><tr><td>Symbol</td><td><code>UNI-V2</code>, <code>SLP</code> or similar</td><td>None — it is an NFT</td></tr><tr><td>Pair contract has <code>totalSupply()</code></td><td>Yes</td><td>No</td></tr></tbody></table></div>
+the locker. No amount of trying will make that work, so check before you start.</p>
+<div class="tablewrap"><table><thead><tr><th>Check</th><th>v2-style (lockable)</th><th>v3 / v4 (not lockable)</th></tr></thead><tbody><tr><td>Appears in your wallet as a token balance</td><td>Yes</td><td>No</td></tr><tr><td>Symbol</td><td><code>UNI-V2</code>, <code>SLP</code> or similar</td><td>None. It is an NFT</td></tr><tr><td>Pair contract has <code>totalSupply()</code></td><td>Yes</td><td>No</td></tr></tbody></table></div>
 <p><a href="/docs/liquidity-locker">The liquidity locker page</a> goes into how to tell them apart in more
 detail, including what to do if your launchpad already locked the position for you.</p>
 

@@ -1,7 +1,7 @@
 import { h2, h3, p, esc, info } from "../components.mjs";
 
 /* Questions are defined once. The visible answers and the FAQPage structured
- * data are both derived from this array, so they can never disagree — which is
+ * data are both derived from this array, so they can never disagree, which is
  * the whole requirement behind FAQ markup, and the reason to generate rather
  * than hand-write it twice.
  *
@@ -12,8 +12,8 @@ import { h2, h3, p, esc, info } from "../components.mjs";
 const GROUPS = [
   ["Getting started", [
     ["What is HoodLock?",
-     "HoodLock is a non-custodial token locker, burner and vesting platform on Robinhood Chain. It holds ERC-20 tokens until a date you set, sends tokens permanently to the dead address, or releases them gradually to a beneficiary — and gives every record a public page anyone can verify.",
-     'HoodLock is a non-custodial token locker, burner and vesting platform on Robinhood Chain. It holds ERC-20 tokens until a date you set, sends tokens permanently to the dead address, or releases them gradually to a beneficiary — and gives every record a <a href="/docs/proof-of-lock">public page anyone can verify</a>.'],
+     "HoodLock is a non-custodial token locker, burner and vesting platform on Robinhood Chain. It holds ERC-20 tokens until a date you set, sends tokens permanently to the dead address, or releases them gradually to a beneficiary, and gives every record a public page anyone can verify.",
+     'HoodLock is a non-custodial token locker, burner and vesting platform on Robinhood Chain. It holds ERC-20 tokens until a date you set, sends tokens permanently to the dead address, or releases them gradually to a beneficiary, and gives every record a <a href="/docs/proof-of-lock">public page anyone can verify</a>.'],
     ["Do I need an account?",
      "No. There is no sign-up, no email and no password. Connecting a wallet is the only identity involved, and browsing proof pages or the explorer needs no wallet at all.", null],
     ["Which chain does HoodLock run on?",
@@ -26,7 +26,7 @@ const GROUPS = [
      "Two transactions and about a minute. The first approves the amount, the second creates the lock.",
      'Two transactions and about a minute. The first approves the amount, the second creates the lock. See the <a href="/docs/quickstart">quickstart</a>.'],
     ["Can I try it with a small amount first?",
-     "Yes, and it is a reasonable thing to do. The fee is flat rather than a percentage, so a test lock costs the same as a large one — but nothing stops you locking a token dust balance to see the flow end to end.", null],
+     "Yes, and it is a reasonable thing to do. The fee is flat rather than a percentage, so a test lock costs the same as a large one, but nothing stops you locking a token dust balance to see the flow end to end.", null],
   ]],
 
   ["Costs", [
@@ -46,20 +46,20 @@ const GROUPS = [
      "Yes, but only for new records. An existing lock or schedule is never re-priced, and withdrawal and claiming stay free regardless.",
      'Yes, but only for new records. An existing lock or schedule is never re-priced. The vesting contract has a hard cap of 0.05 ETH written into the code; the locker and burner do not. See <a href="/docs/fees">fees</a>.'],
     ["What happens if I overpay the fee?",
-     "The locker and burner refund the difference automatically. The vesting contract requires the exact fee and reverts on overpayment — it has no refund path.", null],
+     "The locker and burner refund the difference automatically. The vesting contract requires the exact fee and reverts on overpayment. It has no refund path.", null],
   ]],
 
   ["Locking", [
     ["Can locked tokens be withdrawn early?",
      "No. The contract checks the unlock time on every withdrawal and reverts before it. There is no override, no admin path and no exception.",
-     'No. The contract checks the unlock time on every withdrawal and reverts before it. There is no override and no admin path — see the <a href="/docs/security">security model</a>.'],
+     'No. The contract checks the unlock time on every withdrawal and reverts before it. There is no override and no admin path. See the <a href="/docs/security">security model</a>.'],
     ["Who owns locked tokens?",
      "You do. The lock records your address as the owner, and only that address can withdraw, and only after the unlock time. HoodLock never gains the ability to move them.", null],
     ["Can the team unlock tokens early?",
      "Not if they are locked with HoodLock. No function exists that shortens a lock or releases it ahead of schedule, so it is not a matter of policy or goodwill.", null],
     ["Can I extend a lock?",
      "Yes, as many times as you like, for free. Unlock dates can always be pushed further out and can never be pulled in.",
-     'Yes, as many times as you like, for free. Unlock dates can always be pushed further out and can never be pulled in — see <a href="/docs/how-to-extend-a-lock">extending a lock</a>.'],
+     'Yes, as many times as you like, for free. Unlock dates can always be pushed further out and can never be pulled in. See <a href="/docs/how-to-extend-a-lock">extending a lock</a>.'],
     ["Can I shorten a lock?",
      "No. The contract requires any new unlock time to be strictly later than the current one. That asymmetry is what makes an unlock date a commitment rather than a preference.", null],
     ["Can I unlock part of a lock early?",
@@ -73,7 +73,7 @@ const GROUPS = [
      "Yes. Ownership of the lock can be transferred to a new address, which then holds the right to withdraw. The tokens themselves do not move.", null],
     ["What can be locked?",
      "Any ERC-20 on Robinhood Chain: project tokens, treasury balances, creator supply, and v2-style LP tokens, which are themselves ERC-20.",
-     'Any ERC-20 on Robinhood Chain, including v2-style LP tokens. Uniswap v3 and v4 positions are NFTs and cannot be locked — see the <a href="/docs/liquidity-locker">liquidity locker</a>.'],
+     'Any ERC-20 on Robinhood Chain, including v2-style LP tokens. Uniswap v3 and v4 positions are NFTs and cannot be locked. See the <a href="/docs/liquidity-locker">liquidity locker</a>.'],
     ["Is there a minimum lock duration?",
      "For locks, no — any time in the future is valid. Vesting schedules must run at least 24 hours.", null],
     ["Is there a maximum lock duration?",
@@ -94,7 +94,7 @@ const GROUPS = [
     ["Does locking LP stop the pool from trading?",
      "No. Locking the LP token prevents liquidity being withdrawn. Swaps, fees and price discovery all continue exactly as before.", null],
     ["Should I lock or burn liquidity?",
-     "Burning is permanent and needs no trust at all; locking is temporary and keeps the option to migrate the pool later. Neither is strictly better — it depends on whether you may need to move the pool.",
+     "Burning is permanent and needs no trust at all; locking is temporary and keeps the option to migrate the pool later. Neither is strictly better. It depends on whether you may need to move the pool.",
      'Burning is permanent and needs no trust; locking is temporary and keeps the option to migrate. <a href="/blog/burning-vs-locking-liquidity">The comparison</a> covers when each fits.'],
     ["My launchpad already locked the liquidity. Do I need to do anything?",
      "Not for the liquidity. What usually remains is fee revenue, a creator buy from the curve, or a treasury — ordinary balances that a holder looks at once liquidity is settled.", null],
@@ -109,7 +109,7 @@ const GROUPS = [
      'A lock releases everything on one date; vesting releases gradually, optionally after a cliff. <a href="/blog/token-locks-vs-vesting-vs-burning">Locks vs vesting vs burning</a> compares them properly.'],
     ["Can a vesting schedule be cancelled?",
      "Not by HoodLock. There is no revoke, sweep or rescue function in the contract, so we cannot cancel or edit a schedule. The token is the exception: an upgradeable, pausable or blacklisting token can still freeze or devalue a schedule after the fact, and the creator is often the token deployer.",
-     'Not by HoodLock — there is no revoke, sweep or rescue function. The token is the exception: an upgradeable, pausable or blacklisting token can still freeze or devalue a schedule afterwards. See <a href="/docs/token-vesting">token vesting</a>.'],
+     'Not by HoodLock. There is no revoke, sweep or rescue function. The token is the exception: an upgradeable, pausable or blacklisting token can still freeze or devalue a schedule afterwards. See <a href="/docs/token-vesting">token vesting</a>.'],
     ["Can I edit a vesting schedule after creating it?",
      "No. Not the amount, not the dates, not the recipient. This is the one action on HoodLock where a mistake cannot be corrected.", null],
     ["What is a cliff?",
@@ -136,7 +136,7 @@ const GROUPS = [
      "It transfers tokens from your wallet to the dead address in a single hop and writes a permanent record of the amount, the token and the time.", null],
     ["Can burned tokens be recovered?",
      "Not through HoodLock, and not by anyone holding the dead address, which has no private key. But a mintable token can re-issue the same amount, and an upgradeable token can add a function that moves the dead address balance. Check whether the token is mintable or upgradeable before treating a burn as permanent.",
-     'Not through HoodLock, and the dead address has no private key. But a mintable token can re-issue the amount and an upgradeable one can move the dead address balance — see <a href="/docs/token-burning">token burning</a>.'],
+     'Not through HoodLock, and the dead address has no private key. But a mintable token can re-issue the amount and an upgradeable one can move the dead address balance. See <a href="/docs/token-burning">token burning</a>.'],
     ["Why burn through HoodLock instead of sending to the dead address myself?",
      "Both destroy the supply. Only one produces an indexed record and a page stating the amount and share of supply that a reader can check without knowing how to use a block explorer.", null],
     ["Do burned tokens sit in your contract first?",
@@ -150,7 +150,7 @@ const GROUPS = [
     ["Can I verify a lock without a wallet?",
      "Yes. Proof pages, token pages and the explorer all work with no wallet and no account.", null],
     ["What is a proof page?",
-     "A public URL for a single lock, burn or vesting schedule that renders the current on-chain state — token, amount, share of supply, dates and status — and links to the transaction.",
+     "A public URL for a single lock, burn or vesting schedule that renders the current on-chain state — token, amount, share of supply, dates and status, and links to the transaction.",
      'A public URL for a single record that renders current on-chain state and links to the transaction. See <a href="/docs/proof-of-lock">proof of lock</a>.'],
     ["Does a lock mean a token is safe?",
      "No. A lock is evidence about one balance. It says nothing about the token contract, the remaining supply or the team.",
@@ -166,7 +166,7 @@ const GROUPS = [
      "All three are verified on Blockscout, so the source you read is the bytecode that runs. Search it for withdraw and confirm every match is gated on the owner or beneficiary, then search for onlyAdmin and read what those functions touch. The vesting contract was additionally built against a written threat model with a full test suite.",
      'All three are verified on Blockscout, so the source you read is the bytecode that runs. The <a href="/docs/security">security model</a> names the exact functions to search for and what you should find.'],
     ["What happens if HoodLock disappears?",
-     "The contracts keep running. They are deployed on-chain and do not depend on our site — you can call withdraw or claim directly from a block explorer. The proof pages would go, the funds would not.", null],
+     "The contracts keep running. They are deployed on-chain and do not depend on our site. You can call withdraw or claim directly from a block explorer. The proof pages would go, the funds would not.", null],
   ]],
 
   ["Developers", [
@@ -174,7 +174,7 @@ const GROUPS = [
      "Yes, two ways: an embed widget that is one script tag and a button, or a REST API that returns prepared transactions for you to submit from the user's wallet.",
      'Yes — an <a href="/docs/embed">embed widget</a> that is one script tag, or a <a href="/docs/api">REST API</a> returning prepared transactions.'],
     ["Can I style the button myself?",
-     "Yes. The widget attaches a click handler and nothing else — it sets no classes, no inline styles and no attributes affecting appearance. Your button stays entirely yours.", null],
+     "Yes. The widget attaches a click handler and nothing else. It sets no classes, no inline styles and no attributes affecting appearance. Your button stays entirely yours.", null],
     ["Is the API key secret?",
      "No, it is public by design, in the same sense as a Stripe publishable key. It credits actions to you and cannot move funds, read balances or reach admin. Embedding it in frontend source is the intended use.", null],
     ["How much do partners earn?",
@@ -182,7 +182,7 @@ const GROUPS = [
     ["Can I offer only locking, without burn and vesting?",
      "Yes. Each button is independent — a lock-only integration is a single button with no extra attributes. You earn on whichever products you add.", null],
     ["Do the API endpoints support CORS?",
-     "Yes, they send permissive CORS headers and work from a browser. Note that the API key is passed as a query parameter on GET and a body field on POST — there is no header form, because the CORS policy allows Content-Type only.", null],
+     "Yes, they send permissive CORS headers and work from a browser. Note that the API key is passed as a query parameter on GET and a body field on POST. There is no header form, because the CORS policy allows Content-Type only.", null],
   ]],
 ];
 
@@ -200,7 +200,7 @@ export default {
   desc: "Answers to the questions people actually ask about locking, burning and vesting tokens on Robinhood Chain — costs, guarantees, verification and limits.",
   updated: "2026-07-29",
   h1: 'Frequently asked <span class="serif">questions.</span>',
-  lede: `${ALL.length} questions, grouped by what you are trying to work out. Every answer is on this page — nothing is hidden behind a click.`,
+  lede: `${ALL.length} questions, grouped by what you are trying to work out. Every answer is on this page. Nothing is hidden behind a click.`,
   body: info(`Looking for something specific? Press <code>/</code> to search the documentation, or start
     from the <a href="/docs">documentation home</a>.`) + body,
   faqs: ALL.map(([q, a]) => [q, a]),

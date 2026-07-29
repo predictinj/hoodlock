@@ -49,7 +49,7 @@
 <main id="main">
 <nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Fees</li></ol></nav>
 <h1>Fees.</h1>
-<p class="lede">One flat fee in ETH, charged once, at creation. No percentage of your tokens is taken at any point — not on the way in, not on the way out.</p>
+<p class="lede">One flat fee in ETH, charged once, at creation. No percentage of your tokens is taken at any point, not on the way in, not on the way out.</p>
 <div class="meta">Updated 2026-07-29 · HoodLock Team</div>
 
 <h2 id="what-you-pay">What you pay<a class="anchor" href="#what-you-pay" aria-label="Link to this section">#</a></h2>
@@ -66,7 +66,7 @@ appropriate ones. A flat fee in ETH costs the same to lock a treasury as to lock
 contracts never take custody of a percentage of anything.</p>
 
 <h2 id="overpayment">Overpayment<a class="anchor" href="#overpayment" aria-label="Link to this section">#</a></h2>
-<div class="tablewrap"><table><thead><tr><th>Contract</th><th>Behaviour</th></tr></thead><tbody><tr><td>Locker</td><td>Accepts more than the fee and <b>refunds the difference</b></td></tr><tr><td>Burner</td><td>Accepts more than the fee and <b>refunds the difference</b></td></tr><tr><td>Vesting</td><td>Requires <code>msg.value == fee</code> <b>exactly</b> — no refund path</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Contract</th><th>Behaviour</th></tr></thead><tbody><tr><td>Locker</td><td>Accepts more than the fee and <b>refunds the difference</b></td></tr><tr><td>Burner</td><td>Accepts more than the fee and <b>refunds the difference</b></td></tr><tr><td>Vesting</td><td>Requires <code>msg.value == fee</code> <b>exactly</b>. No refund path</td></tr></tbody></table></div>
 <div class="callout callout-warn"><div class="ct">Careful</div><p>The vesting contract's exact-fee rule is the one asymmetry worth remembering when you build a
 transaction by hand. Read the fee immediately before sending rather than reusing a value from earlier in
 the session. Batch creation requires <code>fee × n</code>, again exactly.</p></div>

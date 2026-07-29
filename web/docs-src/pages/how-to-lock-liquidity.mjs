@@ -15,10 +15,10 @@ the procedure.</p>`)}
 
 ${h2("First: confirm you can lock it")}
 ${p(`Only v2-style positions are ERC-20 tokens. Uniswap v3 and v4 positions are NFTs and cannot be held by
-the locker — no amount of trying will make that work, so check before you start.`)}
+the locker. No amount of trying will make that work, so check before you start.`)}
 ${table(["Check", "v2-style (lockable)", "v3 / v4 (not lockable)"], [
   ["Appears in your wallet as a token balance", "Yes", "No"],
-  ["Symbol", "<code>UNI-V2</code>, <code>SLP</code> or similar", "None — it is an NFT"],
+  ["Symbol", "<code>UNI-V2</code>, <code>SLP</code> or similar", "None. It is an NFT"],
   ["Pair contract has <code>totalSupply()</code>", "Yes", "No"],
 ])}
 ${p(`${doc("liquidity-locker", "The liquidity locker page")} goes into how to tell them apart in more

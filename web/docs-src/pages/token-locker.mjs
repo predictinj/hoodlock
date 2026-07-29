@@ -11,7 +11,7 @@ export default {
   body: `
 ${h2("What it does")}
 ${p(`The locker holds ERC-20 tokens against a record: an owner, a token, an amount and an unlock time.
-Until that time passes, nothing can withdraw them — not the owner, not us. After it passes, only the
+Until that time passes, nothing can withdraw them, not the owner, not us. After it passes, only the
 owner can.`)}
 ${p(`That is the whole product. Its value is not the holding, which is easy, but the fact that a stranger
 can verify the holding without asking anyone.`)}
@@ -20,7 +20,7 @@ ${h2("What it guarantees")}
 ${table(["Guarantee", "Enforced by"], [
   ["Only the lock's owner can withdraw", "<code>onlyLockOwner</code> on <code>withdraw</code>"],
   ["Not before the unlock time", "A timestamp check in <code>withdraw</code>"],
-  ["No admin can move locked tokens", "The absence of any such function — there is nothing to disable"],
+  ["No admin can move locked tokens", "The absence of any such function. There is nothing to disable"],
   ["The unlock date can only move later", "<code>extend</code> requires a strictly greater timestamp"],
   ["The recorded amount is the balance the contract gained", "Measured before and after the transfer. Correct for simple fee-on-transfer; <b>not</b> for rebasing or reflection tokens, which are unsupported"],
 ])}
@@ -29,7 +29,7 @@ names the exact functions.`)}
 
 ${h2("What it does not do")}
 ${ul([
-  "It does not release tokens automatically. Withdrawal is a transaction the owner sends when they choose — see " + doc("when-a-lock-expires", "when a lock expires") + ".",
+  "It does not release tokens automatically. Withdrawal is a transaction the owner sends when they choose. See " + doc("when-a-lock-expires", "when a lock expires") + ".",
   "It does not stop a lock from being transferred. Ownership can move to another wallet; the tokens stay put.",
   "It does not make a token safe. A locked supply says nothing about the contract's transfer logic — that is a separate check.",
 ])}
@@ -45,7 +45,7 @@ ${table(["Asset", "Lockable", "Why"], [
 ${p(`${doc("liquidity-locker", "Locking liquidity")} goes into which kind you are holding and how to tell.`)}
 
 ${h2("Cost")}
-${p(`A flat fee per lock — currently 0.005 ETH, read live from the contract — plus gas. No percentage of
+${p(`A flat fee per lock, currently 0.005 ETH, read live from the contract, plus gas. No percentage of
 the tokens, at any point, including withdrawal. ${doc("fees", "Fees")} has the detail.`)}
 ${info(`<p>Changing the fee affects new locks only. An existing lock is never re-priced, and withdrawal is
 always free.</p>`)}

@@ -70,7 +70,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <h2>What to read, in order</h2>
 <div class="box">
 <ul style="margin-bottom:0">
-<li><b>The transfer function.</b> Any condition on sender or recipient beyond a balance check deserves attention — that's where sell restrictions live.</li>
+<li><b>The transfer function.</b> Any condition on sender or recipient beyond a balance check deserves attention. That's where sell restrictions live.</li>
 <li><b>Mint.</b> If a function can create tokens after deployment, the supply you see is a snapshot rather than a limit. Check what restricts it.</li>
 <li><b>Owner-only functions.</b> Search for <code>onlyOwner</code> or equivalent. Whatever those functions do, one address can do at will.</li>
 <li><b>Fee variables.</b> If a tax rate is a changeable variable rather than a constant, it can be changed after you buy.</li>
@@ -79,7 +79,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 </div>
 
 <h2>Using Read Contract without writing code</h2>
-<p>The <b>Read Contract</b> tab lets you call any view function directly in the browser — no wallet, no cost. It's the fastest way to check things people usually take on trust: <code>totalSupply()</code>, <code>owner()</code>, <code>balanceOf()</code> for a specific address, or a fee variable's current value. The answer comes from the chain, not from a website's copy of it.</p>
+<p>The <b>Read Contract</b> tab lets you call any view function directly in the browser. No wallet, no cost. It's the fastest way to check things people usually take on trust: <code>totalSupply()</code>, <code>owner()</code>, <code>balanceOf()</code> for a specific address, or a fee variable's current value. The answer comes from the chain, not from a website's copy of it.</p>
 
 <h2>Confirming a lock the hard way</h2>
 <p>If a project says liquidity is locked, you can confirm it end to end:</p>
@@ -87,7 +87,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <li>Find the LP token contract for the pair and open its holder list.</li>
 <li>Identify the contract holding the largest balance. That's the locker.</li>
 <li>Open the locker contract and confirm its source is verified.</li>
-<li>Read its withdrawal function — check that it requires the caller to be the lock owner <i>and</i> the unlock time to have passed, with no owner or admin bypass.</li>
+<li>Read its withdrawal function. Check that it requires the caller to be the lock owner <i>and</i> the unlock time to have passed, with no owner or admin bypass.</li>
 <li>Use Read Contract to pull the lock record and read the actual unlock timestamp.</li>
 </ol>
 <p>That sequence is the whole point of on-chain proof: at no step do you have to believe anyone. HoodLock's locker, burner and vesting contracts are verified on Blockscout and their addresses are published on <a href="/app/developers">the developers page</a> so you can run this against us too.</p>

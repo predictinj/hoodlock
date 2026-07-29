@@ -58,7 +58,7 @@ owner. The tokens stay in the contract until that owner sends a transaction. The
 indefinitely.</p>
 <div class="tablewrap"><table><thead><tr><th>Common belief</th><th>Reality</th></tr></thead><tbody><tr><td>Tokens are returned automatically</td><td>Nothing is pushed. The owner must withdraw.</td></tr><tr><td>The lock disappears</td><td>The record stays on-chain permanently, with its status updated.</td></tr><tr><td>The proof link stops working</td><td>It keeps working and shows the current status honestly.</td></tr><tr><td>There is a grace period</td><td>There is not. The moment passes and withdrawal is available.</td></tr></tbody></table></div>
 <div class="callout callout-info"><div class="ct">Note</div><p>Because withdrawal is a deliberate act, an expired lock that has not been withdrawn is
-informative in itself — it says the owner had the option and has not taken it.</p></div>
+informative in itself. It says the owner had the option and has not taken it.</p></div>
 
 <h2 id="what-holders-see">What holders see<a class="anchor" href="#what-holders-see" aria-label="Link to this section">#</a></h2>
 <p>The proof page and the explorer both switch the status from locked to unlockable, and then to
@@ -69,12 +69,12 @@ ended. Saying what you plan to do beforehand costs nothing.</p></div>
 
 <h2 id="your-options-as-the-date-approaches">Your options as the date approaches<a class="anchor" href="#your-options-as-the-date-approaches" aria-label="Link to this section">#</a></h2>
 <div class="tablewrap"><table><thead><tr><th>Option</th><th>Cost</th><th>How it reads</th></tr></thead><tbody><tr><td><b>Extend</b> before expiry</td><td>Gas only — extending is free</td><td>Strongest. A continuous record with no gap.</td></tr><tr><td>Let it expire and leave it</td><td>Nothing</td><td>Ambiguous. The option to sell exists and is visible.</td></tr><tr><td>Withdraw and re-lock</td><td>A new fee</td><td>Weakest. There is a gap, and gaps get noticed.</td></tr><tr><td>Withdraw</td><td>Gas only</td><td>Honest, if you say why.</td></tr></tbody></table></div>
-<p>Extending is almost always the right move if you intend to stay locked — see
+<p>Extending is almost always the right move if you intend to stay locked. See
 <a href="/docs/how-to-extend-a-lock">extending a lock</a>. It is free, it happens before the gap rather than
 after, and it keeps the record unbroken.</p>
 
 <h2 id="withdrawing">Withdrawing<a class="anchor" href="#withdrawing" aria-label="Link to this section">#</a></h2>
-<ol class="steps"><li><b>Open My locks</b> in <a href="/app/locks">the app</a> with the owning wallet.</li><li><b>Find the expired lock</b> — it will show as unlockable.</li><li><b>Withdraw.</b> One transaction, gas only. <b>There is no withdrawal fee.</b></li></ol>
+<ol class="steps"><li><b>Open My locks</b> in <a href="/app/locks">the app</a> with the owning wallet.</li><li><b>Find the expired lock</b>. It will show as unlockable.</li><li><b>Withdraw.</b> One transaction, gas only. <b>There is no withdrawal fee.</b></li></ol>
 <p>The full amount returns to the lock's current owner. If ownership was transferred at some point, it
 goes to the current owner, not the original creator.</p>
 

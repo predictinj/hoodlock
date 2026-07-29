@@ -111,7 +111,7 @@ export async function tokenData({ address, explorer, recs }) {
 function verdictLine(d) {
   const bits = [];
   if (d.activeLocks.length) bits.push(`${d.activeLocks.length} active HoodLock lock${d.activeLocks.length > 1 ? "s" : ""}`);
-  else if (d.recs.locks.length) bits.push("past locks only — none currently active");
+  else if (d.recs.locks.length) bits.push("past locks only, none currently active");
   else bits.push("no HoodLock lock found");
   if (d.recs.vesting.length) bits.push(`${d.recs.vesting.length} vesting schedule${d.recs.vesting.length > 1 ? "s" : ""}`);
   if (d.recs.burns.length) bits.push(`${d.recs.burns.length} recorded burn${d.recs.burns.length > 1 ? "s" : ""}`);
@@ -132,7 +132,7 @@ function summary(d) {
       : p > 20
         ? `The ten largest ordinary wallets hold ${d.topWalletsPct}%, which is normal for a young token but worth watching.`
         : `The ten largest ordinary wallets hold ${d.topWalletsPct}%, so supply is reasonably spread.`);
-    s.push(`Contracts, pools and burn addresses are excluded from that figure — they hold large balances by design.`);
+    s.push(`Contracts, pools and burn addresses are excluded from that figure, because they hold large balances by design.`);
   }
   if (d.verified === false) s.push(`The contract source is <b>not verified</b>, so nothing about its behaviour can be checked independently.`);
   else if (d.verified) s.push(`The contract source is verified, so its behaviour can be read directly.`);
@@ -150,7 +150,7 @@ function faqs(d) {
     [`Is ${t} liquidity locked?`,
      d.activeLocks.length
        ? `${t} has ${d.activeLocks.length} active lock recorded on HoodLock as of ${stamp}. Open the proof page to see the amount and unlock date read live from the chain.`
-       : `No HoodLock lock was found for ${t} as of ${stamp}. This page re-reads Robinhood Chain on every visit, so if ${t} is locked through HoodLock the answer here changes on the very next load — there is nothing to submit and nobody to notify. That said, this covers HoodLock's own locker only: the tokens may be locked with another service, or the liquidity burned, so check the LP token's holder list before concluding anything.`],
+       : `No HoodLock lock was found for ${t} as of ${stamp}. This page re-reads Robinhood Chain on every visit, so if ${t} is locked through HoodLock the answer here changes on the very next load. There is nothing to submit and nobody to notify. That said, this covers HoodLock's own locker only: the tokens may be locked with another service, or the liquidity burned, so check the LP token's holder list before concluding anything.`],
     [`How many holders does ${t} have?`,
      `${nf(d.holders)} addresses hold ${t} on Robinhood Chain, across ${nf(d.transfers)} transfers, as of ${stamp}.`],
     [`Is the ${t} contract verified?`,
@@ -160,7 +160,7 @@ function faqs(d) {
   ];
   if (d.recs.vesting.length) {
     out.push([`Does ${t} have token vesting?`,
-      `Yes — ${d.recs.vesting.length} vesting schedule${d.recs.vesting.length > 1 ? "s are" : " is"} recorded on HoodLock for ${t}. Vesting schedules created on HoodLock are irrevocable and cannot be cancelled or edited.`]);
+      `Yes. ${d.recs.vesting.length} vesting schedule${d.recs.vesting.length > 1 ? "s are" : " is"} recorded on HoodLock for ${t}. Vesting schedules created on HoodLock are irrevocable and cannot be cancelled or edited.`]);
   }
   return out;
 }
@@ -196,7 +196,7 @@ function ctaBox(d) {
     return `<div class="cta-box">
   <h2 style="margin-top:0">Settle it for everyone else</h2>
   <p>The proof page reads this lock live from Robinhood Chain and opens without a wallet, so anyone asking the same question about $${sym} can check it themselves.</p>
-  <a class="btn" href="${share(`$${sym} on Robinhood Chain is locked on HoodLock. Verify it yourself —`, proof)}"
+  <a class="btn" href="${share(`$${sym} on Robinhood Chain is locked on HoodLock. Verify it yourself:`, proof)}"
      target="_blank" rel="noopener">Share the proof on X →</a>
   <p class="cta-alt"><a href="/proof/lock/${d.activeLocks[0].id}">Open the proof page</a> · <a href="/app/locks">Lock a token yourself</a></p>
 </div>`;
@@ -205,10 +205,10 @@ function ctaBox(d) {
   const url = `${site}/lock-checker?a=${String(d.address).toLowerCase()}`;
   return `<div class="cta-box">
   <h2 style="margin-top:0">Holding $${sym}?</h2>
-  <p>Nothing is locked on HoodLock for this token. If you would rather that changed, the quickest way is to ask in public — this posts the check with a link the team can act on.</p>
-  <a class="btn" href="${share(`Checked $${sym} on Robinhood Chain — no locks on HoodLock (it may be locked elsewhere). Team, can you lock it?`, url)}"
+  <p>Nothing is locked on HoodLock for this token. If you would rather that changed, the quickest way is to ask in public. This posts the check with a link the team can act on.</p>
+  <a class="btn" href="${share(`Checked $${sym} on Robinhood Chain. No locks on HoodLock, though it may be locked elsewhere. Team, can you lock it?`, url)}"
      target="_blank" rel="noopener">Ask the team on X →</a>
-  <p class="cta-alt">Are you the project? <a href="/app/locks">Lock in one transaction</a> — flat 0.005 ETH, never a percentage of your tokens, and this page updates the moment it confirms.</p>
+  <p class="cta-alt">Are you the project? <a href="/app/locks">Lock in one transaction</a> for a flat 0.005 ETH, never a percentage of your tokens, and this page updates the moment it confirms.</p>
 </div>`;
 }
 
@@ -216,7 +216,7 @@ export function renderTokenPage(d, { site = "https://hoodlock.tech", slug, noind
   const url = `${site}/token/${slug}`;
   const stampIso = d.checkedAt.toISOString();
   const stamp = stampIso.slice(0, 16).replace("T", " ") + " UTC";
-  const title = `${esc(d.symbol)} Token — Locks, Burns & Holder Breakdown | Robinhood Chain`;
+  const title = `${esc(d.symbol)} Token: Locks, Burns & Holder Breakdown | Robinhood Chain`;
   // The description carries the answer, not an invitation — that is what wins
   // the click when this sits next to five other results.
   const desc = [
@@ -276,7 +276,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : ""}
 <meta property="og:url" content="${url}">
 <meta property="og:image" content="${site}/og/token/${esc(String(d.address).toLowerCase())}.png">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="${esc(d.symbol)} on Robinhood Chain — locks, burns and vesting">
+<meta property="og:image:alt" content="${esc(d.symbol)} on Robinhood Chain: locks, burns and vesting">
 <meta name="twitter:image" content="${site}/og/token/${esc(String(d.address).toLowerCase())}.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -347,7 +347,7 @@ footer{border-top:1px solid var(--line);margin-top:50px;padding:24px 22px;text-a
 <div class="verdict">
   <div class="q">Is $${esc(d.symbol)} locked?</div>
   <div class="a ${d.activeLocks.length ? "ok" : "none"}">${esc(verdictLine(d))}</div>
-  <div class="stamp">as of ${esc(stamp)} · re-read from Robinhood Chain on every visit${d.activeLocks.length ? "" : " — lock this token and it updates here immediately"}</div>
+  <div class="stamp">as of ${esc(stamp)} · re-read from Robinhood Chain on every visit${d.activeLocks.length ? "" : ". Lock this token and it updates here immediately"}</div>
 </div>
 
 <h2>What the chain says</h2>
@@ -363,7 +363,7 @@ ${recRow("Locks", d.recs.locks, "lock", (r) => `${fmtUnits(r.amount, d.decimals)
 ${recRow("Burns", d.recs.burns, "burn", (r) => `${fmtUnits(r.amount, d.decimals)} $${esc(d.symbol)} on ${day(r.ts)}`)}
 ${recRow("Vesting", d.recs.vesting, "vesting", (r) => `${fmtUnits(r.total, d.decimals)} $${esc(d.symbol)} until ${day(r.end)}`)}
 </table>
-<p class="dim">Read live from HoodLock's contracts — a new lock, burn or schedule shows up here on the next page load. These cover HoodLock's own contracts only; tokens may also be locked elsewhere or liquidity burned directly — <a href="/blog/how-to-check-if-liquidity-is-locked">how to check the rest</a>.</p>
+<p class="dim">Read live from HoodLock's contracts, so a new lock, burn or schedule shows up here on the next page load. These cover HoodLock's own contracts only; tokens may also be locked elsewhere or liquidity burned directly, so here is <a href="/blog/how-to-check-if-liquidity-is-locked">how to check the rest</a>.</p>
 
 <div class="links">
   <a href="https://robinhoodchain.blockscout.com/token/${esc(d.address)}" target="_blank" rel="noopener">Contract on Blockscout ↗</a>

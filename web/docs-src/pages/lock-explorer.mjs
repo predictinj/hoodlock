@@ -22,7 +22,7 @@ ${table(["Search by", "What you get"], [
   ["Wallet address", "Every record created by that wallet, across tokens"],
 ])}
 ${info(`<p>Search takes a contract address, not a symbol. Symbols are not unique — several tokens on this
-chain share one — so an address is the only unambiguous way to ask the question. Copy it from the DEX pair
+chain share one, so an address is the only unambiguous way to ask the question. Copy it from the DEX pair
 or the project's own site rather than from a chat message.</p>`)}
 
 ${h2("Token pages")}
@@ -43,7 +43,7 @@ ${p(`Everything the explorer displays is read from the chain at request time. It
 its own and shows nothing that could not be reconstructed from the contracts directly — the
 ${doc("contracts", "contract reference")} lists the enumeration functions it uses.`)}
 
-${cta("Browse the explorer", "Every lock, burn and vesting schedule on Robinhood Chain — no wallet needed.", "/app/explore", "Open explorer →")}
+${cta("Browse the explorer", "Every lock, burn and vesting schedule on Robinhood Chain. No wallet needed.", "/app/explore", "Open explorer →")}
 `,
   related: [
     { href: "/docs/proof-of-lock", title: "Proof of lock" },

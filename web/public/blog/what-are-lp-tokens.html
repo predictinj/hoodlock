@@ -63,7 +63,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <p>To get your liquidity back, you return the LP tokens and the pool burns them, sending you your share of both assets. That's the entire relationship: <b>LP tokens are the key to withdrawing the pool.</b></p>
 
 <h2>Why this makes locking obvious</h2>
-<p>Whoever holds the LP tokens can withdraw the liquidity. If a team keeps them in a wallet, nothing stops them from returning them and taking the pool — which is what a rug pull is, mechanically. Locking LP tokens in a time-locked contract means the key is unavailable until a date, so the liquidity stays where buyers can trade against it.</p>
+<p>Whoever holds the LP tokens can withdraw the liquidity. If a team keeps them in a wallet, nothing stops them from returning them and taking the pool, which is what a rug pull is, mechanically. Locking LP tokens in a time-locked contract means the key is unavailable until a date, so the liquidity stays where buyers can trade against it.</p>
 <p>This is also why locking the <i>project token</i> instead is a different, much weaker commitment. Locked project tokens can't be sold; locked LP tokens can't be withdrawn. Only the second protects the pool.</p>
 
 <h2>Your share isn't fixed in tokens</h2>
@@ -72,10 +72,10 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <h2>Finding your LP token</h2>
 <ol>
 <li>The LP token is its own contract with its own address, distinct from the project token.</li>
-<li>After adding liquidity, it appears in your wallet's token list — often unnamed or shown with the DEX's naming convention for the pair.</li>
+<li>After adding liquidity, it appears in your wallet's token list, often unnamed or shown with the DEX's naming convention for the pair.</li>
 <li>On Blockscout, the pair address is the LP token address, and its holder list shows who can withdraw the pool.</li>
 </ol>
-<p>When locking on HoodLock, you select the LP token from the tokens your wallet holds, so you're picking rather than pasting an address — which removes the most common way this goes wrong.</p>
+<p>When locking on HoodLock, you select the LP token from the tokens your wallet holds, so you're picking rather than pasting an address, which removes the most common way this goes wrong.</p>
 
 <h2>What to check on someone else's LP</h2>
 <p>The LP token's holder list is the single most informative page about whether a project's liquidity is safe. A locker contract at the top means locked; a null address means <a href="/blog/how-to-check-if-liquidity-is-burned">burned</a>; a plain wallet means neither. <a href="/blog/how-to-check-if-liquidity-is-locked">The full check is here</a>.</p>

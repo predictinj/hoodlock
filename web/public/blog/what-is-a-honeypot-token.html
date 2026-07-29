@@ -52,9 +52,9 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <nav class="nav"><a class="logo" href="/">Hood<b>Lock</b></a><a class="cta" href="/app">Launch App</a></nav>
 <main>
 <div class="crumb"><a href="/">HOODLOCK</a> / <a href="/blog">LEARN</a></div>
-<h1>Honeypot tokens on Robinhood Chain — and how to <span class="serif">avoid one.</span></h1>
+<h1>Honeypot tokens on Robinhood Chain, and how to <span class="serif">avoid one.</span></h1>
 <div class="meta">Published 2026-07-27 · HoodLock Team</div>
-<p>A <b>honeypot</b> is a token you can buy and cannot sell. The chart looks healthy, buys go through, and the moment you try to exit the transaction fails. It's not a market problem — it's written into the contract, and Robinhood Chain is no more immune to it than any other chain.</p>
+<p>A <b>honeypot</b> is a token you can buy and cannot sell. The chart looks healthy, buys go through, and the moment you try to exit the transaction fails. It's not a market problem. It's written into the contract, and Robinhood Chain is no more immune to it than any other chain.</p>
 
 <h2>How they work</h2>
 <p>The trap is always in code that treats buying and selling differently. The common mechanisms:</p>
@@ -81,11 +81,11 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <p>If the contract source isn't verified on the block explorer, none of the above is possible. You cannot check the transfer logic, cannot see who has privileges, and cannot confirm the deployed bytecode matches anything anyone published. A honeypot is exactly the kind of thing unverified source hides, which is why "source not verified" is worth treating as an answer rather than a missing data point.</p>
 
 <h2>What locked liquidity does and doesn't do</h2>
-<p>This is the part people get wrong. <b>Locked liquidity does not protect you from a honeypot.</b> A lock guarantees the liquidity stays in the pool — it says nothing about whether the token contract will let you reach that pool. A project can lock 100% of its LP for two years and still ship a contract that blocks selling.</p>
+<p>This is the part people get wrong. <b>Locked liquidity does not protect you from a honeypot.</b> A lock guarantees the liquidity stays in the pool. It says nothing about whether the token contract will let you reach that pool. A project can lock 100% of its LP for two years and still ship a contract that blocks selling.</p>
 <p>The two checks answer different questions. A lock tells you the exit exists; the contract tells you whether you're allowed to use it. <a href="/blog/how-to-check-if-liquidity-is-locked">Check the lock</a>, then read the transfer logic.</p>
 
 <h2>The honest limitation</h2>
-<p>Every check here describes the contract as it is right now. If an owner retains the ability to change fees, pause transfers or blacklist addresses, a token that passes today can become a honeypot tomorrow. That's why the meaningful question isn't "can I sell right now" but "does anyone hold the power to stop me later" — and that answer lives in the source code, not in a scanner's green tick.</p>
+<p>Every check here describes the contract as it is right now. If an owner retains the ability to change fees, pause transfers or blacklist addresses, a token that passes today can become a honeypot tomorrow. That's why the meaningful question isn't "can I sell right now" but "does anyone hold the power to stop me later", and that answer lives in the source code, not in a scanner's green tick.</p>
 <h2>Common questions</h2>
 <h3>What is a honeypot token?</h3>
 <p>A honeypot is a token whose contract lets you buy but prevents you from selling. The restriction is written into the transfer logic, usually through a blacklist, a whitelist, an adjustable sell tax or a pause switch that only the owner can flip.</p>

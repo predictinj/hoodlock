@@ -40,7 +40,7 @@ with the functions and events each one exposes.`)}
 
 ${h2("Reading history")}
 ${p(`If you are indexing HoodLock events yourself, one limit on the public RPC matters more than anything
-else about it — and it is not the one you might expect.`)}
+else about it, and it is not the one you might expect.`)}
 ${table(["Limit", "Measured behaviour"], [
   ["<code>eth_getLogs</code> result size",
    "<b>Hard cap at 10,000 logs.</b> Exceeding it returns <code>logs matched by query exceeds limit of 10000</code> and no partial result."],

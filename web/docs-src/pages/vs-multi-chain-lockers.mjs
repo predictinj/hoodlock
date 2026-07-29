@@ -7,11 +7,11 @@ export default {
   desc: "The established multi-chain lockers do not list Robinhood Chain among their supported networks. What that means in practice and what to check before assuming.",
   updated: "2026-07-29",
   h1: 'Using an established locker on <span class="serif">Robinhood Chain.</span>',
-  lede: "If you have launched before, you probably have a locker you already trust. The question is whether it reaches this chain — and for most of them, today, it does not.",
+  lede: "If you have launched before, you probably have a locker you already trust. The question is whether it reaches this chain, and for most of them, today, it does not.",
   body: `
 ${h2("The short answer")}
 ${p(`Robinhood Chain reached mainnet on 1 July 2026. The large multi-chain lockers have not, as of writing,
-added it to their published network lists. A locker that does not support a chain cannot lock on it — there
+added it to their published network lists. A locker that does not support a chain cannot lock on it. There
 is no workaround, because the contracts simply are not deployed there.`)}
 ${table(["Locker", "Published network support", "Robinhood Chain (4663)"], [
   ["Team Finance", "Ethereum, BNB Chain, Cronos, Fantom, Polygon", "Not listed"],
@@ -31,7 +31,7 @@ ${p(`It also means you cannot use a locker's reputation from another chain as ev
 matters is the contract at the address your tokens would go to.`)}
 
 ${h2("What actually separates lockers")}
-${p(`If you are evaluating where to lock, these are the questions that actually separate lockers — and they
+${p(`If you are evaluating where to lock, these are the questions that actually separate lockers, and they
 apply to us as much as to anyone.`)}
 ${ul([
   "<b>Is the contract verified on the chain's explorer?</b> If not, nothing else can be checked.",
@@ -59,7 +59,7 @@ explains how to tell which kind of position you have.</p>`)}
 
 ${h2("What waiting costs")}
 ${p(`Every day spent waiting for a locker to arrive is a day your creator supply sits liquid and visible on
-the holder list — which is precisely the thing a lock exists to resolve. Buyers reading your token page
+the holder list, which is precisely the thing a lock exists to resolve. Buyers reading your token page
 today cannot see an intention to lock later.`)}
 ${p(`A reputation earned on Ethereum also does not transfer to a contract that does not exist here. What
 matters is the contract at the address your tokens would go to, and that one you can read yourself in five
@@ -68,7 +68,7 @@ ${p(`Once it exists, ${doc("how-to-verify-a-lock", "verify the lock")} — ours 
 
 <p class="dim" style="font-size:12.5px;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:14px">
 HoodLock is not affiliated with Team Finance, PinkLock, FlokiFi or StonkBrokers. Network support described
-here is taken from each platform's own published material as of 2026-07-29 and changes over time — check
+here is taken from each platform's own published material as of 2026-07-29 and changes over time. Check
 their own sites before relying on it.</p>
 
 ${cta("Lock it here instead of waiting", "Flat 0.005 ETH, no percentage of your tokens, and a proof link anyone can open without a wallet.")}

@@ -67,13 +67,13 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 <p>If the locker's own contract isn't verified on the block explorer, nothing above can be checked. A locker asking you to trust unverified code while selling verifiability is a contradiction worth walking away from.</p>
 
 <h2>4. Custody model</h2>
-<p>Some services hold tokens in wallets they control and present a dashboard. That's custody, not locking — you've replaced a smart contract guarantee with a company promise. The tokens should sit in a contract whose rules are the only thing governing them. <a href="/blog/custodial-vs-non-custodial-locking">More on the distinction</a>.</p>
+<p>Some services hold tokens in wallets they control and present a dashboard. That's custody, not locking. You've replaced a smart contract guarantee with a company promise. The tokens should sit in a contract whose rules are the only thing governing them. <a href="/blog/custodial-vs-non-custodial-locking">More on the distinction</a>.</p>
 
 <h2>5. Fee structure</h2>
 <p>A flat fee in the native currency is predictable. A percentage of the locked tokens means the locker takes a position in every project it serves, and it scales with your success rather than with the service provided. HoodLock charges a flat 0.005 ETH per lock and never takes a share of the tokens.</p>
 
 <h2>6. Whether the proof is public and permanent</h2>
-<p>The point of locking is that other people can verify it. A locker whose records live behind a wallet connection, or whose "proof" is a dashboard screenshot, hasn't delivered the thing you paid for. What you want is a page anyone can open without a wallet that reads live from the chain — and a path from that page to the raw transaction on the block explorer.</p>
+<p>The point of locking is that other people can verify it. A locker whose records live behind a wallet connection, or whose "proof" is a dashboard screenshot, hasn't delivered the thing you paid for. What you want is a page anyone can open without a wallet that reads live from the chain, and a path from that page to the raw transaction on the block explorer.</p>
 
 <h2>7. Token compatibility</h2>
 <p>Not every token behaves like a standard ERC-20. Tokens with transfer fees deliver fewer tokens than requested, and some non-standard implementations return nothing where a boolean is expected. A locker should handle these predictably — either supporting them correctly or refusing them clearly. What you don't want is a lock that silently records the wrong amount.</p>
@@ -103,7 +103,7 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 22px;text-a
 
 <div class="cta-box">
   <h2 style="margin-top:0">Check us against your own list</h2>
-  <p>Verified source, published addresses, no admin access over locked funds — flat 0.005 ETH, and never a percentage of your tokens. <a href="/app/developers">Read the contracts first</a> if you would rather start there.</p>
+  <p>Verified source, published addresses, no admin access over locked funds, flat 0.005 ETH, and never a percentage of your tokens. <a href="/app/developers">Read the contracts first</a> if you would rather start there.</p>
   <a class="btn" href="/app/locks">Lock a token →</a>
 </div>
 </main>

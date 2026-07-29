@@ -12,7 +12,7 @@ export default {
 ${h2("Before you start")}
 ${ul([
   `The wallet holding the tokens, connected to Robinhood Chain. See ${doc("connect-wallet", "connecting a wallet")} if the network is not in your wallet yet.`,
-  `A little ETH for gas, plus the flat fee — currently 0.005 ETH, read live from the contract. See ${doc("fees", "fees")}.`,
+  `A little ETH for gas, plus the flat fee, currently 0.005 ETH, read live from the contract. See ${doc("fees", "fees")}.`,
   "The token's contract address, if it is not already in your wallet's token list.",
 ])}
 
@@ -28,7 +28,7 @@ ${steps([
   `<b>Approve, then lock.</b> The first transaction lets the contract move that amount of that token; the
    second creates the lock. Two prompts, in that order.`,
   `<b>Share the proof link.</b> Every lock gets a page that reads live from the chain and opens without a
-   wallet. That link is the part that does the work — see ${doc("proof-of-lock", "proof of lock")}.`,
+   wallet. That link is the part that does the work. See ${doc("proof-of-lock", "proof of lock")}.`,
 ])}
 
 ${h2("Choosing a date you can defend")}
@@ -37,7 +37,7 @@ survives contact with a sceptical holder.`)}
 ${table(["Situation", "A defensible starting point"], [
   ["Creator allocation after a launch", "6–12 months, extended as you ship"],
   ["Treasury the project needs to spend from", "Several tranches on different dates, not one block"],
-  ["Team and contributor supply", "Vesting instead — see below"],
+  ["Team and contributor supply", "Vesting instead. See below"],
   ["LP tokens from a v2-style pool", "At least as long as your roadmap's first milestone"],
 ])}
 ${info(`<p>Unlock dates can be pushed further out but <b>never pulled in</b>. That asymmetry is worth using:
@@ -65,8 +65,7 @@ explains how to tell which kind you hold.`)}
 ${h2("After the lock")}
 ${ul([
   `The lock appears in ${app("locks", "My locks")} and in ${doc("lock-explorer", "the explorer")}.`,
-  `Withdrawal becomes available at the unlock time, to the lock's owner only. Nothing happens automatically —
-   see ${doc("when-a-lock-expires", "when a lock expires")}.`,
+  `Withdrawal becomes available at the unlock time, to the lock's owner only. Nothing happens automatically. See ${doc("when-a-lock-expires", "when a lock expires")}.`,
   "Ownership of the lock can be transferred; the tokens stay where they are.",
 ])}
 
