@@ -1,0 +1,114 @@
+# HoodLock
+
+> Non-custodial token locker, burner and vesting platform on Robinhood Chain
+> (an Ethereum L2 on the Arbitrum stack, chain id 4663). Locks ERC-20 tokens
+> until a date, sends tokens to the dead address with an auditable record, or
+> releases them linearly to a beneficiary. Every record gets a public proof page
+> that reads live from the chain and opens without a wallet.
+
+HoodLock is not affiliated with Robinhood Markets, Inc.
+
+## Key facts
+
+- Chain: Robinhood Chain, id 4663. RPC https://rpc.mainnet.chain.robinhood.com, explorer https://robinhoodchain.blockscout.com
+- Locker contract: 0xd0f7d8c6e9f6d80c297bebe4f7fd1b9c8125c32f
+- Burner contract: 0x6bf43ca706faa8ea46803299c191484e82280652
+- Vesting contract: 0x910e19bcC4bce46999994Ed7297E0Fc4431ec72E
+- Fee: a flat 0.005 ETH per lock, burn or vesting schedule, read live from each contract. No percentage of tokens is ever taken. Withdrawing, claiming and extending are free.
+- Unlock dates can be extended but never shortened. No admin function can move a user's locked tokens.
+- Vesting schedules cannot be cancelled or edited by any HoodLock function. Hard fee cap 0.05 ETH, minimum duration 24 hours, batch limit 200.
+- What can be locked: any ERC-20, including v2-style LP tokens. Uniswap v3 and v4 positions are NFTs and cannot be locked.
+- Limits worth stating: these contracts have been verified on Blockscout but have not had a third-party audit. Guarantees describe HoodLock's own functions — a token that is mintable, upgradeable, pausable or that can blacklist an address can still undo or freeze what a lock, burn or schedule appears to promise.
+
+## Getting started
+
+- [Quickstart](https://hoodlock.tech/docs/quickstart): Connect a wallet, lock a balance and share the proof link. The shortest path from arriving on Robinhood Chain to having something verifiable.
+- [Connecting a wallet](https://hoodlock.tech/docs/connect-wallet): Which wallets work with HoodLock on Robinhood Chain, how the network gets added automatically, and what to do when a connection fails.
+- [Fees](https://hoodlock.tech/docs/fees): One flat ETH fee per lock, burn or vesting schedule on Robinhood Chain. No percentage cut, free withdrawals and free claims, with the caps written into the code.
+
+## Guides
+
+- [Lock tokens](https://hoodlock.tech/docs/how-to-lock-tokens): Step-by-step: lock any ERC-20 on Robinhood Chain, choose an unlock date you can defend, and share a proof link that opens without a wallet.
+- [Lock LP tokens](https://hoodlock.tech/docs/how-to-lock-liquidity): Find your LP token address, confirm it is a v2-style ERC-20 position, and lock it in the HoodLock app. With the checks that catch a wrong address first.
+- [Create a vesting schedule](https://hoodlock.tech/docs/how-to-create-vesting): Set up linear vesting on Robinhood Chain, alone or for a whole team at once, with the checks worth running before you sign something you cannot edit.
+- [Burn tokens](https://hoodlock.tech/docs/how-to-burn-tokens): The exact flow for removing supply through the HoodLock burn registry, the confirmations you get before signing, and the mistakes that cost the most.
+- [Extend a lock](https://hoodlock.tech/docs/how-to-extend-a-lock): Push an unlock date further out for free. Why extend-only is enforced by the contract, and why a lock extended repeatedly reads better than one long lock.
+- [Verify someone else's lock](https://hoodlock.tech/docs/how-to-verify-a-lock): Someone showed you a lock. Here is how to confirm it is real, that it covers the token you are actually buying, and that the amount means what they say.
+
+## Products
+
+- [Token locker](https://hoodlock.tech/docs/token-locker): A non-custodial locker for any ERC-20 on Robinhood Chain: one flat fee, an extend-only unlock date, and a public proof page for every lock.
+- [Liquidity locker](https://hoodlock.tech/docs/liquidity-locker): Lock v2-style LP tokens on Robinhood Chain and prove the pool cannot be pulled. What is lockable, what is an NFT, and how to tell them apart.
+- [Token vesting](https://hoodlock.tech/docs/token-vesting): The release formula, the cliff, what the contract can and cannot undo, and the hard limits written into it — plus when a lock is the better instrument.
+- [Token burning](https://hoodlock.tech/docs/token-burning): Send tokens to the dead address with a permanent on-chain record. What a burn actually proves, what it costs, and where the token itself sets the limit.
+- [Proof of lock](https://hoodlock.tech/docs/proof-of-lock): Every HoodLock lock, burn and vesting schedule gets a public page that reads live from the chain and opens without a wallet. What it shows and how to use it.
+- [Lock explorer](https://hoodlock.tech/docs/lock-explorer): Browse every lock, burn and vesting schedule on Robinhood Chain, search by token or wallet, and open the proof page for any record.
+
+## Trust and safety
+
+- [Security model](https://hoodlock.tech/docs/security): Non-custodial by construction: what admin can reach, what it cannot, the fee caps, and how to verify every claim on this page yourself.
+- [When a lock expires](https://hoodlock.tech/docs/when-a-lock-expires): Nothing moves automatically at the unlock date. What actually changes, what holders see, and which of the three options costs you least.
+- [Troubleshooting](https://hoodlock.tech/docs/troubleshooting): Fixes for the problems that actually come up: transactions that will not send, approvals that stall, missing locks and vesting schedules that revert.
+
+## Reference
+
+- [Contracts](https://hoodlock.tech/docs/contracts): Verified addresses, functions and events for the HoodLock locker, burner and vesting contracts on Robinhood Chain, with the guarantees each one enforces.
+- [Network](https://hoodlock.tech/docs/network): Chain id, RPC endpoint, explorer and gas token for Robinhood Chain, plus the indexing limits that shape how HoodLock reads history.
+- [REST API](https://hoodlock.tech/docs/api): Endpoints for building your own lock, burn and vesting interface on Robinhood Chain: config, attribution and prepared transaction intents.
+- [Embed widget](https://hoodlock.tech/docs/embed): Drop a lock, burn or vesting button onto your own site with one script tag, keep your own styling, and earn half the fee on what it generates.
+
+## Comparisons
+
+- [vs StonkBrokers](https://hoodlock.tech/docs/vs/stonkbrokers): Both run on Robinhood Chain and they lock different things. A factual comparison of asset support and pricing, from each platform's own published terms.
+- [vs multi-chain lockers](https://hoodlock.tech/docs/vs/multi-chain-lockers): The established multi-chain lockers do not list Robinhood Chain among their supported networks. What that means in practice and what to check before assuming.
+- [vs locking it yourself](https://hoodlock.tech/docs/vs/diy-locking): Locking tokens yourself is a twenty-line contract. An honest look at when that is the right call and what the twenty lines leave you to build afterwards.
+
+## More
+
+- [FAQ](https://hoodlock.tech/docs/faq): Answers to the questions people actually ask about locking, burning and vesting tokens on Robinhood Chain — costs, guarantees, verification and limits.
+- [Learn](https://hoodlock.tech/docs/learn): A guided path through everything we have written on locking, vesting, burning and verifying tokens — organised by what you are trying to work out.
+
+## Learn (background articles)
+
+- [Burning vs locking liquidity](https://hoodlock.tech/blog/burning-vs-locking-liquidity): Burning LP is permanent and locking is a deadline. A direct comparison of what each protects against, what each costs you, and which suits a project at a given stage.
+- [Circulating vs total supply — and what hides between](https://hoodlock.tech/blog/circulating-vs-total-supply): The difference between circulating, total and max supply, why market cap depends on which one you use, and how locked and vesting tokens should be counted.
+- [Custodial vs non-custodial locking](https://hoodlock.tech/blog/custodial-vs-non-custodial-locking): Some services hold your tokens; some put them in a contract nobody controls. How to tell which you're using, and why the distinction decides what a lock is actually worth.
+- [How long should you lock liquidity?](https://hoodlock.tech/blog/how-long-should-you-lock-liquidity): Lock durations that hold up to scrutiny, what buyers read into a short lock, and why extending an existing lock signals more than setting a long one on day one.
+- [How to burn tokens — with proof, forever](https://hoodlock.tech/blog/how-to-burn-tokens-on-robinhood-chain): Burn tokens permanently on Robinhood Chain and get a shareable on-chain proof page showing the amount and share of supply destroyed. Step-by-step burn guide.
+- [How to check if liquidity is burned](https://hoodlock.tech/blog/how-to-check-if-liquidity-is-burned): Burned and locked liquidity are different commitments with different risks. How to tell them apart on Robinhood Chain, and why a burn isn't automatically stronger.
+- [How to check if liquidity is actually locked](https://hoodlock.tech/blog/how-to-check-if-liquidity-is-locked): A five-minute check that tells you whether a token's liquidity is actually locked, who can move it, and when it unlocks — using on-chain data, not screenshots.
+- [How to choose a token locker](https://hoodlock.tech/blog/how-to-choose-a-token-locker): Not every locker actually locks. The contract properties that determine whether a lock protects anyone, and how to verify each one before you commit tokens to it.
+- [How to lock liquidity on Robinhood Chain](https://hoodlock.tech/blog/how-to-lock-liquidity-on-robinhood-chain): Lock project, team or treasury tokens on Robinhood Chain in under a minute. Step-by-step guide with a verified locker contract, extend-only unlocks and a shareable on-chain proof link.
+- [How to prove you won't rug — without asking](https://hoodlock.tech/blog/how-to-prove-your-project-wont-rug): Trust claims don't work anymore. Here are the specific, verifiable commitments that replace them — and the order to make them so each one reinforces the next.
+- [Reading holder distribution on Robinhood Chain](https://hoodlock.tech/blog/how-to-read-token-holder-distribution): The holder list tells you who can move the price. Which addresses to exclude on Robinhood Chain, what concentration actually means, and the tricks that make distribution look healthier than it is.
+- [How to set up token vesting that holds](https://hoodlock.tech/blog/how-to-set-up-token-vesting): Step-by-step guide to creating a linear vesting schedule for team, advisor and investor allocations — including cliff choices, duration benchmarks and what can't be undone.
+- [How to read a token contract on Blockscout](https://hoodlock.tech/blog/how-to-verify-a-token-contract-on-blockscout): A practical walkthrough of reading a token contract on Blockscout: what verified source means, which functions to check, and how to confirm a lock without trusting anyone.
+- [Locking creator tokens after a Fendex launch](https://hoodlock.tech/blog/lock-creator-tokens-after-a-fendex-launch): Launched on Fendex (fendex.fun)? Tokens you hold in your own wallet aren't covered by the platform. How to lock or vest a creator allocation on Robinhood Chain, and what to check first.
+- [Locking dev tokens after a Pons launch](https://hoodlock.tech/blog/lock-dev-tokens-after-a-pons-launch): Launched on Pons (ponsfamily.com)? The pool is locked automatically, but the tokens you bought at launch stay in your wallet. How to lock or vest a dev allocation on Robinhood Chain.
+- [Locking LP tokens from a Hood Launcher Classic launch](https://hoodlock.tech/blog/lock-lp-tokens-from-a-hood-launcher-classic-launch): Hood Launcher's Classic launch sends LP tokens to your own wallet, withdrawable at any time. That is the one case on Robinhood Chain where locking LP genuinely applies.
+- [Locking tokens launched on ArrowPad](https://hoodlock.tech/blog/lock-tokens-launched-on-arrowpad): ArrowPad puts all 1B supply in the pool with no owner and no team allocation. Nothing is left to lock at launch — which makes what accrues afterwards the whole question.
+- [Locking tokens launched on hood.fun](https://hoodlock.tech/blog/lock-tokens-launched-on-hood-fun): hood.fun locks graduated liquidity permanently — the locker has no withdraw function at all. What that doesn't cover is whatever you bought on the curve.
+- [Locking tokens launched on Lemon.fun](https://hoodlock.tech/blog/lock-tokens-launched-on-lemon-fun): Lemon.fun lets you set allocations and taxes at launch. Anything you allocate to yourself lands in a wallet — how to lock or vest it, and why holders check.
+- [Locking tokens launched on MetaLaunch](https://hoodlock.tech/blog/lock-tokens-launched-on-metalaunch): MetaLaunch skips the bonding curve entirely — 100% of supply goes straight into a Uniswap v3 pool. That changes what a creator holds, and what's worth locking.
+- [Locking tokens launched on Openfair](https://hoodlock.tech/blog/lock-tokens-launched-on-openfair): Openfair offers a bonding curve or an instant Uniswap V3 listing, with permanent liquidity locking and custom fees. What stays in your wallet is a separate question.
+- [Locking tokens launched on Robinfun](https://hoodlock.tech/blog/lock-tokens-launched-on-robinfun): Robinfun burns 100% of LP at graduation and reserves no team supply. What's left to lock is fee revenue and the optional 10% staking allocation.
+- [Locking tokens launched on Robinlaunch](https://hoodlock.tech/blog/lock-tokens-launched-on-robinlaunch): Robinlaunch locks LP forever on both its bonding curve and Direct Pool routes, and pays creators up to 90% of fees. The fee wallet is the part nothing governs.
+- [Locking treasury and ecosystem funds](https://hoodlock.tech/blog/locking-treasury-and-ecosystem-funds): Treasury allocations are usually the largest unlocked balance a project has. How to structure locks and vesting for funds you still need to spend, without giving up credibility.
+- [Rug pull red flags you can check yourself](https://hoodlock.tech/blog/rug-pull-red-flags-checklist): The specific, checkable warning signs behind most rug pulls — unlocked liquidity, mint functions, concentrated holders — and how to verify each one on-chain yourself.
+- [Token allocation benchmarks that hold up](https://hoodlock.tech/blog/team-token-allocation-benchmarks): Typical percentage splits for team, investors, community, liquidity and treasury — plus the vesting terms that go with each, and the allocations that get projects dismissed.
+- [Token launch checklist for Robinhood Chain](https://hoodlock.tech/blog/token-launch-checklist-robinhood-chain): Everything to have in place before and after launching a token on Robinhood Chain — contract verification, liquidity locking, team vesting and the proof links holders will ask for.
+- [Locks vs vesting vs burning — choose right](https://hoodlock.tech/blog/token-locks-vs-vesting-vs-burning): Locks, vesting schedules and burns solve different trust problems. A practical comparison for token projects on Robinhood Chain — with use cases and on-chain proof.
+- [Vesting alongside a Bankr launch](https://hoodlock.tech/blog/vesting-alongside-a-bankr-launch): Bankr already vests 15% of supply to the creator over two years. Here's what that schedule covers, what it doesn't, and when a second schedule is worth adding.
+- [What LP tokens actually are](https://hoodlock.tech/blog/what-are-lp-tokens): LP tokens are the receipt for liquidity you put into a pool. What they represent, why locking them matters more than locking the project token, and how to find yours.
+- [When a lock expires on Robinhood Chain](https://hoodlock.tech/blog/what-happens-when-a-token-lock-expires): Nothing happens automatically. What actually occurs at the unlock date on Robinhood Chain, how to track upcoming unlocks, and how teams handle an expiry without spooking holders.
+- [Honeypot tokens on Robinhood Chain — and how to avoid one](https://hoodlock.tech/blog/what-is-a-honeypot-token): A honeypot lets you buy but not sell. The contract mechanisms behind them, how to test a Robinhood Chain token before committing, and why locked liquidity doesn't protect you.
+- [What is a liquidity lock — and why it matters](https://hoodlock.tech/blog/what-is-a-liquidity-lock): A liquidity lock puts LP tokens in a time-locked smart contract so developers can't pull liquidity. Learn how locks prevent rug pulls and how to verify any lock on-chain.
+- [What a token unlock schedule tells you](https://hoodlock.tech/blog/what-is-a-token-unlock-schedule): An unlock schedule is the calendar of when locked and vesting tokens re-enter the market. How to read one, why cliff dates matter, and what to do with the information.
+- [What a vesting cliff is — and why holders look for one](https://hoodlock.tech/blog/what-is-a-vesting-cliff): A vesting cliff is a waiting period before any tokens can be claimed. Here's how cliffs work mathematically, why 12 months became standard, and what a missing cliff signals.
+
+## Notes for retrieval
+
+- All pages under /docs, /blog, /token and /proof are static server-rendered HTML and need no JavaScript.
+- Pages under /app are an application shell; the useful content is on the pages above.
+- https://hoodlock.tech/docs/faq answers 62 common questions with the full answer visible in the page text.
+- Sitemap: https://hoodlock.tech/sitemap.xml

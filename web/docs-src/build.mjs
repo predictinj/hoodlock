@@ -14,7 +14,7 @@ import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { render, extractToc } from "./layout.mjs";
-import { PAGES, priorityFor, SITE } from "./nav.mjs";
+import { PAGES, SECTIONS, priorityFor, SITE } from "./nav.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "..", "public", "docs");
@@ -130,6 +130,82 @@ async function writeStaticSitemap() {
   console.log(`      static sitemap fallback: ${rows.length} URLs`);
 }
 
+/* llms.txt — a curated map for AI crawlers, per the llmstxt.org convention.
+ *
+ * Deliberately not a sitemap dump: the value is in the short descriptions and in
+ * the facts block, which lets a model answer "what is the fee" or "what is the
+ * locker address" without fetching anything. Generated from nav.mjs and the page
+ * files so it cannot drift from the pages it describes.
+ *
+ * Worth being clear-eyed: the convention is not standardised and no engine has
+ * committed to reading it. It costs nothing and cannot hurt; it is not a ranking
+ * mechanism.
+ */
+async function writeLlmsTxt(pages) {
+  const bySlug = new Map(pages.map((p) => [p.slug, p]));
+  const line = (slug) => {
+    const p = bySlug.get(slug);
+    return p ? `- [${p.navTitle}](${SITE}/docs/${slug}): ${p.desc}` : null;
+  };
+
+  const sections = SECTIONS.map((s) => {
+    const items = s.items.map((i) => line(i.slug)).filter(Boolean);
+    return items.length ? `## ${s.title}\n\n${items.join("\n")}` : null;
+  }).filter(Boolean);
+
+  // Blog titles and descriptions, read from the published pages themselves.
+  const blogDir = join(HERE, "..", "public", "blog");
+  let blog = "";
+  if (existsSync(blogDir)) {
+    const rows = [];
+    for (const f of (await readdir(blogDir)).filter((f) => f.endsWith(".html") && f !== "index.html").sort()) {
+      const html = await readFile(join(blogDir, f), "utf8");
+      const t = /<h1>([\s\S]*?)<\/h1>/.exec(html);
+      const d = /<meta name="description" content="([^"]*)"/.exec(html);
+      if (t && d) {
+        rows.push(`- [${strip(t[1]).replace(/\.$/, "")}](${SITE}/blog/${f.replace(/\.html$/, "")}): ${d[1]}`);
+      }
+    }
+    if (rows.length) blog = `## Learn (background articles)\n\n${rows.join("\n")}`;
+  }
+
+  const out = `# HoodLock
+
+> Non-custodial token locker, burner and vesting platform on Robinhood Chain
+> (an Ethereum L2 on the Arbitrum stack, chain id 4663). Locks ERC-20 tokens
+> until a date, sends tokens to the dead address with an auditable record, or
+> releases them linearly to a beneficiary. Every record gets a public proof page
+> that reads live from the chain and opens without a wallet.
+
+HoodLock is not affiliated with Robinhood Markets, Inc.
+
+## Key facts
+
+- Chain: Robinhood Chain, id 4663. RPC https://rpc.mainnet.chain.robinhood.com, explorer https://robinhoodchain.blockscout.com
+- Locker contract: 0xd0f7d8c6e9f6d80c297bebe4f7fd1b9c8125c32f
+- Burner contract: 0x6bf43ca706faa8ea46803299c191484e82280652
+- Vesting contract: 0x910e19bcC4bce46999994Ed7297E0Fc4431ec72E
+- Fee: a flat 0.005 ETH per lock, burn or vesting schedule, read live from each contract. No percentage of tokens is ever taken. Withdrawing, claiming and extending are free.
+- Unlock dates can be extended but never shortened. No admin function can move a user's locked tokens.
+- Vesting schedules cannot be cancelled or edited by any HoodLock function. Hard fee cap 0.05 ETH, minimum duration 24 hours, batch limit 200.
+- What can be locked: any ERC-20, including v2-style LP tokens. Uniswap v3 and v4 positions are NFTs and cannot be locked.
+- Limits worth stating: these contracts have been verified on Blockscout but have not had a third-party audit. Guarantees describe HoodLock's own functions — a token that is mintable, upgradeable, pausable or that can blacklist an address can still undo or freeze what a lock, burn or schedule appears to promise.
+
+${sections.join("\n\n")}
+
+${blog}
+
+## Notes for retrieval
+
+- All pages under /docs, /blog, /token and /proof are static server-rendered HTML and need no JavaScript.
+- Pages under /app are an application shell; the useful content is on the pages above.
+- ${SITE}/docs/faq answers 62 common questions with the full answer visible in the page text.
+- Sitemap: ${SITE}/sitemap.xml
+`;
+  await writeFile(join(HERE, "..", "public", "llms.txt"), out);
+  console.log(`      llms.txt: ${(out.length / 1024).toFixed(1)} kB`);
+}
+
 async function main() {
   if (existsSync(OUT)) await rm(OUT, { recursive: true, force: true });
   await mkdir(join(OUT, "vs"), { recursive: true });
@@ -195,6 +271,7 @@ async function main() {
   await writeFile(join(OUT, "..", "..", "docs-src", ".sitemap-triples.txt"), triples + "\n");
 
   await writeStaticSitemap();
+  await writeLlmsTxt(pages);
 
   const bytes = JSON.stringify(index).length;
   console.log(`docs: ${pages.length} pages → web/public/docs/`);
