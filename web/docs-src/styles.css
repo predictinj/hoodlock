@@ -27,9 +27,9 @@ a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
 /* Links inside running text must be distinguishable without relying on colour —
    colour alone fails WCAG 1.4.1. Navigation and cards are excluded: they are
    unambiguously interactive from position and shape. */
-main p a,main li a,.callout a,td a,.lede a{text-decoration:underline;text-underline-offset:2px;
+main p a,main li a,.callout a,td a,.lede a,footer a{text-decoration:underline;text-underline-offset:2px;
 text-decoration-thickness:1px;text-decoration-color:rgba(0,224,90,.45)}
-main p a:hover,main li a:hover,.callout a:hover,td a:hover,.lede a:hover{text-decoration-color:var(--neon)}
+main p a:hover,main li a:hover,.callout a:hover,td a:hover,.lede a:hover,footer a:hover{text-decoration-color:var(--neon)}
 
 /* Focus is visible everywhere. The blog has no focus style at all; docs are
    navigated by keyboard far more often, so this is not optional here. */
