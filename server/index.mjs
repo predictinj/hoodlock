@@ -1302,7 +1302,7 @@ for (const [kind, k] of Object.entries(KINDS)) {
     res.set("Cache-Control", raw ? "public, max-age=30" : HTML_CACHE);
 
     if (!raw) return res.type("html").send(renderChecker({ kind, site: SITE }));
-    if (!m) return res.type("html").send(renderChecker({ kind, q: raw, site: SITE }));
+    if (!m) return res.type("html").send(renderChecker({ kind, q: raw, bad: true, site: SITE }));
 
     const addr = m[1].toLowerCase();
     try {

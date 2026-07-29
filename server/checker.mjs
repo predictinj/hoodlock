@@ -29,8 +29,10 @@ export const KINDS = {
     title: "Token Lock Checker — Robinhood Chain | HoodLock",
     desc: "Paste a Robinhood Chain contract address and see every lock HoodLock holds on it — amount, unlock date and a proof link. Read live from the chain. No wallet needed.",
     h1: "Is this token locked?",
-    lede: "Paste a Robinhood Chain contract address. You'll see every lock HoodLock holds on that token — the amount, when it unlocks, and a proof page you can share.",
+    lede: "Every lock HoodLock holds on a token — the amount, the unlock date, and a proof page anyone can open without a wallet. Read live from Robinhood Chain.",
     label: "Token or LP contract address",
+    placeholder: "Paste a token or LP contract address",
+    hint: "Any ERC-20 or LP token on Robinhood Chain. No wallet, no sign-in.",
     noun: "lock", nounPlural: "locks",
     found: (n) => `${n} ${n === 1 ? "lock" : "locks"} on HoodLock`,
     none: "No HoodLock locks on this token",
@@ -45,8 +47,10 @@ export const KINDS = {
     title: "Token Burn Checker — Robinhood Chain | HoodLock",
     desc: "Paste a Robinhood Chain contract address and see every burn sent through HoodLock — amount, date and a proof link. Read live from the chain. No wallet needed.",
     h1: "Has this token been burned?",
-    lede: "Paste a Robinhood Chain contract address. You'll see every burn sent through HoodLock for that token — how much, when, and a proof page you can share.",
+    lede: "Every burn sent through HoodLock for a token — how much, when, and a proof page anyone can open without a wallet. Read live from Robinhood Chain.",
     label: "Token or LP contract address",
+    placeholder: "Paste a token or LP contract address",
+    hint: "Any ERC-20 or LP token on Robinhood Chain. No wallet, no sign-in.",
     noun: "burn", nounPlural: "burns",
     found: (n) => `${n} ${n === 1 ? "burn" : "burns"} through HoodLock`,
     none: "No HoodLock burns for this token",
@@ -61,8 +65,10 @@ export const KINDS = {
     title: "Token Vesting Checker — Robinhood Chain | HoodLock",
     desc: "Paste a Robinhood Chain contract address and see every vesting schedule HoodLock holds for it — total, cliff, end date and a proof link. Read live from the chain.",
     h1: "Does this token have vesting?",
-    lede: "Paste a Robinhood Chain contract address. You'll see every vesting schedule created on HoodLock for that token — the total, the cliff, when it finishes, and a proof page you can share.",
+    lede: "Every vesting schedule HoodLock holds for a token — the total, the cliff, the end date, and a proof page anyone can open without a wallet. Read live from Robinhood Chain.",
     label: "Token contract address",
+    placeholder: "Paste a token contract address",
+    hint: "Any ERC-20 on Robinhood Chain. No wallet, no sign-in.",
     noun: "vesting schedule", nounPlural: "vesting schedules",
     found: (n) => `${n} vesting ${n === 1 ? "schedule" : "schedules"} on HoodLock`,
     none: "No HoodLock vesting for this token",
@@ -110,8 +116,10 @@ function faqs(k) {
 
 /* ---------- result ---------- */
 
-function resultBlock(k, kind, q, token, recs) {
-  if (!q) return "";
+function resultBlock(k, kind, q, token, recs, bad) {
+  // A malformed address is answered at the field itself, so there is no result
+  // block to show — repeating it below would be the same message twice.
+  if (!q || bad) return "";
   if (!token) {
     return `<div class="res">
       <div class="q">Result</div>
@@ -149,11 +157,15 @@ function resultBlock(k, kind, q, token, recs) {
 
   // What the other two pages would find, so a visitor who asked the wrong
   // question still gets pointed at the right one instead of a dead end.
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const activeLocks = recs.locks.filter((l) => !l.withdrawn && l.unlock > now).length;
   const elsewhere = [
-    kind !== "lock" && recs.locks.filter((l) => !l.withdrawn && l.unlock > now).length
-      ? [`/lock-checker?a=${token.address}`, `${recs.locks.filter((l) => !l.withdrawn && l.unlock > now).length} active lock(s)`] : null,
-    kind !== "burn" && recs.burns.length ? [`/burn-checker?a=${token.address}`, `${recs.burns.length} burn(s)`] : null,
-    kind !== "vesting" && recs.vesting.length ? [`/vesting-checker?a=${token.address}`, `${recs.vesting.length} vesting schedule(s)`] : null,
+    kind !== "lock" && activeLocks
+      ? [`/lock-checker?a=${token.address}`, plural(activeLocks, "active lock", "active locks")] : null,
+    kind !== "burn" && recs.burns.length
+      ? [`/burn-checker?a=${token.address}`, plural(recs.burns.length, "burn", "burns")] : null,
+    kind !== "vesting" && recs.vesting.length
+      ? [`/vesting-checker?a=${token.address}`, plural(recs.vesting.length, "vesting schedule", "vesting schedules")] : null,
   ].filter(Boolean);
 
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC";
@@ -174,7 +186,7 @@ function resultBlock(k, kind, q, token, recs) {
 
 /* ---------- page ---------- */
 
-export function renderChecker({ kind, q = "", token = null, recs = null, site = SITE }) {
+export function renderChecker({ kind, q = "", token = null, recs = null, bad = false, site = SITE }) {
   const k = KINDS[kind];
   const url = `${site}/${k.path}`;
   const list = faqs(k);
@@ -232,15 +244,31 @@ main{max-width:760px;margin:0 auto;padding:26px 22px 80px}
 .crumb a{color:var(--dim)}
 h1{font-size:34px;line-height:1.12;letter-spacing:-.035em;margin-bottom:12px}
 .lede{color:var(--ink2);font-size:16px;margin-bottom:26px;max-width:60ch}
-form{display:flex;gap:10px;flex-wrap:wrap}
-label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
-input{flex:1 1 320px;background:var(--card);border:1px solid var(--line2);border-radius:11px;padding:13px 15px;
-  color:var(--ink);font-family:var(--mono);font-size:13.5px}
-input::placeholder{color:var(--ink3)}
-input:focus{outline:none;border-color:var(--neon)}
-button{background:var(--neon);color:#03130a;font-family:var(--sans);font-weight:700;font-size:14.5px;border:0;
-  border-radius:11px;padding:13px 26px;cursor:pointer}
-button:hover{filter:brightness(1.1)}
+/* One search bar rather than a label, a box and a button sitting apart: the
+   whole page is this one field, so it should read as a single control. The
+   border belongs to the container, which is what lets the focus ring wrap the
+   input and the button together. */
+.vh{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.search{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line2);
+  border-radius:15px;padding:7px 7px 7px 17px;transition:border-color .15s,box-shadow .15s}
+.search:focus-within{border-color:var(--neon);box-shadow:0 0 0 3px rgba(0,224,90,.13)}
+.search.bad{border-color:var(--red)}
+.search .ic{width:17px;height:17px;flex:none;color:var(--ink3);transition:color .15s}
+.search:focus-within .ic{color:var(--neon)}
+.search input{flex:1 1 auto;min-width:0;background:none;border:0;padding:13px 0;color:var(--ink);
+  font-family:var(--mono);font-size:14px;text-overflow:ellipsis}
+.search input:focus{outline:none}
+.search input::placeholder{color:var(--ink3)}
+/* A link, not a button — clearing the field is just the page without a query,
+   so it works with JavaScript off like everything else here. */
+.clear{flex:none;width:27px;height:27px;display:grid;place-items:center;border-radius:50%;
+  color:var(--ink3);font-size:18px;line-height:1}
+.clear:hover{background:rgba(255,255,255,.07);color:var(--ink);text-decoration:none}
+.search button{flex:none;background:var(--neon);color:#03130a;font-family:var(--sans);font-weight:700;
+  font-size:14.5px;border:0;border-radius:11px;padding:12px 24px;cursor:pointer;transition:filter .15s}
+.search button:hover{filter:brightness(1.1)}
+.hint{font-size:13px;color:var(--dim);margin:11px 2px 0}
+.hint.bad{color:var(--red)}
 .res{margin-top:26px;padding:20px 22px;border-radius:14px;border:1px solid var(--line2);background:var(--card)}
 .res .q{font-size:15px;color:var(--ink2)}.res .q .sym{font-family:var(--serif);font-style:italic;color:var(--neon)}
 .res .a{font-size:23px;font-weight:600;letter-spacing:-.025em;margin-top:4px}
@@ -266,7 +294,15 @@ p,li{color:var(--ink2);font-size:15px}p{margin-bottom:12px}
 .cta-box .btn:hover{text-decoration:none;filter:brightness(1.1)}
 .note{font-size:12.5px;color:var(--dim);border-top:1px solid var(--line);margin-top:36px;padding-top:16px}
 footer{border-top:1px solid var(--line);margin-top:50px;padding:24px 22px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.08em}
-@media(max-width:520px){h1{font-size:27px}button{flex:1 1 100%}}
+@media(max-width:520px){
+  h1{font-size:27px}
+  /* The address is 42 characters — on a phone it needs the whole width, so the
+     button wraps under it instead of squeezing the field to nothing. */
+  .search{flex-wrap:wrap;padding:14px 14px 10px;gap:0 12px}
+  .search input{flex:1 1 0;padding:2px 0 12px}
+  .search button{flex:1 1 100%;margin-top:2px}
+  .clear{margin-bottom:10px}
+}
 </style>
 </head>
 <body>
@@ -279,15 +315,22 @@ footer{border-top:1px solid var(--line);margin-top:50px;padding:24px 22px;text-a
 <p class="lede">${esc(k.lede)}</p>
 
 <form method="get" action="/${k.path}">
-  <div style="flex:1 1 320px">
-    <label for="a">${esc(k.label)}</label>
+  <label class="vh" for="a">${esc(k.label)}</label>
+  <div class="search${bad ? " bad" : ""}">
+    <svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"
+      stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.8 12.8 17 17"/></svg>
     <input id="a" name="a" type="text" inputmode="text" spellcheck="false" autocomplete="off"
-      placeholder="0x…" value="${esc(q)}" aria-describedby="scope">
+      autocapitalize="off" placeholder="${esc(k.placeholder)}" value="${esc(q)}"
+      aria-describedby="hint"${bad ? ' aria-invalid="true"' : ""}>
+    ${q ? `<a class="clear" href="/${k.path}" aria-label="Clear the address" title="Clear">×</a>` : ""}
+    <button type="submit">Check</button>
   </div>
-  <button type="submit">Check</button>
+  <p class="hint${bad ? " bad" : ""}" id="hint">${bad
+    ? "That doesn't look like a contract address. It should be 42 characters and start with 0x."
+    : esc(k.hint)}</p>
 </form>
 
-${resultBlock(k, kind, q, token, recs)}
+${resultBlock(k, kind, q, token, recs, bad)}
 
 <div class="scope" id="scope"><p style="margin:0">${scopeLine(k)}</p></div>
 
