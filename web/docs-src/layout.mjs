@@ -114,7 +114,9 @@ export function render(page) {
 <meta name="twitter:description" content="${esc(page.desc)}">
 <meta name="twitter:image" content="${SITE}/hoodlockshare.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="${FONTS}" rel="stylesheet">
+<link rel="preload" as="style" href="${FONTS}">
+<link rel="stylesheet" href="${FONTS}" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="${FONTS}"></noscript>
 <link rel="icon" href="/favicon.ico" sizes="any">
 ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)}</script>`).join("\n")}
 <link rel="stylesheet" href="/docs/docs.css">

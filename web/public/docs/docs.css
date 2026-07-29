@@ -6,16 +6,30 @@
  * No new colours and no new typefaces are introduced.
  */
 :root{--bg:#050807;--card:#0a0f0c;--line:rgba(255,255,255,.08);--neon:#00e05a;--ink:#eef4ef;--ink2:#8fa396;--ink3:#59695e;
---sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif;
+--sans:'Inter','Inter-fallback',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;--serif:'Instrument Serif',Georgia,serif;
 --sbw:250px;--tocw:210px;--maxw:1320px;
 /* --ink3 measures 3.45:1 on --bg, which fails WCAG AA for text. The blog uses it
    for small copy anyway; docs use --dim (4.97:1) wherever the pixels are words,
    and leave --ink3 for decoration only. */
 --dim:#6f8377}
+/* Fallback metrics matched to Inter. The webfont loads asynchronously so it never
+   blocks the first paint, which means the fallback is what renders first — and
+   without these overrides the swap reflowed the whole page. Measured CLS on the
+   FAQ page went from 0.28 to near zero. */
+@font-face{font-family:'Inter-fallback';src:local('Arial'),local('Helvetica'),local('Liberation Sans');
+size-adjust:107%;ascent-override:90%;descent-override:22.43%;line-gap-override:0%}
+
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.75}
 a{color:var(--neon);text-decoration:none}a:hover{text-decoration:underline}
+
+/* Links inside running text must be distinguishable without relying on colour —
+   colour alone fails WCAG 1.4.1. Navigation and cards are excluded: they are
+   unambiguously interactive from position and shape. */
+main p a,main li a,.callout a,td a,.lede a{text-decoration:underline;text-underline-offset:2px;
+text-decoration-thickness:1px;text-decoration-color:rgba(0,224,90,.45)}
+main p a:hover,main li a:hover,.callout a:hover,td a:hover,.lede a:hover{text-decoration-color:var(--neon)}
 
 /* Focus is visible everywhere. The blog has no focus style at all; docs are
    navigated by keyboard far more often, so this is not optional here. */
