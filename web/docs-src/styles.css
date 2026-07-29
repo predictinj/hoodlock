@@ -229,6 +229,34 @@ font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.08em}
   .pager .next{text-align:left}
 }
 
+/* ---------- print ----------
+   Reference material gets printed and turned into PDFs — contract addresses and
+   API specs especially. Browsers drop background colours by default, which on a
+   dark theme leaves pale grey text on white paper. Invert deliberately, drop the
+   chrome, and print the destination of every link, since a paper link that does
+   not say where it goes is decoration. */
+@media print{
+  :root{--ink:#000;--ink2:#1a1a1a;--dim:#555;--line:#bbb;--card:#fff;--neon:#000;--bg:#fff}
+  body{background:#fff;color:#000;line-height:1.5;font-size:11pt}
+  .nav,.sb,.toc,.progress,.skip,.sb-backdrop,.menu-btn,.search,
+  .pager,.cta-box,.copy,.anchor,footer{display:none!important}
+  .shell{display:block;max-width:none;padding:0}
+  main{max-width:none;padding:0}
+  h1{font-size:20pt}h2{font-size:14pt;margin-top:18pt}h3{font-size:12pt}
+  h1,h2,h3{break-after:avoid;page-break-after:avoid}
+  pre,table,.callout,.box,.tablewrap{break-inside:avoid;page-break-inside:avoid}
+  pre{background:#f6f6f6;border:1px solid #ccc;white-space:pre-wrap;word-break:break-word}
+  code{background:#f2f2f2;border:1px solid #ddd}
+  .callout{border:1px solid #999;border-left-width:3px}
+  a{color:#000;text-decoration:underline}
+  /* Expand link targets. Anchors and the logo are left alone — a bare "#id" or a
+     repeat of the current page adds noise rather than information. */
+  main a[href^="/"]::after{content:" (hoodlock.tech" attr(href) ")";font-size:9pt;color:#555;word-break:break-all}
+  main a[href^="http"]::after{content:" (" attr(href) ")";font-size:9pt;color:#555;word-break:break-all}
+  main a[href^="#"]::after{content:none}
+  .crumb{color:#555}
+}
+
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition:none!important}
