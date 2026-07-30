@@ -100,9 +100,17 @@ contract RobinhoodAirdrop {
     uint256 private _guard = 1; // shared guard across all state-changing entry points (K5)
     modifier nonReentrant() { require(_guard == 1, "reentrant"); _guard = 2; _; _guard = 1; }
 
-    constructor(uint256 _feeBase, uint256 _feePerWallet, address _feeCollector) {
+    /**
+     * `_admin` is set at construction rather than handed over afterwards. A
+     * deploy-then-transfer flow leaves a window where the deploying key is
+     * admin, and needs the real owner to send an acceptAdmin transaction before
+     * it closes. Naming the owner here removes both.
+     *
+     * Zero falls back to the deployer, which is what the tests use.
+     */
+    constructor(uint256 _feeBase, uint256 _feePerWallet, address _feeCollector, address _admin) {
         require(_feeBase <= MAX_FEE && _feePerWallet <= MAX_FEE, "fee param over cap");
-        admin = msg.sender;
+        admin = _admin == address(0) ? msg.sender : _admin;
         feeBase = _feeBase;
         feePerWallet = _feePerWallet;
         feeCollector = _feeCollector == address(0) ? msg.sender : _feeCollector;

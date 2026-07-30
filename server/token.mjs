@@ -382,7 +382,7 @@ ${ctaBox(d)}
 
 <div class="note">HoodLock reads this page from Robinhood Chain each time it is refreshed. Figures describe the chain at ${esc(stamp)} and are not financial advice. HoodLock is not affiliated with Robinhood Markets, Inc.</div>
 </main>
-<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a> · <a href="/terms">TERMS</a> · <a href="/privacy">PRIVACY</a></footer>
 </body>
 </html>`;
 }

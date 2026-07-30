@@ -28,7 +28,7 @@ contract RobinhoodAirdropMerkleTest is Test {
     string fixture;
 
     function setUp() public {
-        drop = new RobinhoodAirdrop(0, 0, address(this));
+        drop = new RobinhoodAirdrop(0, 0, address(this), address(0));
         token = new StandardToken("Test", "TST", 1e33);
         token.transfer(creator, 1e32);
         vm.deal(creator, 10 ether);

@@ -173,7 +173,7 @@ contract RobinhoodAirdropInvariantTest is Test {
 
     function setUp() public {
         vm.warp(1_700_000_000);
-        d = new RobinhoodAirdrop(0.005 ether, 0.0001 ether, address(this));
+        d = new RobinhoodAirdrop(0.005 ether, 0.0001 ether, address(this), address(0));
         h = new Handler(d);
         d.setFeeCollector(address(h)); // handler pulls fees during the walk
         /* The fuzzer draws senders from a pool and tops their balances up so

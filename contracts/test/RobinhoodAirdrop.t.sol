@@ -55,7 +55,7 @@ contract RobinhoodAirdropTest is Test {
     uint256 constant UNIT = 1e18;
 
     function setUp() public {
-        drop = new RobinhoodAirdrop(0, 0, collector);
+        drop = new RobinhoodAirdrop(0, 0, collector, address(0));
         token = new StandardToken("Test", "TST", 1_000_000 * UNIT);
         token.transfer(creator, 500_000 * UNIT);
         vm.deal(creator, 100 ether);
@@ -527,6 +527,16 @@ contract RobinhoodAirdropTest is Test {
         // And the recipients can still claim afterwards.
         drop.claim(id, 0, alice, 100 * UNIT, _proofFor(leaves, 0));
         assertEq(token.balanceOf(alice), 100 * UNIT);
+    }
+
+    /// The owner is named at construction, so there is never a window where the
+    /// deploying key is admin.
+    function test_AdminIsSetAtConstruction() public {
+        address owner = address(0xF00DBABE);
+        RobinhoodAirdrop d = new RobinhoodAirdrop(0, 0, collector, owner);
+        assertEq(d.admin(), owner, "admin should be the named owner, not the deployer");
+        vm.expectRevert("not admin");
+        d.setFee(0, 0); // this test contract deployed it and still cannot touch it
     }
 
     function test_AdminTransferIsTwoStep() public {

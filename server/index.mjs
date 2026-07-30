@@ -12,6 +12,7 @@ import { makeLogReader, byTopic, addrArg, addrParam } from "./logs.mjs";
 import { makeOgRenderer, fontsReady } from "./og.mjs";
 import { tokenData, withRecords, renderTokenPage } from "./token.mjs";
 import { renderChecker, KINDS } from "./checker.mjs";
+import { renderLegal, LEGAL_PAGES } from "./legal.mjs";
 import { makeTokenIndex } from "./tokenindex.mjs";
 import { selectTokens } from "./gate.mjs";
 
@@ -1288,6 +1289,15 @@ app.get("/token/:slug", async (req, res) => {
   }
 });
 
+/* Terms and privacy. Static content, so they get the plain HTML cache header
+   the rest of the site's pages use. */
+for (const which of LEGAL_PAGES) {
+  app.get(`/${which}`, (_req, res) => {
+    res.set("Cache-Control", HTML_CACHE);
+    res.type("html").send(renderLegal(which, { site: SITE }));
+  });
+}
+
 /* The three checker pages. One handler, three routes: what differs between them
  * lives in checker.mjs, so they cannot drift apart.
  *
@@ -1467,6 +1477,7 @@ app.get("/sitemap.xml", async (_req, res) => {
       ["/app", "weekly", "0.6"], ["/blog", "weekly", "0.7"],
       // The three checkers answer the questions people actually type, so they
       // rank alongside the homepage rather than below the articles about them.
+      ["/terms", "yearly", "0.3"], ["/privacy", "yearly", "0.3"],
       ["/lock-checker", "weekly", "0.9"], ["/burn-checker", "weekly", "0.8"],
       ["/vesting-checker", "weekly", "0.8"],
       ["/blog/how-to-lock-liquidity-on-robinhood-chain", "monthly", "0.6"],

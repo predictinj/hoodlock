@@ -425,7 +425,7 @@ ${ctaBlock(k, kind, q, token, recs, feeEth, site)}
 
 <div class="note">HoodLock reads Robinhood Chain live on every search. Nothing here is financial advice, and a record's existence says nothing about whether a token is a good investment. HoodLock is not affiliated with Robinhood Markets, Inc.</div>
 </main>
-<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a> · <a href="/terms">TERMS</a> · <a href="/privacy">PRIVACY</a></footer>
 </body>
 </html>`;
 }
