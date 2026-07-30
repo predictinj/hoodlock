@@ -370,7 +370,7 @@
     <button class="nav-item" data-view="locks"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 118 0v3"/></svg>Token Locks</button>
     <button class="nav-item" data-view="vesting"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 17l5-5 4 3 6-7"/><path d="M14 8h4v4"/></svg>Vesting</button>
     <button class="nav-item" data-view="developers"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/><path d="M13 6l-2 12"/></svg>Developers</button>
-    <button class="nav-item" data-view="airdrops"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v13"/><path d="M7 11l5 5 5-5"/><path d="M4 21h16"/></svg>Airdrops<span class="soon">SOON</span></button>
+    <button class="nav-item" data-view="airdrops"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v13"/><path d="M7 11l5 5 5-5"/><path d="M4 21h16"/></svg>Airdrops</button>
     <button class="nav-item" data-view="streams"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 12h6M14 12h6"/><circle cx="12" cy="12" r="2.5"/></svg>Streams<span class="soon">SOON</span></button>
   </div>
   <div class="nav-group" id="adminNav" style="display:none">
@@ -604,16 +604,71 @@
       </div>
     </section>
     <section class="view" id="view-airdrops">
-      <div class="soon-hero"><div class="glow"></div>
-        <div class="mono-tag">SHIPPING NEXT</div>
-        <h2>Airdrops at <span class="serif">scale.</span></h2>
-        <p>Thousands of wallets in one transaction — Merkle claims, snapshots and eligibility built in.</p>
-        <svg class="soon-viz" viewBox="0 0 420 110">
-          <circle class="dropdot" cx="60" cy="40" r="3.5" style="animation-delay:0s"/><circle class="dropdot" cx="130" cy="66" r="3" style="animation-delay:.6s"/><circle class="dropdot" cx="200" cy="34" r="4" style="animation-delay:1.2s"/><circle class="dropdot" cx="270" cy="62" r="3" style="animation-delay:1.8s"/><circle class="dropdot" cx="340" cy="40" r="3.5" style="animation-delay:2.4s"/></svg>
-        <a class="btn btn-line" href="https://twitter.com/hoodlockRH" target="_blank" rel="noopener">Follow @HoodLockRH for launch</a>
-      </div>
-    </section>
-    <section class="view" id="view-streams">
+        <div class="page-head">
+          <div><h1>Airdrops that <span class="serif">arrive.</span></h1><p>Fund it once. Recipients come and take their own share, so nothing lands in a wallet that never asked for it.</p></div>
+        </div>
+
+        <!-- What this wallet can take. Amount first, because that is the fact
+             the visitor came for; the button says only what pressing it does. -->
+        <div id="adClaimWrap" style="margin-bottom:26px">
+          <div class="card-head"><div><h3>Yours to claim</h3><div class="sub">READ FROM THE CHAIN FOR THE CONNECTED WALLET</div></div></div>
+          <div id="adClaimBox"></div>
+        </div>
+
+        <div class="lock-layout">
+          <div class="card">
+            <div class="field">
+              <label>Token contract <span class="hint">Robinhood Chain</span></label>
+              <div class="input-wrap"><input type="text" id="adTokenAddr" placeholder="0x… — or pick from your wallet" spellcheck="false" autocomplete="off" />
+                <div class="tok-dd" id="adTokDd"></div></div>
+              <div class="hintline" id="adTokenInfo"></div>
+              <div class="hintline" id="adBalHint"></div>
+            </div>
+
+            <div class="field">
+              <label>How much each wallet gets</label>
+              <div class="chips" id="adModeChips">
+                <span class="chip-dur active" data-admode="equal">SAME FOR EVERYONE</span>
+                <span class="chip-dur" data-admode="each">AMOUNT PER WALLET</span>
+              </div>
+              <div id="adEqualWrap" style="margin-top:8px">
+                <div class="input-wrap"><input type="text" id="adEqualAmount" placeholder="e.g. 1000" spellcheck="false" autocomplete="off" /></div>
+                <div class="hintline">Every address on the list receives this.</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Recipients <span class="hint" id="adListHint">one address per line</span></label>
+              <div class="input-wrap"><textarea id="adList" rows="7" spellcheck="false" placeholder="0xabc…&#10;0xdef…" style="width:100%;resize:vertical;background:transparent;border:0;color:inherit;font-family:var(--mono);font-size:12px;outline:none"></textarea></div>
+              <div class="hintline" id="adListHelp">Paste from a spreadsheet, a snapshot or a chat. Commas, tabs and colons all work.</div>
+              <div id="adListReport" style="margin-top:10px"></div>
+            </div>
+
+            <div class="field">
+              <label>Deadline <span class="hint">when unclaimed tokens can come back</span></label>
+              <div class="chips" id="adDeadlineChips">
+                <span class="chip-dur" data-addead="30">30 DAYS</span>
+                <span class="chip-dur" data-addead="90">90 DAYS</span>
+                <span class="chip-dur" data-addead="180">180 DAYS</span>
+                <span class="chip-dur active" data-addead="0">NO DEADLINE</span>
+              </div>
+              <div class="hintline" id="adDeadlineHint">No deadline means claimable forever, and you can never take the unclaimed tokens back. That choice is permanent.</div>
+            </div>
+
+            <div class="field">
+              <div class="hintline" id="adSummary"></div>
+              <div class="msg" id="adMsg" style="display:none"></div>
+              <button class="btn btn-neon" id="adCreateBtn" style="width:100%;margin-top:10px">Fund airdrop</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head" style="margin-top:0"><div><h3>Airdrops you funded</h3><div class="sub">SWEEP OPENS WHEN THE DEADLINE PASSES</div></div></div>
+            <div id="adMineBox"></div>
+          </div>
+        </div>
+      </section>
+      <section class="view" id="view-streams">
       <div class="soon-hero"><div class="glow"></div>
         <div class="mono-tag">SHIPPING NEXT</div>
         <h2>Money that <span class="serif">flows.</span></h2>

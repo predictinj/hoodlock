@@ -4,7 +4,7 @@
    WalletConnect for Robinhood Wallet mobile. */
 import {
   createPublicClient, http, fallback, custom, defineChain, getAddress, isAddress,
-  parseUnits, formatUnits, encodeFunctionData, numberToHex, keccak256, toHex, type Hex,
+  parseUnits, formatUnits, formatEther, encodeFunctionData, numberToHex, keccak256, toHex, type Hex,
 } from "viem";
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
@@ -190,6 +190,7 @@ function go(view: string, writeHistory = true) {
   if (view === "explore" && !exploreLoaded) { loadTokenPages(); loadExplore(); }
   if (view === "locks") renderMine();
   if (view === "vesting") loadVestingView();
+  if (view === "airdrops") loadAirdropView();
   if (view === "admin") loadAdmin();
   if (view === "affiliate") loadAffiliatePage();
   if (view === "developers") loadDevelopersPage();
@@ -2896,6 +2897,306 @@ if (VESTING && document.getElementById("vCreateBtn")) {
     updateVSummary();
   }));
 }
+
+/* ═══════════════════════════ airdrops ═══════════════════════════
+ *
+ * Nothing is pushed to a wallet. The creator funds a Merkle root and each
+ * recipient comes here and takes their own leaf, which is the point of the
+ * product rather than a limitation of it.
+ *
+ * The tree is built here, in the browser, from the same shared module the
+ * server serves proofs from and the contract verifies against. Three
+ * implementations of one convention, so they are one file.
+ */
+import { buildTree } from "@shared/merkle.mjs";
+import { buildList, fromBaseUnits, toBaseUnits } from "@shared/airdrop-list.mjs";
+
+const AIRDROP = (cfg as any).airdrop && isAddress((cfg as any).airdrop)
+  ? (getAddress((cfg as any).airdrop) as `0x${string}`) : null;
+
+const AIRDROP_ABI = [
+  { type: "function", name: "create", stateMutability: "payable", inputs: [
+    { name: "token", type: "address" }, { name: "merkleRoot", type: "bytes32" }, { name: "total", type: "uint256" },
+    { name: "maxClaims", type: "uint32" }, { name: "endTime", type: "uint64" }, { name: "uri", type: "string" }],
+    outputs: [{ type: "uint256" }] },
+  { type: "function", name: "claim", stateMutability: "nonpayable", inputs: [
+    { name: "id", type: "uint256" }, { name: "index", type: "uint256" }, { name: "account", type: "address" },
+    { name: "amount", type: "uint256" }, { name: "proof", type: "bytes32[]" }], outputs: [] },
+  { type: "function", name: "sweep", stateMutability: "nonpayable", inputs: [{ name: "id", type: "uint256" }], outputs: [] },
+  { type: "function", name: "quote", stateMutability: "view", inputs: [{ name: "n", type: "uint32" }], outputs: [{ type: "uint256" }] },
+] as const;
+
+let adTokenMeta: { addr: `0x${string}`; symbol: string; decimals: number; bal: bigint } | null = null;
+let adMode: "equal" | "each" = "equal";
+let adDeadlineDays = 0;
+let adBuilt: { entries: { address: string; amount: bigint }[]; root: string; total: bigint; count: number } | null = null;
+
+function loadAirdropView() {
+  renderAdClaims();
+  renderAdMine();
+  adRenderList();
+}
+
+/* ---------- the list ---------- */
+
+function adRenderList() {
+  const box = $("adListReport");
+  const raw = ($("adList") as HTMLTextAreaElement)?.value || "";
+  const dec = adTokenMeta?.decimals ?? 18;
+
+  let equal: bigint | null = null;
+  if (adMode === "equal") {
+    const v = ($("adEqualAmount") as HTMLInputElement)?.value?.trim();
+    if (v) { try { equal = toBaseUnits(v, dec); } catch { equal = null; } }
+  }
+
+  if (!raw.trim()) { box.innerHTML = ""; adBuilt = null; adSummary(); return; }
+
+  const list = buildList(raw, { decimals: dec, equalAmount: equal });
+  const sym = adTokenMeta ? escape(adTokenMeta.symbol) : "tokens";
+
+  if (!list.count) {
+    box.innerHTML = `<div class="hintline" style="color:var(--red)">Nothing usable yet. ${
+      list.problems.length ? escape(list.problems[0].reason) + ` (line ${list.problems[0].line})` : "Add an amount, or set one for everyone."}</div>`;
+    adBuilt = null; adSummary(); return;
+  }
+
+  const tree = buildTree(list.entries);
+  adBuilt = { entries: list.entries, root: tree.root, total: list.total, count: list.count };
+
+  /* Every pasted row is shown, in the order it was pasted. Reading back "4
+     recipients" after pasting five lines looks like the tool ate one, so
+     duplicates are flagged and totalled rather than quietly folded away. */
+  const rows = list.rows.slice(0, 200).map((r) => `<tr${r.duplicate ? ' style="color:var(--amber)"' : ""}>
+    <td class="addr">${short(r.address)}</td>
+    <td style="text-align:right">${fromBaseUnits(r.amount, dec)}</td>
+    <td class="dim">${r.duplicate ? `also on another line, receives ${fromBaseUnits(r.combined!, dec)} in total` : ""}</td></tr>`).join("");
+
+  box.innerHTML = `
+    ${list.merged ? `<div class="hintline" style="color:var(--amber)">${list.merged} duplicate ${list.merged === 1 ? "address" : "addresses"} merged. Every row is still listed below, and the combined amount is shown on each.</div>` : ""}
+    ${list.problems.length ? `<div class="hintline" style="color:var(--red)">${list.problems.length} line${list.problems.length === 1 ? "" : "s"} skipped: ${escape(list.problems[0].reason)} (line ${list.problems[0].line})</div>` : ""}
+    <div style="max-height:220px;overflow:auto;margin-top:8px"><table class="mini">${rows}</table></div>
+    ${list.rows.length > 200 ? `<div class="hintline">Showing the first 200 of ${list.rows.length} rows.</div>` : ""}
+    <div class="hintline" style="margin-top:8px"><b>${list.count}</b> wallets receive <b>${fmtNum(list.total, dec)} $${sym}</b> in total.</div>`;
+  adSummary();
+}
+
+async function adSummary() {
+  const el = $("adSummary");
+  if (!AIRDROP || !adBuilt) { el.textContent = ""; return; }
+  let fee = 0n;
+  try {
+    fee = await pub.readContract({ address: AIRDROP, abi: AIRDROP_ABI as any, functionName: "quote", args: [adBuilt.count] }) as bigint;
+  } catch { /* shown as unknown below rather than guessed */ }
+  const dec = adTokenMeta?.decimals ?? 18;
+  const short_ = adTokenMeta && adTokenMeta.bal < adBuilt.total;
+  el.innerHTML = `Fee <b>${fee === 0n ? "free" : formatEther(fee) + " ETH"}</b> for ${adBuilt.count} wallets · deposit <b>${fmtNum(adBuilt.total, dec)} ${adTokenMeta ? "$" + escape(adTokenMeta.symbol) : ""}</b>${
+    short_ ? ` <span style="color:var(--red)">— your balance is ${fmtNum(adTokenMeta!.bal, dec)}</span>` : ""}
+    <br>${adDeadlineDays ? `Unclaimed tokens can come back to you after ${adDeadlineDays} days.` : "No deadline: claimable forever, and you can never take the unclaimed tokens back."}`;
+}
+
+async function adRefreshToken() {
+  adTokenMeta = null; $("adTokenInfo").textContent = ""; $("adBalHint").textContent = "";
+  const raw = ($("adTokenAddr") as HTMLInputElement).value.trim();
+  if (!isAddress(raw)) { adRenderList(); return; }
+  const addr = getAddress(raw) as `0x${string}`;
+  try {
+    const [symbol, decimals] = await Promise.all([
+      pub.readContract({ address: addr, abi: ERC20, functionName: "symbol" }) as Promise<string>,
+      pub.readContract({ address: addr, abi: ERC20, functionName: "decimals" }) as Promise<number>,
+    ]);
+    let bal = 0n;
+    if (account) bal = await pub.readContract({ address: addr, abi: ERC20, functionName: "balanceOf", args: [account as `0x${string}`] }) as bigint;
+    adTokenMeta = { addr, symbol, decimals: Number(decimals), bal };
+    $("adTokenInfo").textContent = `$${symbol} · ${decimals} decimals`;
+    if (account) $("adBalHint").textContent = `You hold ${fmtNum(bal, Number(decimals))} $${symbol}`;
+  } catch {
+    $("adTokenInfo").innerHTML = `<span style="color:var(--red)">Not an ERC-20 on this chain</span>`;
+  }
+  adRenderList();
+}
+
+/* ---------- create ---------- */
+
+async function adCreate() {
+  const msg = $("adMsg"); msg.style.display = "block"; msg.className = "msg";
+  const btn = $("adCreateBtn") as HTMLButtonElement;
+  try {
+    if (!AIRDROP) throw new Error("Airdrops are not configured on this deployment.");
+    if (!account) { await connect(); if (!account) return; }
+    if (!adTokenMeta) throw new Error("Enter a token contract first.");
+    if (!adBuilt || !adBuilt.count) throw new Error("Add at least one recipient.");
+    if (adTokenMeta.bal < adBuilt.total) throw new Error(`You hold ${fmtNum(adTokenMeta.bal, adTokenMeta.decimals)} $${adTokenMeta.symbol}, and this list needs ${fmtNum(adBuilt.total, adTokenMeta.decimals)}.`);
+
+    btn.disabled = true;
+
+    /* Publish the list before the transaction. The contract stores only a root,
+       so a list nobody can read is an airdrop nobody can claim. Uploading first
+       means the claim page works the moment the transaction confirms. */
+    msg.textContent = "Publishing the recipient list…";
+    const up = await fetch("/api/airdrop/list", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ root: adBuilt.root, entries: adBuilt.entries.map((e) => ({ address: e.address, amount: e.amount.toString() })) }),
+    });
+    const upJson = await up.json().catch(() => ({}));
+    if (!up.ok) throw new Error(upJson?.error || "Couldn't publish the list. Nothing was sent.");
+
+    const fee = await pub.readContract({ address: AIRDROP, abi: AIRDROP_ABI as any, functionName: "quote", args: [adBuilt.count] }) as bigint;
+
+    const allow = await pub.readContract({ address: adTokenMeta.addr, abi: ERC20, functionName: "allowance", args: [account as `0x${string}`, AIRDROP] }) as bigint;
+    if (allow < adBuilt.total) {
+      msg.textContent = "Approving… confirm in wallet";
+      const ah = await send(adTokenMeta.addr, encodeFunctionData({ abi: ERC20, functionName: "approve", args: [AIRDROP, adBuilt.total] }));
+      msg.innerHTML = `Approving… <span class="spin"></span>`; await waitTx(ah);
+    }
+
+    const endTime = adDeadlineDays ? BigInt(Math.floor(Date.now() / 1000) + adDeadlineDays * 86400) : 0n;
+    msg.textContent = "Funding the airdrop… confirm in wallet";
+    const h = await send(AIRDROP, encodeFunctionData({
+      abi: AIRDROP_ABI as any, functionName: "create",
+      args: [adTokenMeta.addr, adBuilt.root as `0x${string}`, adBuilt.total, adBuilt.count, endTime, ""],
+    }), fee);
+    msg.innerHTML = `Funding… <span class="spin"></span>`;
+    await waitTx(h);
+    msg.className = "msg ok";
+    msg.innerHTML = `Funded. <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a> — recipients can claim it now.`;
+    ($("adList") as HTMLTextAreaElement).value = "";
+    adBuilt = null; adRenderList();
+    invalidateEvents(); renderAdMine();
+  } catch (e: any) {
+    msg.className = "msg bad"; msg.textContent = friendlyErr(e);
+  } finally {
+    ($("adCreateBtn") as HTMLButtonElement).disabled = false;
+  }
+}
+
+/* ---------- claim ---------- */
+
+async function renderAdClaims() {
+  const box = $("adClaimBox");
+  if (!AIRDROP) { box.innerHTML = `<div class="empty"><div class="small">Airdrops are not configured on this deployment.</div></div>`; return; }
+  if (!account) { box.innerHTML = `<div class="empty"><div class="small">Connect your wallet to see what is waiting for it.</div></div>`; return; }
+  box.innerHTML = `<div class="empty"><div class="small">Checking… <span class="spin"></span></div></div>`;
+  try {
+    const r = await fetch(`/api/airdrop/eligible?address=${account}`).then((x) => x.json());
+    const items: any[] = r.claimable || [];
+    if (!items.length) {
+      box.innerHTML = `<div class="empty"><div class="big">Nothing waiting</div><div class="small">This wallet is not on any airdrop list held here. If a project says otherwise, ask them to check the address they used.</div></div>`;
+      return;
+    }
+    const rows = await Promise.all(items.map(async (it) => {
+      const m = await tokMeta(it.token);
+      // The amount leads. It is the fact the visitor came for, and the button
+      // says only what pressing it does.
+      return `<tr>
+        <td><div class="tk-cell">${await tokenIcoHTML(it.token, m.symbol)}
+          <div><div class="n">${fmtNum(BigInt(it.amount), m.decimals)} $${escape(m.symbol)}</div>
+          <div class="a">airdrop #${it.id}</div></div></div></td>
+        <td>${it.endTime ? `closes ${dateLabel(it.endTime)}` : "no deadline"}</td>
+        <td>${it.shortfall ? `<span class="status unlockable"><i></i>UNDERFUNDED</span>` : ""}</td>
+        <td><div class="row-actions"><button class="btn btn-neon btn-sm" data-adclaim="${it.id}" data-adidx="${it.index}" data-adamt="${it.amount}">Claim</button></div></td></tr>`;
+    }));
+    box.innerHTML = `<table>${rows.join("")}</table>`;
+    box.querySelectorAll<HTMLButtonElement>("[data-adclaim]").forEach((b) => {
+      b.onclick = () => adClaim(Number(b.dataset.adclaim), Number(b.dataset.adidx), BigInt(b.dataset.adamt!), b);
+    });
+  } catch {
+    box.innerHTML = `<div class="empty"><div class="big">Couldn't check right now</div><div class="small">The network is busy. Nothing was sent; try again in a moment.</div></div>`;
+  }
+}
+
+async function adClaim(id: number, index: number, amount: bigint, btn: HTMLButtonElement) {
+  if (!AIRDROP || !account) return;
+  btn.disabled = true; btn.textContent = "Claiming…";
+  try {
+    /* The proof is fetched fresh rather than trusted from the list render, so a
+       stale page cannot send a transaction that is certain to revert. */
+    const p = await fetch(`/api/airdrop/${id}/proof?address=${account}`).then((r) => r.json());
+    if (!p?.proof) throw new Error("Couldn't build the proof for this wallet. Nothing was sent.");
+    const h = await send(AIRDROP, encodeFunctionData({
+      abi: AIRDROP_ABI as any, functionName: "claim",
+      args: [BigInt(id), BigInt(p.index), getAddress(p.account) as `0x${string}`, BigInt(p.amount), p.proof],
+    }));
+    await waitTx(h);
+    notify("Claimed ✓");
+    invalidateEvents(); renderAdClaims();
+  } catch (e: any) {
+    notify(friendlyErr(e));
+    btn.disabled = false; btn.textContent = "Claim";
+  }
+}
+
+/* ---------- what this wallet funded ---------- */
+
+async function renderAdMine() {
+  const box = $("adMineBox");
+  if (!AIRDROP) { box.innerHTML = ""; return; }
+  if (!account) { box.innerHTML = `<div class="empty"><div class="small">Connect your wallet to see the airdrops you funded.</div></div>`; return; }
+  try {
+    const all = await fetch("/api/airdrops").then((r) => r.json());
+    const mine = (all.airdrops || []).filter((a: any) => a.creator?.toLowerCase() === account.toLowerCase());
+    if (!mine.length) {
+      box.innerHTML = `<div class="empty"><div class="small">Nothing yet. Fund one on the left and it appears here.</div></div>`;
+      return;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const rows = await Promise.all(mine.map(async (a: any) => {
+      const m = await tokMeta(a.token);
+      const closed = a.endTime !== 0 && now >= a.endTime;
+      const canSweep = closed && !a.swept && BigInt(a.remaining) > 0n;
+      return `<tr>
+        <td><div class="tk-cell">${await tokenIcoHTML(a.token, m.symbol)}
+          <div><div class="n">$${escape(m.symbol)} <span class="tag">AIRDROP #${a.id}</span></div>
+          <div class="a">${fmtNum(BigInt(a.total), m.decimals)} total</div></div></div></td>
+        <td>${a.claims} of ${a.maxClaims} claimed</td>
+        <td>${fmtNum(BigInt(a.remaining), m.decimals)} left</td>
+        <td>${a.endTime ? (closed ? "closed" : `closes ${dateLabel(a.endTime)}`) : "no deadline"}</td>
+        <td><div class="row-actions">
+          <a class="btn btn-line btn-sm" href="/airdrop/${a.id}">Page</a>
+          ${canSweep ? `<button class="btn btn-neon btn-sm" data-adsweep="${a.id}">Sweep</button>` : ""}
+        </div></td></tr>`;
+    }));
+    box.innerHTML = `<table>${rows.join("")}</table>`;
+    box.querySelectorAll<HTMLButtonElement>("[data-adsweep]").forEach((b) => {
+      b.onclick = async () => {
+        b.disabled = true; b.textContent = "Sweeping…";
+        try {
+          const h = await send(AIRDROP!, encodeFunctionData({ abi: AIRDROP_ABI as any, functionName: "sweep", args: [BigInt(b.dataset.adsweep!)] }));
+          await waitTx(h); notify("Swept ✓"); invalidateEvents(); renderAdMine();
+        } catch (e: any) { notify(friendlyErr(e)); b.disabled = false; b.textContent = "Sweep"; }
+      };
+    });
+  } catch {
+    box.innerHTML = `<div class="empty"><div class="small">Couldn't read the chain right now.</div></div>`;
+  }
+}
+
+/* ---------- wiring ---------- */
+
+$("adTokenAddr")?.addEventListener("input", debounce(adRefreshToken, 400));
+$("adList")?.addEventListener("input", debounce(adRenderList, 250));
+$("adEqualAmount")?.addEventListener("input", debounce(adRenderList, 250));
+$("adCreateBtn")?.addEventListener("click", adCreate);
+
+$("adModeChips")?.addEventListener("click", (e) => {
+  const chip = (e.target as HTMLElement).closest<HTMLElement>("[data-admode]");
+  if (!chip) return;
+  adMode = chip.dataset.admode as "equal" | "each";
+  $("adModeChips").querySelectorAll(".chip-dur").forEach((c) => c.classList.toggle("active", c === chip));
+  $("adEqualWrap").style.display = adMode === "equal" ? "" : "none";
+  $("adListHint").textContent = adMode === "equal" ? "one address per line" : "one line per wallet: address:amount";
+  ($("adList") as HTMLTextAreaElement).placeholder = adMode === "equal" ? "0xabc…\n0xdef…" : "0xabc…:1000\n0xdef…:250";
+  adRenderList();
+});
+
+$("adDeadlineChips")?.addEventListener("click", (e) => {
+  const chip = (e.target as HTMLElement).closest<HTMLElement>("[data-addead]");
+  if (!chip) return;
+  adDeadlineDays = Number(chip.dataset.addead);
+  $("adDeadlineChips").querySelectorAll(".chip-dur").forEach((c) => c.classList.toggle("active", c === chip));
+  adSummary();
+});
+
 
 /* ---------- boot ---------- */
 restoreConnection();
