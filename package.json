@@ -10,7 +10,11 @@
     "dev": "vite web",
     "build": "npm run docs:build && vite build web",
     "preview": "vite preview web",
-    "docs:build": "node web/docs-src/build.mjs"
+    "docs:build": "node web/docs-src/build.mjs",
+    "fixture": "node shared/gen-fixture.mjs",
+    "test:shared": "node shared/list.test.mjs",
+    "test:contracts": "forge test",
+    "test": "npm run test:shared && npm run test:contracts"
   },
   "dependencies": {
     "viem": "^2.21.0",

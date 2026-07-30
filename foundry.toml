@@ -9,6 +9,9 @@ solc = '0.8.24'
 evm_version = 'paris'
 optimizer = true
 optimizer_runs = 200
+# Read-only, and scoped to the one directory holding the cross-environment
+# fixture that RobinhoodAirdrop.merkle.t.sol checks against the contract.
+fs_permissions = [{ access = "read", path = "./contracts/test/fixtures" }]
 
 [invariant]
 runs = 64
