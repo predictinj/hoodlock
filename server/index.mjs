@@ -13,6 +13,7 @@ import { makeOgRenderer, fontsReady } from "./og.mjs";
 import { tokenData, withRecords, renderTokenPage } from "./token.mjs";
 import { renderChecker, KINDS } from "./checker.mjs";
 import { renderLegal, LEGAL_PAGES } from "./legal.mjs";
+import { renderAirdropIndex, renderAirdropPage, renderAirdropChecker } from "./airdrop-pages.mjs";
 import {
   initAirdropTables, saveList, getList, proofFor, pruneUnbound,
   makeAirdropIndex, eligibleFor, MAX_LIST,
@@ -72,6 +73,10 @@ const VEST_WRITE_ABI = [{ type: "function", name: "create", stateMutability: "pa
 const BURNER = cfg.burner && isAddress(cfg.burner) ? getAddress(cfg.burner) : null;
 const VESTING = cfg.vesting && isAddress(cfg.vesting) ? getAddress(cfg.vesting) : null;
 const AIRDROP = cfg.airdrop && isAddress(cfg.airdrop) ? getAddress(cfg.airdrop) : null;
+const ERC20_META = [
+  { type: "function", name: "symbol", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
+  { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
+];
 const AIRDROP_READ_ABI = [
   { type: "function", name: "quote", stateMutability: "view", inputs: [{ type: "uint32" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "isClaimed", stateMutability: "view", inputs: [{ type: "uint256" }, { type: "uint256" }], outputs: [{ type: "bool" }] },
@@ -687,6 +692,11 @@ app.get("/api/dev/config", (req, res) => {
     burner: BURNER,
     vesting: VESTING,
     feeWei: FEE_WEI.toString(), feeEth: FEE_ETH,   // lock fee, kept for compatibility
+    airdrop: AIRDROP,
+    /* The airdrop fee is not one number: it scales with declared recipients and
+       is clamped by the contract. Callers should ask quote(n) rather than
+       assume, so what is published here is the shape and the one-wallet case. */
+    airdropFee: AIRDROP ? { perWalletQuoteAt1Eth: AIRDROP_FEE_ETH, quote: "call quote(uint32 recipients) on the airdrop contract" } : null,
     fees: {
       lock: FEE_WEI.toString(),
       burn: BURNER ? String(BigInt(Math.round(BURN_FEE_ETH * 1e18))) : null,
@@ -1402,6 +1412,78 @@ if (AIRDROP) {
   });
 }
 
+
+/* Public airdrop pages. Server rendered so they are indexable and readable
+   without a wallet; claiming needs the wallet, so that deep-links into the app. */
+if (AIRDROP) {
+  /* Token symbol and decimals for a set of addresses, cached the same way the
+     token pages cache them, so a page with twenty airdrops is twenty map reads
+     rather than forty contract calls. */
+  const metaCache = new Map();
+  async function tokenMetaFor(addresses) {
+    const out = {};
+    await Promise.all([...new Set(addresses)].map(async (t) => {
+      if (metaCache.has(t)) { out[t] = metaCache.get(t); return; }
+      try {
+        const [symbol, decimals] = await Promise.all([
+          pub.readContract({ address: getAddress(t), abi: ERC20_META, functionName: "symbol" }),
+          pub.readContract({ address: getAddress(t), abi: ERC20_META, functionName: "decimals" }),
+        ]);
+        const m = { symbol, decimals: Number(decimals) };
+        metaCache.set(t, m); out[t] = m;
+      } catch { out[t] = { symbol: "???", decimals: 18 }; }
+    }));
+    return out;
+  }
+
+  app.get("/airdrops", async (_req, res) => {
+    const all = [...(await airdropIndex.all()).values()].sort((a, b) => b.id - a.id);
+    const meta = await tokenMetaFor(all.map((a) => a.token));
+    res.set("Cache-Control", "public, max-age=60");
+    return res.type("html").send(renderAirdropIndex({ airdrops: all, meta }));
+  });
+
+  app.get("/airdrop-checker", async (req, res) => {
+    const raw = String(req.query.a || "").trim();
+    const ok = /^0x[0-9a-fA-F]{40}$/.test(raw);
+    res.set("Cache-Control", raw ? "public, max-age=30" : HTML_CACHE);
+    if (!raw) return res.type("html").send(renderAirdropChecker({ query: "", bad: false, results: null, meta: {} }));
+    if (!ok) return res.type("html").send(renderAirdropChecker({ query: raw, bad: true, results: null, meta: {} }));
+    try {
+      const results = await eligibleFor({ index: airdropIndex, db, pub, AIRDROP, ABI: AIRDROP_READ_ABI,
+        address: raw, log: (m) => console.log("[hoodlock]", m) });
+      const meta = await tokenMetaFor(results.map((r) => r.token));
+      return res.type("html").send(renderAirdropChecker({ query: raw, bad: false, results, meta }));
+    } catch {
+      return res.type("html").send(renderAirdropChecker({ query: raw, bad: false, results: [], meta: {} }));
+    }
+  });
+
+  app.get("/airdrop/:id", async (req, res) => {
+    const a = await airdropIndex.get(String(req.params.id).replace(/[^0-9]/g, ""));
+    if (!a) return next404(res);
+    const meta = await tokenMetaFor([a.token]);
+    const list = db ? getList(db, a.root) : null;
+
+    const raw = String(req.query.a || "").trim();
+    const query = /^0x[0-9a-fA-F]{40}$/.test(raw) ? raw : "";
+    let hit = null;
+    if (query && db) {
+      const p = proofFor(db, a.root, query);
+      if (p) {
+        let claimed = false;
+        try {
+          claimed = await pub.readContract({ address: AIRDROP, abi: AIRDROP_READ_ABI,
+            functionName: "isClaimed", args: [BigInt(a.id), BigInt(p.index)] });
+        } catch { /* shown as unclaimed; the transaction is the real check */ }
+        hit = { ...p, claimed };
+      }
+    }
+    res.set("Cache-Control", query ? "public, max-age=30" : "public, max-age=60");
+    return res.type("html").send(renderAirdropPage({ a, m: meta[a.token], list, query, hit }));
+  });
+}
+
 /* Terms and privacy. Static content, so they get the plain HTML cache header
    the rest of the site's pages use. */
 for (const which of LEGAL_PAGES) {
@@ -1531,6 +1613,11 @@ const VIEW_META = {
     desc: "Browse every token lock, burn and vesting schedule on Robinhood Chain. Check what a project has actually locked before you buy.",
     heading: "Explore locks",
   },
+  airdrops: {
+    title: "Fund an airdrop on Robinhood Chain | HoodLock",
+    desc: "Fund an airdrop once and let recipients take their own share. No tokens are pushed to wallets that never asked for them. Free while the fee is switched off.",
+    heading: "Airdrops",
+  },
   developers: {
     title: "Developer docs & contract addresses | HoodLock",
     desc: "Contract addresses, ABIs and integration notes for the HoodLock locker, burner and vesting contracts on Robinhood Chain.",
@@ -1544,7 +1631,7 @@ const VIEW_META = {
 };
 /* Views with nothing to rank: the wallet-gated console, the two unshipped
    products, and the in-app proof view that /proof/:kind/:id already covers. */
-const NOINDEX_VIEWS = { admin: "Admin console", airdrops: "Airdrops", streams: "Streams", proof: "Proof" };
+const NOINDEX_VIEWS = { admin: "Admin console", streams: "Streams", proof: "Proof" };
 app.get("/app/*", (req, res) => {
   const view = String(req.path).replace(/^\/app\/?/, "").replace(/\/+$/, "").toLowerCase();
   if (NOINDEX_VIEWS[view]) {
@@ -1590,6 +1677,7 @@ app.get("/sitemap.xml", async (_req, res) => {
       ["/app", "weekly", "0.6"], ["/blog", "weekly", "0.7"],
       // The three checkers answer the questions people actually type, so they
       // rank alongside the homepage rather than below the articles about them.
+      ["/airdrops", "daily", "0.8"], ["/airdrop-checker", "weekly", "0.9"],
       ["/terms", "yearly", "0.3"], ["/privacy", "yearly", "0.3"],
       ["/lock-checker", "weekly", "0.9"], ["/burn-checker", "weekly", "0.8"],
       ["/vesting-checker", "weekly", "0.8"],

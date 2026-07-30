@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Airdrops on HoodLock | Merkle Claims, Pricing and Deadlines</title>
+<meta name="description" content="How a HoodLock airdrop works: the creator funds a Merkle root, recipients take their own share, and the recipient list is published so claims outlive this website.">
+<link rel="canonical" href="https://hoodlock.tech/docs/airdrops">
+<meta property="og:site_name" content="HoodLock"><meta property="og:type" content="article">
+<meta property="og:title" content="Airdrops on HoodLock | Merkle Claims, Pricing and Deadlines">
+<meta property="og:description" content="How a HoodLock airdrop works: the creator funds a Merkle root, recipients take their own share, and the recipient list is published so claims outlive this website.">
+<meta property="og:url" content="https://hoodlock.tech/docs/airdrops">
+<meta property="og:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Airdrops on HoodLock | Merkle Claims, Pricing and Deadlines">
+<meta name="twitter:description" content="How a HoodLock airdrop works: the creator funds a Merkle root, recipients take their own share, and the recipient list is published so claims outlive this website.">
+<meta name="twitter:image" content="https://hoodlock.tech/hoodlockshare.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;600&display=swap"></noscript>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"HoodLock","item":"https://hoodlock.tech/"},{"@type":"ListItem","position":2,"name":"Docs","item":"https://hoodlock.tech/docs"},{"@type":"ListItem","position":3,"name":"Airdrops","item":"https://hoodlock.tech/docs/airdrops"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Airdrops on HoodLock | Merkle Claims, Pricing and Deadlines","description":"How a HoodLock airdrop works: the creator funds a Merkle root, recipients take their own share, and the recipient list is published so claims outlive this website.","url":"https://hoodlock.tech/docs/airdrops","datePublished":"2026-07-30","dateModified":"2026-07-30","author":{"@type":"Organization","name":"HoodLock","url":"https://hoodlock.tech"},"publisher":{"@type":"Organization","name":"HoodLock","logo":{"@type":"ImageObject","url":"https://hoodlock.tech/hoodlock-logo.png"}},"mainEntityOfPage":"https://hoodlock.tech/docs/airdrops"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Why do recipients have to claim instead of receiving it?","acceptedAnswer":{"@type":"Answer","text":"Because pushing tokens to thousands of wallets costs the sender gas for every recipient who never wanted them, and fills wallets with things nobody asked for. Here the tokens wait in the contract until the wallet that owns them asks, which is also why the claim brings people to a page that can show them what they actually got."}},{"@type":"Question","name":"Can I take back tokens nobody claimed?","acceptedAnswer":{"@type":"Answer","text":"Only if you set a deadline, and only after it passes. An airdrop created with no deadline is claimable forever and can never be swept, which is a permanent choice made at creation."}},{"@type":"Question","name":"What happens if I lose the recipient list?","acceptedAnswer":{"@type":"Answer","text":"Nothing, as long as it was published. The full list is downloadable from the airdrop's page, and anyone can rebuild a claim proof from it without HoodLock being involved."}},{"@type":"Question","name":"Can two airdrops use the same list?","acceptedAnswer":{"@type":"Answer","text":"Yes, and they will share the published list correctly, because anyone claiming against either is genuinely on it. Each airdrop is still bounded by its own deposit."}},{"@type":"Question","name":"Does an airdrop show up in the lock explorer?","acceptedAnswer":{"@type":"Answer","text":"No. Locks, burns and vesting appear there; airdrops have their own index at /airdrops and their own checker."}}]}</script>
+<link rel="stylesheet" href="/docs/docs-q6wNEG5_.css">
+<script defer src="/docs/docs-4DcY1IvB.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<nav class="nav">
+  <a class="logo" href="/">Hood<b>Lock</b></a>
+  <div class="search" role="search">
+    <label class="skip" for="docsearch">Search documentation</label>
+    <input id="docsearch" type="search" placeholder="Search the docs…" autocomplete="off"
+           role="combobox" aria-expanded="false" aria-controls="docresults" aria-autocomplete="list">
+    <div class="results" id="docresults" role="listbox" hidden></div>
+  </div>
+  <div class="nav-right">
+    <button class="menu-btn" type="button" id="menuBtn" aria-expanded="false" aria-controls="sidebar">Menu</button>
+    <a class="cta" href="/app">Launch App</a>
+  </div>
+</nav>
+<div class="sb-backdrop" id="sbBackdrop" hidden></div>
+<div class="shell">
+<nav class="sb" id="sidebar" aria-label="Documentation">
+  <button class="sb-close" type="button" id="sbClose" aria-label="Close menu">&times;</button>
+  <div class="sbh">Getting started</div><ul><li><a href="/docs/quickstart">Quickstart</a></li><li><a href="/docs/connect-wallet">Connecting a wallet</a></li><li><a href="/docs/fees">Fees</a></li></ul><div class="sbh">Guides</div><ul><li><a href="/docs/how-to-lock-tokens">Lock tokens</a></li><li><a href="/docs/how-to-lock-liquidity">Lock LP tokens</a></li><li><a href="/docs/how-to-create-vesting">Create a vesting schedule</a></li><li><a href="/docs/how-to-burn-tokens">Burn tokens</a></li><li><a href="/docs/how-to-extend-a-lock">Extend a lock</a></li><li><a href="/docs/how-to-verify-a-lock">Verify someone else&#39;s lock</a></li></ul><div class="sbh">Products</div><ul><li><a href="/docs/token-locker">Token locker</a></li><li><a href="/docs/liquidity-locker">Liquidity locker</a></li><li><a href="/docs/token-vesting">Token vesting</a></li><li><a href="/docs/token-burning">Token burning</a></li><li><a href="/docs/airdrops" aria-current="page">Airdrops</a></li><li><a href="/docs/proof-of-lock">Proof of lock</a></li><li><a href="/docs/lock-explorer">Lock explorer</a></li></ul><div class="sbh">Trust and safety</div><ul><li><a href="/docs/security">Security model</a></li><li><a href="/docs/when-a-lock-expires">When a lock expires</a></li><li><a href="/docs/troubleshooting">Troubleshooting</a></li></ul><div class="sbh">Reference</div><ul><li><a href="/docs/contracts">Contracts</a></li><li><a href="/docs/network">Network</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/embed">Embed widget</a></li></ul><div class="sbh">Comparisons</div><ul><li><a href="/docs/vs/stonkbrokers">vs StonkBrokers</a></li><li><a href="/docs/vs/multi-chain-lockers">vs multi-chain lockers</a></li><li><a href="/docs/vs/diy-locking">vs locking it yourself</a></li></ul><div class="sbh">More</div><ul><li><a href="/docs/faq">FAQ</a></li><li><a href="/docs/learn">Learn</a></li></ul>
+</nav>
+<main id="main">
+<nav class="crumb" aria-label="Breadcrumb"><ol><li><a href="/">HoodLock</a></li><li><a href="/docs">Docs</a></li><li>Airdrops</li></ol></nav>
+<h1>Airdrops that <span class="serif">arrive.</span></h1>
+<p class="lede">Most airdrops push tokens into wallets that never asked for them, and the sender pays gas for every recipient who ignores it. HoodLock inverts that: you fund it once, and each recipient comes and takes their own share.</p>
+<div class="meta">Updated 2026-07-30 · HoodLock Team</div>
+
+<h2 id="what-actually-happens">What actually happens<a class="anchor" href="#what-actually-happens" aria-label="Link to this section">#</a></h2>
+<p>You paste a list of wallets and amounts. The browser reduces that list to a single 32-byte Merkle root
+and sends it to the contract along with the tokens. The list itself is published, because the root alone is
+useless to a recipient: they need the list to build the proof that they are in it.</p>
+<p>A recipient then opens the app, and the contract checks their proof against the root before releasing
+exactly the amount their entry says. Nobody can claim twice, and nobody who is not in the list can claim at
+all.</p>
+<div class="callout callout-info"><div class="ct">Note</div><p>The list lives at <code>/api/airdrop/&lt;id&gt;/list.json</code> and is downloadable by anyone.
+That is deliberate. If it existed only on our server, a non-custodial contract would still depend on our
+uptime, because nobody could rebuild a proof without us.</p></div>
+
+<h2 id="what-it-costs">What it costs<a class="anchor" href="#what-it-costs" aria-label="Link to this section">#</a></h2>
+<p>The fee scales with the number of wallets you declare, and the contract clamps it so no single airdrop
+can ever be charged more than the hard cap written into the code. Both parameters are currently zero, so
+funding an airdrop is free. You still pay network gas, and recipients pay their own gas to claim.</p>
+<div class="codewrap"><span class="lang">text</span><button class="copy" type="button" data-copy aria-label="Copy code to clipboard">Copy</button><pre><code>fee = min(base + perWallet × recipients, MAX_FEE)</code></pre></div>
+<h3 id="why-declaring-fewer-wallets-does-not-save-money">Why declaring fewer wallets does not save money<a class="anchor" href="#why-declaring-fewer-wallets-does-not-save-money" aria-label="Link to this section">#</a></h3>
+<p>The number you pay for is also the ceiling on how many claims succeed. Declare ten wallets and airdrop
+to five thousand, and the eleventh person is refused. Under-declaring breaks your own airdrop rather than
+saving anything, which is what makes the price enforceable without us checking anything off chain.</p>
+
+<h2 id="deadlines-and-the-choice-that-cannot-be-undone">Deadlines, and the choice that cannot be undone<a class="anchor" href="#deadlines-and-the-choice-that-cannot-be-undone" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Setting</th><th>What it means</th></tr></thead><tbody><tr><td>A deadline</td><td>Unclaimed tokens can be returned to you, but only after that date. Until then nobody can move them, including you.</td></tr><tr><td>No deadline</td><td>Claimable forever. You permanently give up the ability to take the unclaimed tokens back.</td></tr></tbody></table></div>
+<div class="callout callout-danger"><div class="ct">Irreversible</div><p><b>The deadline is fixed at creation and cannot be changed afterwards.</b> There is no way to
+close an airdrop early, extend it, or reclaim tokens before the date you set. That restriction is the whole
+reason a recipient can trust the page.</p></div>
+<p>A deadline must be at least seven days out. A one-day window would let an airdrop advertise a promise
+it could withdraw before most people saw it.</p>
+
+<h2 id="reading-an-airdrop-honestly">Reading an airdrop honestly<a class="anchor" href="#reading-an-airdrop-honestly" aria-label="Link to this section">#</a></h2>
+<p>The contract cannot add up a Merkle tree, so nothing stops a creator funding less than their list
+promises, or paying for fewer claims than they have recipients. In both cases claims succeed until the money
+or the ceiling runs out, and everyone after that is refused.</p>
+<div class="callout callout-warn"><div class="ct">Careful</div><p>Each airdrop page compares the published list against what the chain actually holds and says
+plainly when the airdrop cannot pay everyone on it. Being on a list is not the same as there being something
+left, and the page will tell you which one you are looking at.</p></div>
+<p>Airdrops of the same token share the contract's balance, but each one is bounded by its own deposit:
+an airdrop whose tree over-promises can never spend another airdrop's tokens.</p>
+
+<h2 id="lists-duplicates-and-formats">Lists, duplicates and formats<a class="anchor" href="#lists-duplicates-and-formats" aria-label="Link to this section">#</a></h2>
+<p>Paste addresses one per line for an equal split, or <code>address:amount</code> lines for individual
+amounts. Commas, tabs and equals signs work too, because these lists come out of spreadsheets and chat.</p>
+<ul><li>An address appearing twice is merged and the amounts are added, because the tree needs one entry per wallet and dropping the second would quietly cost somebody tokens.</li><li>Every pasted row stays on screen, flagged, with the combined total, so a shorter recipient count never looks like the tool lost a line.</li><li>Lines that are not usable are listed with their line number rather than skipped in silence.</li></ul>
+
+<h2 id="what-hoodlock-does-not-do">What HoodLock does not do<a class="anchor" href="#what-hoodlock-does-not-do" aria-label="Link to this section">#</a></h2>
+<p>It does not review the projects that create airdrops, or the tokens they use. Anyone can fund one, and a
+page on this domain records what happened on chain rather than endorsing it. Check the token before acting on
+an airdrop of it: <a href="/blog/rug-pull-red-flags-checklist">the red flags checklist</a> runs in about ten
+minutes.</p>
+
+<div class="cta-box"><h2>Fund an airdrop</h2><p>Free while the fee is switched off. One transaction, and recipients take it from there.</p><a class="btn" href="/app/airdrops">Open HoodLock</a></div>
+
+<section class="related"><h2>Related</h2><ul><li><a href="/airdrop-checker">Airdrop checker</a> — see what any wallet can still take</li><li><a href="/airdrops">Every airdrop on the chain</a></li><li><a href="/docs/contracts">Contract addresses</a> — including the airdrop contract</li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a href="/docs/token-burning"><span class="d">Previous</span>Token burning</a><a class="next" href="/docs/proof-of-lock"><span class="d">Next</span>Proof of lock</a></nav>
+</main>
+<aside class="toc" aria-label="On this page"><div class="toch">On this page</div><ul><li><a class="" href="#what-actually-happens">What actually happens</a></li><li><a class="" href="#what-it-costs">What it costs</a></li><li><a class="lvl3" href="#why-declaring-fewer-wallets-does-not-save-money">Why declaring fewer wallets does not save money</a></li><li><a class="" href="#deadlines-and-the-choice-that-cannot-be-undone">Deadlines, and the choice that cannot be undone</a></li><li><a class="" href="#reading-an-airdrop-honestly">Reading an airdrop honestly</a></li><li><a class="" href="#lists-duplicates-and-formats">Lists, duplicates and formats</a></li><li><a class="" href="#what-hoodlock-does-not-do">What HoodLock does not do</a></li></ul></aside>
+</div>
+<footer>© 2026 HOODLOCK · ROBINHOOD CHAIN · <a href="/">hoodlock.tech</a></footer>
+</body>
+</html>

@@ -40,6 +40,7 @@ export const SECTIONS = [
       { slug: "liquidity-locker", title: "Liquidity locker" },
       { slug: "token-vesting", title: "Token vesting" },
       { slug: "token-burning", title: "Token burning" },
+      { slug: "airdrops", title: "Airdrops" },
       { slug: "proof-of-lock", title: "Proof of lock" },
       { slug: "lock-explorer", title: "Lock explorer" },
     ],
@@ -89,6 +90,6 @@ export const bySlug = (slug) => PAGES.find((p) => p.slug === slug) || null;
 export const priorityFor = (slug) => {
   if (slug === "") return "0.9";
   if (["how-to-lock-tokens", "how-to-lock-liquidity", "faq"].includes(slug)) return "0.8";
-  if (["token-locker", "liquidity-locker", "token-vesting", "contracts", "security"].includes(slug)) return "0.7";
+  if (["token-locker", "liquidity-locker", "token-vesting", "airdrops", "contracts", "security"].includes(slug)) return "0.7";
   return "0.6";
 };
