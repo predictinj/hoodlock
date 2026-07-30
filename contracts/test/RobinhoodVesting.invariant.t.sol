@@ -103,6 +103,11 @@ contract RobinhoodVestingInvariantTest is Test {
         h = new Handler(v);
         v.setFeeCollector(address(h)); // handler pulls fees during the walk
 
+        /* Same fuzzer artifact as the airdrop suite: left in the sender pool,
+           the contract under test gets funded directly and
+           invariant_ethEqualsAccruedFees fails on a fork for a reason no real
+           caller could cause, since there is no receive(). */
+        excludeSender(address(v));
         targetContract(address(h));
         bytes4[] memory sels = new bytes4[](5);
         sels[0] = Handler.createSchedule.selector;

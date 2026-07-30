@@ -49,16 +49,30 @@ export function merkleRoot(leaves) {
   return level[0];
 }
 
-/** Sibling path for one leaf, bottom up. Empty for a one-leaf tree. */
-export function merkleProof(leaves, idx) {
-  if (idx < 0 || idx >= leaves.length) throw new Error("index out of range");
+/** Every level of the tree, leaves first, root last. */
+function levels(leaves) {
+  if (!leaves.length) throw new Error("empty tree");
+  const out = [leaves];
+  while (out[out.length - 1].length > 1) out.push(nextLevel(out[out.length - 1]));
+  return out;
+}
+
+/**
+ * Sibling path for one leaf, bottom up. Empty for a one-leaf tree.
+ *
+ * Takes the precomputed levels rather than the leaves. Rebuilding the tree for
+ * each proof is O(n) per call, which measured at 593ms for a 50,000-entry list:
+ * fine once, ruinous for a server answering one proof per visitor. With the
+ * levels in hand a proof is O(log n).
+ */
+export function merkleProof(tree, idx) {
+  const ls = Array.isArray(tree[0]) ? tree : levels(tree);
+  if (idx < 0 || idx >= ls[0].length) throw new Error("index out of range");
   const proof = [];
-  let level = leaves;
   let pos = idx;
-  while (level.length > 1) {
+  for (let d = 0; d < ls.length - 1; d++) {
     const sib = pos ^ 1;
-    if (sib < level.length) proof.push(level[sib]);
-    level = nextLevel(level);
+    if (sib < ls[d].length) proof.push(ls[d][sib]);
     pos = pos >> 1;
   }
   return proof;
@@ -71,10 +85,12 @@ export function merkleProof(leaves, idx) {
  */
 export function buildTree(entries) {
   const leaves = entries.map((e, index) => leafHash({ index, address: e.address, amount: e.amount }));
+  const ls = levels(leaves);
   return {
-    root: merkleRoot(leaves),
+    root: ls[ls.length - 1][0],
     leaves,
-    proofFor: (index) => merkleProof(leaves, index),
+    levels: ls,
+    proofFor: (index) => merkleProof(ls, index),
   };
 }
 

@@ -176,6 +176,14 @@ contract RobinhoodAirdropInvariantTest is Test {
         d = new RobinhoodAirdrop(0.005 ether, 0.0001 ether, address(this));
         h = new Handler(d);
         d.setFeeCollector(address(h)); // handler pulls fees during the walk
+        /* The fuzzer draws senders from a pool and tops their balances up so
+           they can pay for calls. Left alone it will eventually pick the
+           contract under test, funding it directly and breaking
+           invariant_ethEqualsAccruedFees for a reason that has nothing to do
+           with the contract: there is no receive(), so no real caller could
+           ever put ETH there. Seen on a fork run, and present in the vesting
+           suite for the same reason. */
+        excludeSender(address(d));
 
         targetContract(address(h));
         bytes4[] memory sels = new bytes4[](6);
