@@ -1428,11 +1428,46 @@ if (AIRDROP) {
     if (fresh) await airdropIndex.warm(true).catch(() => { /* fall back to cache */ });
     const all = [...(await airdropIndex.all()).values()].sort((a, b) => b.id - a.id);
     res.set("Cache-Control", fresh ? "no-store" : "public, max-age=30");
-    return res.json({ count: all.length, airdrops: all.map((a) => ({
+    return res.json({ count: all.length, airdrops: all.map(({ claimers, ...a }) => ({
       ...a, total: a.total.toString(), claimed: a.claimed.toString(),
       swept: a.swept.toString(), remaining: a.remaining.toString(),
       listPublished: !!(db && getList(db, a.root)),
     })) });
+  });
+
+  /* One wallet's two sides of the product: what it sent and what it took.
+   *
+   * Both come out of the index that was already built from the same logs, so
+   * this costs no chain read at all. Never cached, because it changes the
+   * moment the wallet claims or sweeps and a stale answer here is what put a
+   * live Claim button in front of somebody who had already claimed. */
+  app.get("/api/airdrop/history", async (req, res) => {
+    if (limited(req, res, 60)) return;
+    const who = String(req.query.address || "");
+    if (!isAddress(who)) return res.status(400).json({ error: "bad address" });
+    const lower = who.toLowerCase();
+    if (String(req.query.fresh) === "1") {
+      await airdropIndex.warm(true).catch(() => { /* fall back to cache */ });
+    }
+    const all = [...(await airdropIndex.all()).values()];
+
+    const sent = all
+      .filter((a) => a.creator === lower)
+      .sort((a, b) => b.id - a.id)
+      .map(({ claimers, ...a }) => ({
+        ...a, total: a.total.toString(), claimed: a.claimed.toString(),
+        swept: a.swept.toString(), remaining: a.remaining.toString(),
+      }));
+
+    const claimed = all
+      .flatMap((a) => a.claimers
+        .filter((c) => c.address === lower)
+        .map((c) => ({ id: a.id, token: a.token, creator: a.creator,
+          amount: c.amount.toString(), ts: c.ts, tx: c.tx })))
+      .sort((a, b) => b.ts - a.ts || b.id - a.id);
+
+    res.set("Cache-Control", "no-store");
+    return res.json({ address: getAddress(who), sent, claimed });
   });
 }
 

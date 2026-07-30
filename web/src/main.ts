@@ -2936,7 +2936,7 @@ let adBuilt: { entries: { address: string; amount: bigint }[]; root: string; tot
 function loadAirdropView() {
   adPriceLead();
   renderAdClaims();
-  renderAdMine();
+  renderAdHistory();
   adRenderList();
 }
 
@@ -3090,7 +3090,7 @@ async function adCreate() {
     msg.innerHTML = `Funded. <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a> — recipients can claim it now.`;
     ($("adList") as HTMLTextAreaElement).value = "";
     adBuilt = null; adRenderList();
-    invalidateEvents(); renderAdMine(true);
+    invalidateEvents(); renderAdHistory(true);
   } catch (e: any) {
     msg.className = "msg bad"; msg.textContent = friendlyErr(e);
   } finally {
@@ -3165,6 +3165,9 @@ async function adClaim(id: number, index: number, amount: bigint, btn: HTMLButto
     btn.disabled = true;
     btn.textContent = "Claimed";
     invalidateEvents();
+    // The claim belongs in the history below, and it has to be a forced read:
+    // the index has not seen the receipt yet at ordinary cache age.
+    renderAdHistory(true);
   } catch (e: any) {
     notify(friendlyErr(e));
     btn.disabled = false; btn.textContent = "Claim";
@@ -3173,47 +3176,77 @@ async function adClaim(id: number, index: number, amount: bigint, btn: HTMLButto
 
 /* ---------- what this wallet funded ---------- */
 
-/** `fresh` bypasses the server's caches.
+/** Both sides of this wallet's dealings with airdrops: what it sent, what it took.
  *
- * Used right after funding or sweeping, when the creator is watching for their
- * own airdrop. The log cache and the index cache each hold a minute and serve
- * stale while refreshing, so without this the screen can say "Nothing yet" for
- * two minutes after a transaction that plainly worked. */
-async function renderAdMine(fresh = false) {
-  const box = $("adMineBox");
+ * `fresh` bypasses the server's caches. Used right after funding, sweeping or
+ * claiming, when the person is watching for their own transaction to show up.
+ * The log cache and the index cache each hold a minute and serve stale while
+ * refreshing, so without this the screen can insist nothing happened for two
+ * minutes after a transaction that plainly worked.
+ */
+async function renderAdHistory(fresh = false) {
+  const box = $("adHistoryBox");
   if (!AIRDROP) { box.innerHTML = ""; return; }
-  if (!account) { box.innerHTML = `<div class="empty"><div class="small">Connect your wallet to see the airdrops you funded.</div></div>`; return; }
+  if (!account) { box.innerHTML = `<div class="empty"><div class="small">Connect your wallet to see what you have sent and claimed.</div></div>`; return; }
   try {
-    const all = await fetch(`/api/airdrops${fresh ? "?fresh=1" : ""}`).then((r) => r.json());
-    const mine = (all.airdrops || []).filter((a: any) => a.creator?.toLowerCase() === account.toLowerCase());
-    if (!mine.length) {
-      box.innerHTML = `<div class="empty"><div class="small">Nothing yet. Fund one on the left and it appears here.</div></div>`;
+    const h = await fetch(`/api/airdrop/history?address=${account}${fresh ? "&fresh=1" : ""}`).then((r) => r.json());
+    const sent: any[] = h.sent || [];
+    const claimed: any[] = h.claimed || [];
+
+    if (!sent.length && !claimed.length) {
+      box.innerHTML = `<div class="empty"><div class="small">Nothing yet. Fund an airdrop on the left, or claim one you are owed, and it appears here.</div></div>`;
       return;
     }
+
     const now = Math.floor(Date.now() / 1000);
-    const rows = await Promise.all(mine.map(async (a: any) => {
-      const m = await tokMeta(a.token);
-      const closed = a.endTime !== 0 && now >= a.endTime;
-      const canSweep = closed && !a.swept && BigInt(a.remaining) > 0n;
-      return `<tr>
-        <td><div class="tk-cell">${await tokenIcoHTML(a.token, m.symbol)}
-          <div><div class="n">$${escape(m.symbol)} <span class="tag">AIRDROP #${a.id}</span></div>
-          <div class="a">${fmtNum(BigInt(a.total), m.decimals)} total</div></div></div></td>
-        <td>${a.claims} of ${a.maxClaims} claimed</td>
-        <td>${fmtNum(BigInt(a.remaining), m.decimals)} $${escape(m.symbol)} left</td>
-        <td>${a.endTime ? (closed ? "closed" : `closes ${dateLabel(a.endTime)}`) : "no deadline"}</td>
-        <td><div class="row-actions">
-          <a class="btn btn-line btn-sm" href="/airdrop/${a.id}">Page</a>
-          ${canSweep ? `<button class="btn btn-neon btn-sm" data-adsweep="${a.id}">Sweep</button>` : ""}
-        </div></td></tr>`;
-    }));
-    box.innerHTML = `<table>${rows.join("")}</table>`;
+    const parts: string[] = [];
+
+    if (claimed.length) {
+      // Claimed first. It is the side with tokens already in the wallet, and
+      // the amount leads because that is the fact worth reading.
+      const rows = await Promise.all(claimed.map(async (c) => {
+        const m = await tokMeta(c.token);
+        return `<tr>
+          <td><div class="tk-cell">${await tokenIcoHTML(c.token, m.symbol)}
+            <div><div class="n">${fmtNum(BigInt(c.amount), m.decimals)} $${escape(m.symbol)}</div>
+            <div class="a">airdrop #${c.id}</div></div></div></td>
+          <td><span class="status withdrawn"><i></i>CLAIMED</span></td>
+          <td>${c.ts ? dateLabel(c.ts) : "&mdash;"}</td>
+          <td><div class="row-actions">
+            <a class="btn btn-line btn-sm" href="/airdrop/${c.id}">Page</a>
+            ${c.tx ? `<a class="btn btn-line btn-sm" href="${EXP}/tx/${escape(c.tx)}" target="_blank" rel="noopener">Tx</a>` : ""}
+          </div></td></tr>`;
+      }));
+      parts.push(`<div class="sub" style="margin:2px 0 8px">CLAIMED BY THIS WALLET</div><table>${rows.join("")}</table>`);
+    }
+
+    if (sent.length) {
+      const rows = await Promise.all(sent.map(async (a) => {
+        const m = await tokMeta(a.token);
+        const closed = a.endTime !== 0 && now >= a.endTime;
+        const canSweep = closed && BigInt(a.remaining) > 0n;
+        return `<tr>
+          <td><div class="tk-cell">${await tokenIcoHTML(a.token, m.symbol)}
+            <div><div class="n">$${escape(m.symbol)} <span class="tag">AIRDROP #${a.id}</span></div>
+            <div class="a">${fmtNum(BigInt(a.total), m.decimals)} total</div></div></div></td>
+          <td>${a.claims} of ${a.maxClaims} claimed</td>
+          <td>${fmtNum(BigInt(a.remaining), m.decimals)} $${escape(m.symbol)} left</td>
+          <td>${a.endTime ? (closed ? "closed" : `closes ${dateLabel(a.endTime)}`) : "no deadline"}</td>
+          <td><div class="row-actions">
+            <a class="btn btn-line btn-sm" href="/airdrop/${a.id}">Page</a>
+            ${canSweep ? `<button class="btn btn-neon btn-sm" data-adsweep="${a.id}">Sweep</button>` : ""}
+          </div></td></tr>`;
+      }));
+      parts.push(`<div class="sub" style="margin:${claimed.length ? "18px" : "2px"} 0 8px">SENT BY THIS WALLET &middot; SWEEP OPENS WHEN THE DEADLINE PASSES</div><table>${rows.join("")}</table>`);
+    }
+
+    box.innerHTML = parts.join("");
     box.querySelectorAll<HTMLButtonElement>("[data-adsweep]").forEach((b) => {
       b.onclick = async () => {
         b.disabled = true; b.textContent = "Sweeping…";
         try {
-          const h = await send(AIRDROP!, encodeFunctionData({ abi: AIRDROP_ABI as any, functionName: "sweep", args: [BigInt(b.dataset.adsweep!)] }));
-          await waitTx(h); notify("Swept ✓"); invalidateEvents(); renderAdMine(true);
+          const tx = await send(AIRDROP!, encodeFunctionData({ abi: AIRDROP_ABI as any, functionName: "sweep", args: [BigInt(b.dataset.adsweep!)] }));
+          await waitTx(tx); notify("Swept ✓"); invalidateEvents(); renderAdHistory(true);
         } catch (e: any) { notify(friendlyErr(e)); b.disabled = false; b.textContent = "Sweep"; }
       };
     });

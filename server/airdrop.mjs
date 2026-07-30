@@ -172,12 +172,29 @@ export async function buildAirdropIndex({ readLogs, AIRDROP }) {
         endTime: Number(word(l.data, 3)),
         claims: 0,
         claimed: 0n,
+        claimers: [],
         swept: 0n,
         ts: l.timestamp || 0,
       });
     } else if (t0 === T_AIRDROP_CLAIMED.toLowerCase()) {
       const r = byId.get(id);
-      if (r) { r.claims += 1; r.claimed += word(l.data, 1); }
+      if (r) {
+        r.claims += 1;
+        r.claimed += word(l.data, 1);
+        /* Who took what, kept alongside the count.
+         *
+         * The same pass already reads these logs, so a wallet's claim history
+         * costs nothing extra. Bounded by maxClaims, which the creator paid
+         * for, so it cannot grow without someone funding it.
+         * Claimed(id indexed, index, account indexed, amount): the claimer is
+         * topics[2] and the amount is the second data word. */
+        r.claimers.push({
+          address: addrOf(l.topics[2]),
+          amount: word(l.data, 1),
+          ts: l.timestamp || 0,
+          tx: l.transactionHash || null,
+        });
+      }
     } else if (t0 === T_AIRDROP_SWEPT.toLowerCase()) {
       const r = byId.get(id);
       if (r) r.swept = word(l.data, 0);
