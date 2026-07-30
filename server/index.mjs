@@ -1404,7 +1404,13 @@ if (AIRDROP) {
     try {
       const out = await eligibleFor({ index: airdropIndex, db, pub, AIRDROP, ABI: AIRDROP_READ_ABI, address: who,
         log: (m) => console.log("[hoodlock]", m) });
-      res.set("Cache-Control", "public, max-age=30");
+      /* Never cached. This answer changes the instant the wallet claims, and a
+         30-second cache meant the browser re-served the pre-claim answer to the
+         page that had just claimed. The row came back with a live button, the
+         wallet simulated it, and the user was told "already claimed" for a
+         claim that had in fact succeeded. The eligibility check already reads
+         isClaimed from the chain, so the only stale layer was this header. */
+      res.set("Cache-Control", "no-store");
       return res.json({ address: getAddress(who), claimable: out });
     } catch (e) {
       return res.status(500).json({ error: "lookup failed" });

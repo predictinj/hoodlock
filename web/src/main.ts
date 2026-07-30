@@ -3152,7 +3152,19 @@ async function adClaim(id: number, index: number, amount: bigint, btn: HTMLButto
     }));
     await waitTx(h);
     notify("Claimed ✓");
-    invalidateEvents(); renderAdClaims();
+    /* The row stays, with the button spent.
+     *
+     * Re-rendering here would drop the row, because the airdrop is no longer
+     * claimable by this wallet, and the proof that the claim worked would
+     * vanish from the exact spot the person was looking at. Dropping btn-neon
+     * also takes it out of the call-to-action styling, so nothing on screen
+     * still invites a press. The row is gone on the next load, by which time
+     * the tokens are in the wallet. */
+    btn.classList.remove("btn-neon");
+    btn.classList.add("btn-line");
+    btn.disabled = true;
+    btn.textContent = "Claimed";
+    invalidateEvents();
   } catch (e: any) {
     notify(friendlyErr(e));
     btn.disabled = false; btn.textContent = "Claim";
