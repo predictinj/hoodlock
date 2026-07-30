@@ -135,6 +135,15 @@ async function feeActions() {
 let FEE_ETH = 0.005; // sane default; refreshed from chain at boot
 let FEE_WEI = 5000000000000000n; // 0.005 ETH default
 let BURN_FEE_ETH = 0.005, VEST_FEE_ETH = 0.005;
+// The airdrop price is quote(recipients), not a flat fee(), so there is no
+// single number to default to. It starts at 0 because the product launched
+// free, and a non-zero guess would credit affiliates commission on money that
+// was never paid. Refreshed from the contract below.
+//
+// Known limit: this is the one-wallet quote, so commission on a large airdrop
+// is weighted low once a per-wallet fee is switched on. Revisit before the
+// owner sets one, by reading the fee actually paid per AirdropCreated event.
+let AIRDROP_FEE_ETH = 0;
 pub.readContract({ address: LOCKER, abi: FEE_ABI, functionName: "fee" })
   .then((f) => { FEE_WEI = BigInt(f); FEE_ETH = Number(f) / 1e18; })
   .catch(() => { /* keep default */ });
@@ -142,6 +151,8 @@ if (BURNER) pub.readContract({ address: BURNER, abi: FEE_ABI, functionName: "fee
   .then((f) => { BURN_FEE_ETH = Number(f) / 1e18; }).catch(() => { /* keep default */ });
 if (VESTING) pub.readContract({ address: VESTING, abi: FEE_ABI, functionName: "fee" })
   .then((f) => { VEST_FEE_ETH = Number(f) / 1e18; }).catch(() => { /* keep default */ });
+if (AIRDROP) pub.readContract({ address: AIRDROP, abi: AIRDROP_READ_ABI, functionName: "quote", args: [1] })
+  .then((f) => { AIRDROP_FEE_ETH = Number(f) / 1e18; }).catch(() => { /* keep 0 */ });
 
 // paying wallet -> number of fee-bearing actions (locks + burns + vesting), cached 60s
 let lockCache = { at: 0, byOwner: new Map() };
@@ -1440,22 +1451,22 @@ if (AIRDROP) {
     const all = [...(await airdropIndex.all()).values()].sort((a, b) => b.id - a.id);
     const meta = await tokenMetaFor(all.map((a) => a.token));
     res.set("Cache-Control", "public, max-age=60");
-    return res.type("html").send(renderAirdropIndex({ airdrops: all, meta }));
+    return res.type("html").send(renderAirdropIndex({ airdrops: all, meta, feeEth: AIRDROP_FEE_ETH }));
   });
 
   app.get("/airdrop-checker", async (req, res) => {
     const raw = String(req.query.a || "").trim();
     const ok = /^0x[0-9a-fA-F]{40}$/.test(raw);
     res.set("Cache-Control", raw ? "public, max-age=30" : HTML_CACHE);
-    if (!raw) return res.type("html").send(renderAirdropChecker({ query: "", bad: false, results: null, meta: {} }));
-    if (!ok) return res.type("html").send(renderAirdropChecker({ query: raw, bad: true, results: null, meta: {} }));
+    if (!raw) return res.type("html").send(renderAirdropChecker({ query: "", bad: false, results: null, meta: {}, feeEth: AIRDROP_FEE_ETH }));
+    if (!ok) return res.type("html").send(renderAirdropChecker({ query: raw, bad: true, results: null, meta: {}, feeEth: AIRDROP_FEE_ETH }));
     try {
       const results = await eligibleFor({ index: airdropIndex, db, pub, AIRDROP, ABI: AIRDROP_READ_ABI,
         address: raw, log: (m) => console.log("[hoodlock]", m) });
       const meta = await tokenMetaFor(results.map((r) => r.token));
-      return res.type("html").send(renderAirdropChecker({ query: raw, bad: false, results, meta }));
+      return res.type("html").send(renderAirdropChecker({ query: raw, bad: false, results, meta, feeEth: AIRDROP_FEE_ETH }));
     } catch {
-      return res.type("html").send(renderAirdropChecker({ query: raw, bad: false, results: [], meta: {} }));
+      return res.type("html").send(renderAirdropChecker({ query: raw, bad: false, results: [], meta: {}, feeEth: AIRDROP_FEE_ETH }));
     }
   });
 
@@ -1480,7 +1491,7 @@ if (AIRDROP) {
       }
     }
     res.set("Cache-Control", query ? "public, max-age=30" : "public, max-age=60");
-    return res.type("html").send(renderAirdropPage({ a, m: meta[a.token], list, query, hit }));
+    return res.type("html").send(renderAirdropPage({ a, m: meta[a.token], list, query, hit, feeEth: AIRDROP_FEE_ETH }));
   });
 }
 

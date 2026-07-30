@@ -323,6 +323,7 @@ function onConnected(silent = false) {
   refreshToken(); renderMine(); updateSummary(); loadWalletTokens();
   syncAdminNav(); attributeRef();
   if ($("view-vesting").classList.contains("active")) { vRefreshToken(); renderVestMine(); updateVSummary(); }
+  if ($("view-airdrops").classList.contains("active")) loadAirdropView();
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
   if ($("view-developers").classList.contains("active")) loadDevelopersPage();
   fetch("/api/track/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wallet: account }) }).catch(() => { /* analytics only */ });
@@ -381,6 +382,7 @@ function disconnect() {
   document.getElementById("yourLocksSub")?.replaceChildren("CONNECT WALLET TO MANAGE");
   renderMine(); updateSummary(); closeWalletModal(); syncAdminNav();
   try { localStorage.removeItem("hl_afftok"); localStorage.removeItem("hl_affexp"); localStorage.removeItem("hl_conn"); localStorage.removeItem("hl_acct"); } catch { /* */ }
+  if ($("view-airdrops").classList.contains("active")) loadAirdropView();
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
   if ($("view-developers").classList.contains("active")) loadDevelopersPage();
 }
@@ -2932,9 +2934,35 @@ let adDeadlineDays = 0;
 let adBuilt: { entries: { address: string; amount: bigint }[]; root: string; total: bigint; count: number } | null = null;
 
 function loadAirdropView() {
+  adPriceLead();
   renderAdClaims();
   renderAdMine();
   adRenderList();
+}
+
+/** The price, from the contract rather than from this file.
+ *
+ * quote() is non-decreasing in the recipient count and quote(1) is feeBase plus
+ * one per-wallet unit, so a zero here proves both are zero and the product is
+ * genuinely free at any list size. Anything else is quoted as a floor, because
+ * the real price depends on how many wallets the creator declares.
+ */
+async function adPriceLead() {
+  const el = $("adPriceLead");
+  if (!el) return;
+  if (!AIRDROP) { el.style.display = "none"; return; }
+  try {
+    const one = await pub.readContract({
+      address: AIRDROP, abi: AIRDROP_ABI as any, functionName: "quote", args: [1],
+    }) as bigint;
+    el.style.display = "";
+    el.innerHTML = one === 0n
+      ? `<span class="tag">FREE</span><span><b>No platform fee, at any list size.</b> You pay the network gas and nothing else.</span>`
+      : `<span class="tag">FROM ${escape(formatEther(one))} ETH</span><span><b>Priced by how many wallets you send to.</b> The exact amount is shown before you sign.</span>`;
+  } catch {
+    // A failed read must not invent a price. Say nothing instead.
+    el.style.display = "none";
+  }
 }
 
 /* ---------- the list ---------- */
@@ -3073,9 +3101,12 @@ async function adCreate() {
 /* ---------- claim ---------- */
 
 async function renderAdClaims() {
-  const box = $("adClaimBox");
+  const box = $("adClaimBox"), wrap = $("adClaimWrap");
+  wrap.style.display = "";
   if (!AIRDROP) { box.innerHTML = `<div class="empty"><div class="small">Airdrops are not configured on this deployment.</div></div>`; return; }
-  if (!account) { box.innerHTML = `<div class="empty"><div class="small">Connect your wallet to see what is waiting for it.</div></div>`; return; }
+  // Nothing can be read without an address, and a heading with an empty panel
+  // under it reads as broken, so the whole block stands down until connect.
+  if (!account) { wrap.style.display = "none"; box.innerHTML = ""; return; }
   box.innerHTML = `<div class="empty"><div class="small">Checking… <span class="spin"></span></div></div>`;
   try {
     const r = await fetch(`/api/airdrop/eligible?address=${account}`).then((x) => x.json());
@@ -3174,6 +3205,9 @@ async function renderAdMine() {
 /* ---------- wiring ---------- */
 
 $("adTokenAddr")?.addEventListener("input", debounce(adRefreshToken, 400));
+// Same picker as the lock and vesting forms. The markup and the placeholder
+// already promised it; only the wiring was missing.
+if ($("adTokenAddr")) wireTokenDropdown("adTokenAddr", "adTokDd", () => adRefreshToken());
 $("adList")?.addEventListener("input", debounce(adRenderList, 250));
 $("adEqualAmount")?.addEventListener("input", debounce(adRenderList, 250));
 $("adCreateBtn")?.addEventListener("click", adCreate);
@@ -3182,7 +3216,7 @@ $("adModeChips")?.addEventListener("click", (e) => {
   const chip = (e.target as HTMLElement).closest<HTMLElement>("[data-admode]");
   if (!chip) return;
   adMode = chip.dataset.admode as "equal" | "each";
-  $("adModeChips").querySelectorAll(".chip-dur").forEach((c) => c.classList.toggle("active", c === chip));
+  $("adModeChips").querySelectorAll(".chip-dur").forEach((c) => c.classList.toggle("on", c === chip));
   $("adEqualWrap").style.display = adMode === "equal" ? "" : "none";
   $("adListHint").textContent = adMode === "equal" ? "one address per line" : "one line per wallet: address:amount";
   ($("adList") as HTMLTextAreaElement).placeholder = adMode === "equal" ? "0xabc…\n0xdef…" : "0xabc…:1000\n0xdef…:250";
@@ -3193,7 +3227,7 @@ $("adDeadlineChips")?.addEventListener("click", (e) => {
   const chip = (e.target as HTMLElement).closest<HTMLElement>("[data-addead]");
   if (!chip) return;
   adDeadlineDays = Number(chip.dataset.addead);
-  $("adDeadlineChips").querySelectorAll(".chip-dur").forEach((c) => c.classList.toggle("active", c === chip));
+  $("adDeadlineChips").querySelectorAll(".chip-dur").forEach((c) => c.classList.toggle("on", c === chip));
   adSummary();
 });
 

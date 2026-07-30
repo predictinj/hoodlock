@@ -91,6 +91,14 @@
   .page-head h1{font-size:27px;font-weight:700;letter-spacing:-.035em}
   .page-head h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--neon)}
   .page-head p{color:var(--ink-2);font-size:13.5px;margin-top:7px}
+  /* Price lead on the airdrop view. The number comes from quote() on the
+     contract, never from this file, so it cannot go stale when the fee moves. */
+  .price-lead{display:inline-flex;align-items:center;gap:9px;margin-top:11px;padding:7px 12px 7px 8px;
+    border:1px solid rgba(0,224,90,.22);background:rgba(0,224,90,.06);border-radius:999px;
+    color:var(--ink);font-size:13px;line-height:1.35}
+  .price-lead .tag{font-size:9px;padding:3px 7px}
+  .price-lead b{font-weight:600}
+  @media (max-width:560px){ .price-lead{border-radius:12px;align-items:flex-start} }
 
 
   /* dashboard: a way to reach the products, not a stats page */
@@ -606,7 +614,8 @@
     </section>
     <section class="view" id="view-airdrops">
         <div class="page-head">
-          <div><h1>Airdrops that <span class="serif">arrive.</span></h1><p>Fund it once. Recipients come and take their own share, so nothing lands in a wallet that never asked for it.</p></div>
+          <div><h1>Airdrops that <span class="serif">arrive.</span></h1><p>Fund it once. Recipients come and take their own share, so nothing lands in a wallet that never asked for it.</p>
+            <div class="price-lead" id="adPriceLead"></div></div>
         </div>
 
         <!-- What this wallet can take. Amount first, because that is the fact
@@ -629,7 +638,7 @@
             <div class="field">
               <label>How much each wallet gets</label>
               <div class="chips" id="adModeChips">
-                <span class="chip-dur active" data-admode="equal">SAME FOR EVERYONE</span>
+                <span class="chip-dur on" data-admode="equal">SAME FOR EVERYONE</span>
                 <span class="chip-dur" data-admode="each">AMOUNT PER WALLET</span>
               </div>
               <div id="adEqualWrap" style="margin-top:8px">
@@ -651,7 +660,7 @@
                 <span class="chip-dur" data-addead="30">30 DAYS</span>
                 <span class="chip-dur" data-addead="90">90 DAYS</span>
                 <span class="chip-dur" data-addead="180">180 DAYS</span>
-                <span class="chip-dur active" data-addead="0">NO DEADLINE</span>
+                <span class="chip-dur on" data-addead="0">NO DEADLINE</span>
               </div>
               <div class="hintline" id="adDeadlineHint">No deadline means claimable forever, and you can never take the unclaimed tokens back. That choice is permanent.</div>
             </div>

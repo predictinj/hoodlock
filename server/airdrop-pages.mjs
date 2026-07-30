@@ -125,7 +125,19 @@ ${body}
 
 /* ---------- /airdrops ---------- */
 
-export function renderAirdropIndex({ airdrops, meta }) {
+/* The price sentence, from the fee the server read off the contract at boot.
+ *
+ * `feeEth` is the one-wallet quote. Zero proves the base and the per-wallet
+ * unit are both zero, so the product is free at any list size. Null means the
+ * read failed, and then the price is simply not mentioned: a page that guesses
+ * at a number is worse than a page that stays quiet about it. */
+function priceLine(feeEth) {
+  if (feeEth === 0) return "<b>Free.</b> No platform fee, at any list size. You pay network gas and nothing else.";
+  if (typeof feeEth === "number" && feeEth > 0) return `<b>From ${feeEth} ETH</b>, priced by how many wallets you send to.`;
+  return "";
+}
+
+export function renderAirdropIndex({ airdrops, meta, feeEth = null }) {
   const now = Math.floor(Date.now() / 1000);
   const live = airdrops.filter((a) => a.endTime === 0 || now < a.endTime);
 
@@ -166,14 +178,14 @@ ${airdrops.length > 200 ? `<p class="hint">Showing the 200 most recent of ${nf(a
   <h2>Running an airdrop?</h2>
   <p>Fund it once and let recipients take their own share. They come to a page that reads the chain, which is also why the tokens never land in a wallet that never asked for them.</p>
   <a class="btn" href="/app/airdrops">Fund an airdrop →</a>
-  <p class="cta-alt">Free while the fee is switched off. <a href="/docs/airdrops">How it works</a>.</p>
+  <p class="cta-alt">${priceLine(feeEth)} <a href="/docs/airdrops">How it works</a>.</p>
 </div>`,
   });
 }
 
 /* ---------- /airdrop/:id ---------- */
 
-export function renderAirdropPage({ a, m, list, listURI, query, hit, site = SITE }) {
+export function renderAirdropPage({ a, m, list, listURI, query, hit, feeEth = null, site = SITE }) {
   const now = Math.floor(Date.now() / 1000);
   const closed = a.endTime !== 0 && now >= a.endTime;
   const sym = esc(m.symbol);
@@ -272,14 +284,14 @@ ${faqs.map(([q, ans]) => `<h3>${esc(q)}</h3>\n<p>${ans}</p>`).join("\n")}
   <h2>On this list?</h2>
   <p>Open the app with the wallet that is on it. The amount appears with a button, and the tokens move when you press it and not before.</p>
   <a class="btn" href="/app/airdrops">Open HoodLock →</a>
-  <p class="cta-alt">Running your own? <a href="/app/airdrops">Fund an airdrop</a>, free while the fee is switched off.</p>
+  <p class="cta-alt">Running your own? <a href="/app/airdrops">Fund an airdrop</a>. ${priceLine(feeEth)}</p>
 </div>`,
   });
 }
 
 /* ---------- /airdrop-checker ---------- */
 
-export function renderAirdropChecker({ query, bad, results, meta, site = SITE }) {
+export function renderAirdropChecker({ query, bad, results, meta, feeEth = null, site = SITE }) {
   const total = results ? results.length : 0;
   const rows = (results || []).map((r) => {
     const m = meta[r.token] || { symbol: "???", decimals: 18 };
@@ -345,7 +357,7 @@ ${faqs.map(([q, a]) => `<h3>${esc(q)}</h3>\n<p>${a}</p>`).join("\n")}
 
 <div class="cta-box">
   <h2>Running an airdrop?</h2>
-  <p>Fund it once, and every recipient gets a page like this one instead of a transaction they never asked for. Free while the fee is switched off.</p>
+  <p>Fund it once, and every recipient gets a page like this one instead of a transaction they never asked for. ${priceLine(feeEth)}</p>
   <a class="btn" href="/app/airdrops">Fund an airdrop →</a>
 </div>`;
 
