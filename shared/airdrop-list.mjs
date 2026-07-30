@@ -16,7 +16,12 @@
  * reported rather than silently dropped.
  */
 
-const ADDRESS = /0x[0-9a-fA-F]{40}/;
+const ADDRESS = /0x[0-9a-fA-F]{40}/g;
+
+/* An airdrop's remaining balance is a uint128 on chain, so a leaf larger than
+   that can never be claimed: the amount check would reject it forever. Better
+   to say so while the list is still being edited than to mint a dead leaf. */
+const MAX_AMOUNT = (1n << 128n) - 1n;
 
 /** Human amount to base units, without floating point. "12.5" at 18 decimals. */
 export function toBaseUnits(value, decimals) {
@@ -28,9 +33,13 @@ export function toBaseUnits(value, decimals) {
 }
 
 export function fromBaseUnits(value, decimals) {
+  // Guard the zero-decimals case first. `slice(0, -0)` is `slice(0, 0)`, the
+  // empty string, so the generic path below reports every amount of a
+  // 0-decimal token as "0".
+  if (decimals === 0) return BigInt(value).toString();
   const s = BigInt(value).toString().padStart(decimals + 1, "0");
   const whole = s.slice(0, -decimals) || "0";
-  const frac = decimals ? s.slice(-decimals).replace(/0+$/, "") : "";
+  const frac = s.slice(-decimals).replace(/0+$/, "");
   return frac ? `${whole}.${frac}` : whole;
 }
 
@@ -51,6 +60,16 @@ export function parseList(text, { decimals = 18, equalAmount = null } = {}) {
     const line = raw.trim();
     if (!line || line.startsWith("#") || line.startsWith("//")) return;
 
+    ADDRESS.lastIndex = 0;
+    const found = line.match(ADDRESS) || [];
+    if (found.length > 1) {
+      // "0xA:100 0xB:200" used to parse as 0xA only, dropping 0xB without a
+      // word. On a tool that sends money, a silently ignored recipient is the
+      // wrong kind of forgiving.
+      problems.push({ line: i + 1, text: line, reason: `${found.length} addresses on one line, put one per line` });
+      return;
+    }
+    ADDRESS.lastIndex = 0;
     const m = ADDRESS.exec(line);
     if (!m) {
       // A spreadsheet header is the usual reason and is not worth complaining
@@ -76,6 +95,10 @@ export function parseList(text, { decimals = 18, equalAmount = null } = {}) {
         problems.push({ line: i + 1, text: line, reason: "amount is zero" });
         return;
       }
+      if (amount > MAX_AMOUNT) {
+        problems.push({ line: i + 1, text: line, reason: "amount is too large to ever be claimed" });
+        return;
+      }
     } else if (equalAmount != null) {
       amount = BigInt(equalAmount);
     } else {
@@ -83,7 +106,7 @@ export function parseList(text, { decimals = 18, equalAmount = null } = {}) {
       return;
     }
 
-    rows.push({ address, amount });
+    rows.push({ line: i + 1, address, amount });
   });
 
   return { rows, problems };
@@ -94,13 +117,21 @@ export function parseList(text, { decimals = 18, equalAmount = null } = {}) {
  *
  * Two decisions worth stating, because both change the root:
  *
- * Duplicates are merged by summing. Dropping the second entry would silently
- * lose tokens somebody was meant to get, and rejecting the list outright would
- * block the legitimate case of one wallet qualifying twice. Merging is the only
- * option that loses nothing, and the count of merges is returned so the UI can
- * say so out loud.
+ * Duplicates are merged by summing. The tree needs exactly one leaf per address:
+ * two leaves for one wallet would mean two claim transactions for that person,
+ * and would count them twice against a fee that is priced per distinct wallet.
+ * Of the ways to collapse them, summing is the only one that loses nothing.
+ * Dropping the second entry would quietly cost somebody tokens, and rejecting
+ * the list would block a wallet that legitimately qualified twice.
  *
- * The result is sorted by address. That makes the root a function of the set
+ * What the tree needs and what the person pasting should see are not the same
+ * thing, though. Paste five lines and read back "4 recipients" and the obvious
+ * conclusion is that the tool ate a row. So the rows come back exactly as they
+ * were pasted, in that order, each one flagged when it took part in a merge and
+ * carrying the combined amount that address will actually receive. The UI shows
+ * the paste; the tree uses the entries.
+ *
+ * The entries are sorted by address. That makes the root a function of the set
  * rather than of the order somebody happened to paste it in, so the same list
  * uploaded twice is the same airdrop, which is what lets the server key stored
  * lists on the root.
@@ -117,11 +148,23 @@ export function normaliseList(rows) {
       byAddress.set(key, BigInt(r.amount));
     }
   }
+
+  const seen = new Map();
+  for (const r of rows) seen.set(r.address, (seen.get(r.address) || 0) + 1);
+
+  // As pasted, in paste order, so nothing looks like it went missing.
+  const annotated = rows.map((r) => ({
+    ...r,
+    duplicate: seen.get(r.address) > 1,
+    combined: byAddress.get(r.address),
+  }));
+
   const entries = [...byAddress.entries()]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([address, amount]) => ({ address, amount }));
 
   return {
+    rows: annotated,
     entries,
     merged,
     count: entries.length,

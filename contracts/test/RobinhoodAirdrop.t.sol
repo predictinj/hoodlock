@@ -575,11 +575,26 @@ contract RobinhoodAirdropTest is Test {
         vm.stopPrank();
     }
 
-    function test_IndexesAreRecorded() public {
+    /// The by-token and by-creator lookups live in the event log, not in
+    /// on-chain arrays, so that nobody can bloat another token's index. All the
+    /// contract itself counts is how many airdrops exist.
+    function test_CreationIsCounted() public {
         (bytes32[] memory leaves, ) = _standardTree();
-        uint256 id = _create(_root(leaves), 400 * UNIT, 4, 0);
-        assertEq(drop.totalAirdrops(), 1);
-        assertEq(drop.airdropsByToken(address(token))[0], id);
-        assertEq(drop.airdropsByCreator(creator)[0], id);
+        _create(_root(leaves), 400 * UNIT, 4, 0);
+        _create(_root(leaves), 100 * UNIT, 1, 0);
+        assertEq(drop.totalAirdrops(), 2);
+    }
+
+    /// The event has to carry everything the removed getters would have
+    /// answered, or the indexes become unreconstructible.
+    function test_CreationEventCarriesTokenAndCreator() public {
+        (bytes32[] memory leaves, ) = _standardTree();
+        bytes32 root = _root(leaves);
+        vm.startPrank(creator);
+        token.approve(address(drop), 400 * UNIT);
+        vm.expectEmit(true, true, true, true);
+        emit RobinhoodAirdrop.AirdropCreated(0, address(token), creator, root, 400 * UNIT, 4, 0, "");
+        drop.create(address(token), root, 400 * UNIT, 4, 0, "");
+        vm.stopPrank();
     }
 }

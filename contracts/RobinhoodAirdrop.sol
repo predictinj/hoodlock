@@ -55,8 +55,20 @@ contract RobinhoodAirdrop {
     mapping(uint256 => string) public listURI;          // where the full list is published
     /// Per airdrop, so one airdrop's index can never block another's (K3).
     mapping(uint256 => mapping(uint256 => uint256)) private _claimedBitMap;
-    mapping(address => uint256[]) private _byToken;
-    mapping(address => uint256[]) private _byCreator;
+
+    /* There are deliberately no byToken / byCreator index arrays.
+     *
+     * The locker already paid for that lesson: an append-only array that anyone
+     * can push to for the price of a 1-wei record, read back through one getter,
+     * is a griefing vector. Measured here before removal, an attacker holding
+     * 200 wei of someone else's token could append 200 junk airdrops to that
+     * token's index for gas alone, and the fee is zero at launch.
+     *
+     * AirdropCreated already indexes both token and creator, so every query the
+     * arrays would have answered is reconstructible from logs, which is how the
+     * server reads them anyway. Dropping them removes the vector and saves the
+     * honest creator roughly 40k gas.
+     */
 
     uint256 public feeBase;       // flat part, per airdrop
     uint256 public feePerWallet;  // scaling part, per declared recipient
@@ -163,8 +175,6 @@ contract RobinhoodAirdrop {
             remaining: uint128(total)
         });
         if (bytes(uri).length > 0) listURI[id] = uri;
-        _byToken[token].push(id);
-        _byCreator[msg.sender].push(id);
 
         emit AirdropCreated(id, token, msg.sender, merkleRoot, total, maxClaims, endTime, uri);
     }
@@ -237,8 +247,6 @@ contract RobinhoodAirdrop {
 
     function getAirdrop(uint256 id) external view returns (Airdrop memory) { return airdrops[id]; }
     function totalAirdrops() external view returns (uint256) { return nextAirdropId; }
-    function airdropsByToken(address token) external view returns (uint256[] memory) { return _byToken[token]; }
-    function airdropsByCreator(address c) external view returns (uint256[] memory) { return _byCreator[c]; }
 
     // ─────────────────────────────── admin ────────────────────────────────
     // None of these can touch a funded airdrop.

@@ -65,6 +65,25 @@ t("duplicates are merged by summing, and the merge is reported", () => {
   eq(byAddr[A], toBaseUnits("25", 18), "summed amount");
 });
 
+t("the preview keeps every pasted row, flagged rather than removed", () => {
+  const l = buildList(`${A}:10\n${B}:5\n${A}:15`, { decimals: 18 });
+  eq(l.rows.length, 3, "rows shown");        // what was pasted
+  eq(l.count, 2, "leaves in the tree");      // what the tree needs
+  eq(l.rows[0].duplicate, true, "row 1 flagged");
+  eq(l.rows[2].duplicate, true, "row 3 flagged");
+  eq(l.rows[1].duplicate, false, "row 2 not flagged");
+  eq(l.rows[0].combined, toBaseUnits("25", 18), "combined amount on row 1");
+  eq(l.rows[2].combined, toBaseUnits("25", 18), "combined amount on row 3");
+  eq(l.rows[0].line, 1, "line number kept");
+  eq(l.rows[2].line, 3, "line number kept");
+});
+
+t("row order in the preview is paste order, not sorted order", () => {
+  const l = buildList(`${C}:1\n${A}:2\n${B}:3`, { decimals: 18 });
+  eq(l.rows.map((r) => r.address).join(","), [C, A, B].join(","), "preview order");
+  eq(l.entries.map((e) => e.address).join(","), [A, B, C].join(","), "tree order");
+});
+
 t("mixed case addresses are the same address", () => {
   const l = buildList(`${A.toUpperCase().replace("0X", "0x")}:10\n${A}:5`, { decimals: 18 });
   eq(l.count, 1, "count");
@@ -101,10 +120,23 @@ t("more decimal places than the token has is refused, not rounded", () => {
   if (!/decimal places/.test(l.problems[0].reason)) throw new Error("wrong reason");
 });
 
-t("amounts round-trip through base units", () => {
-  for (const [v, d] of [["1", 18], ["0.5", 18], ["1234.56789", 18], ["7", 6], ["0.000001", 6]]) {
+t("amounts round-trip through base units, including 0-decimal tokens", () => {
+  for (const [v, d] of [["1", 18], ["0.5", 18], ["1234.56789", 18], ["7", 6], ["0.000001", 6],
+                        ["123", 0], ["1", 0], ["0", 0]]) {
     eq(fromBaseUnits(toBaseUnits(v, d), d), v, `round trip ${v}@${d}`);
   }
+});
+
+t("two addresses on one line is refused, not silently halved", () => {
+  const { rows, problems } = parseList(`${A}:100 ${B}:200`, { decimals: 18 });
+  eq(rows.length, 0, "rows");
+  if (!/one per line/.test(problems[0].reason)) throw new Error("wrong reason: " + problems[0].reason);
+});
+
+t("an amount too large for uint128 is refused rather than made into a dead leaf", () => {
+  const l = buildList(`${A}:999999999999999999999999999999999999999999`, { decimals: 18 });
+  eq(l.count, 0, "count");
+  if (!/too large/.test(l.problems[0].reason)) throw new Error("wrong reason");
 });
 
 t("a wallet address on its own line with no amount and no default is a problem", () => {

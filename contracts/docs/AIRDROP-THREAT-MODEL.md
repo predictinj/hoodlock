@@ -146,6 +146,47 @@ prove the invariants at the bottom.
 - No upgrade path. Bugs are unfixable, mitigated by this audit and by the
   invariant tests acting as a deploy gate.
 
+## Second pass, post-implementation audit (2026-07-30)
+
+Found by attacking the built code rather than the design. All four are fixed;
+the first was demonstrated with a working exploit before removal.
+
+- **A1 CRITICAL, index arrays let anyone bloat another token's lookup.**
+  `airdropsByToken` and `airdropsByCreator` were append-only arrays returned
+  whole by a getter. Anyone holding a dust amount of a token could append junk
+  airdrops to that token's index: measured at 200 entries for 200 wei of the
+  token and gas alone, with the fee at its launch value of zero. This is the
+  same vector the locker already paid for.
+  **Fixed:** both arrays and both getters removed. `AirdropCreated` indexes
+  token and creator, so every query they answered is reconstructible from logs,
+  which is how the server reads them anyway. Creates got about 40k gas cheaper.
+
+- **A2 HIGH, two airdrops may share a Merkle root.** Confirmed on chain: nothing
+  stops a second creator using a root someone else is about to use. Harmless to
+  the contract, because the root is the domain separator and anyone claiming
+  against either is genuinely on that list. But it breaks the server design,
+  which keyed stored lists on the root as a primary key: front-running an upload
+  with a 1-wei airdrop of the same root would bind the victim's list to the
+  attacker's id, and the proof API would serve it there.
+  **Req server:** the on-chain id is the key. The root is an indexed, non-unique
+  column, and one stored list may serve several ids.
+
+- **A3 MEDIUM, an underfunded tree is a race the recipients lose.** Where the
+  tree promises more than the deposit, or `maxClaims` is below the number of
+  recipients, claims succeed until the money or the ceiling runs out and
+  everyone after that is refused. K1 keeps it contained to that airdrop, but for
+  a recipient it is indistinguishable from a rug.
+  **Req UI:** the public page compares the published list against the on-chain
+  `total` and `maxClaims` and says plainly when the airdrop cannot pay everyone
+  on it. We can compute this; nobody else showing an airdrop page can.
+
+- **A4 MEDIUM, list-parsing footguns.** A leaf larger than `uint128` is
+  unclaimable forever, since the amount check bounds it against `remaining`. Two
+  addresses on one line parsed as the first and dropped the second in silence.
+  And amounts of a 0-decimal token were displayed as "0", because `slice(0, -0)`
+  is the empty string.
+  **Fixed** in shared/airdrop-list.mjs, with a regression test for each.
+
 ## Invariants the Foundry suite must prove
 
 1. **Conservation, per airdrop.** For every id, `claimedSum + swept <= total`,
