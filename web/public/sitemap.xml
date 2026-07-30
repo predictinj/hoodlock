@@ -71,6 +71,7 @@
   <url><loc>https://hoodlock.tech/docs/liquidity-locker</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://hoodlock.tech/docs/lock-explorer</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://hoodlock.tech/docs/network</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://hoodlock.tech/docs/airdrops</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://hoodlock.tech/docs/proof-of-lock</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://hoodlock.tech/docs/quickstart</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://hoodlock.tech/docs/security</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>

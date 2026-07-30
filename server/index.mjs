@@ -1738,6 +1738,7 @@ app.get("/sitemap.xml", async (_req, res) => {
       ["/docs/liquidity-locker", "monthly", "0.7"],
       ["/docs/lock-explorer", "monthly", "0.6"],
       ["/docs/network", "monthly", "0.6"],
+      ["/docs/airdrops", "monthly", "0.7"],
       ["/docs/proof-of-lock", "monthly", "0.6"],
       ["/docs/quickstart", "monthly", "0.6"],
       ["/docs/security", "monthly", "0.7"],
@@ -1757,6 +1758,14 @@ app.get("/sitemap.xml", async (_req, res) => {
         parts.push(`  <url><loc>https://hoodlock.tech/proof/${kind}/${i}</loc><changefreq>weekly</changefreq><priority>${pr}</priority></url>`);
       }
     };
+    /* Airdrop pages, listed the same way as proof pages: one per record that
+       actually exists on chain, so a new airdrop becomes indexable without a
+       redeploy. */
+    try {
+      for (const a of (await airdropIndex.all()).values()) {
+        parts.push(`  <url><loc>https://hoodlock.tech/airdrop/${a.id}</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`);
+      }
+    } catch { /* a slow index must not cost the whole sitemap */ }
     proof("lock", nLocks, "0.8");
     proof("burn", nBurns, "0.8");
     proof("vesting", nVests, "0.8");
