@@ -13,6 +13,11 @@ import { makeOgRenderer, fontsReady } from "./og.mjs";
 import { tokenData, withRecords, renderTokenPage } from "./token.mjs";
 import { renderChecker, KINDS } from "./checker.mjs";
 import { renderLegal, LEGAL_PAGES } from "./legal.mjs";
+import {
+  initAirdropTables, saveList, getList, proofFor, pruneUnbound,
+  makeAirdropIndex, eligibleFor, MAX_LIST,
+  T_AIRDROP_CREATED,
+} from "./airdrop.mjs";
 import { makeTokenIndex } from "./tokenindex.mjs";
 import { selectTokens } from "./gate.mjs";
 
@@ -66,6 +71,12 @@ const VEST_WRITE_ABI = [{ type: "function", name: "create", stateMutability: "pa
 // burns and vesting count toward affiliate/developer commission too
 const BURNER = cfg.burner && isAddress(cfg.burner) ? getAddress(cfg.burner) : null;
 const VESTING = cfg.vesting && isAddress(cfg.vesting) ? getAddress(cfg.vesting) : null;
+const AIRDROP = cfg.airdrop && isAddress(cfg.airdrop) ? getAddress(cfg.airdrop) : null;
+const AIRDROP_READ_ABI = [
+  { type: "function", name: "quote", stateMutability: "view", inputs: [{ type: "uint32" }], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "isClaimed", stateMutability: "view", inputs: [{ type: "uint256" }, { type: "uint256" }], outputs: [{ type: "bool" }] },
+  { type: "function", name: "totalAirdrops", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+];
 const BURNED_EVENT = { type: "event", name: "Burned", inputs: [
   { name: "id", type: "uint256", indexed: true }, { name: "burner", type: "address", indexed: true },
   { name: "token", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false } ] };
@@ -89,6 +100,8 @@ const ogPng = makeOgRenderer({ log: (m) => console.log("[hoodlock]", m) });
    token — the cost of the hundredth page is the same as the first. */
 const tokenIndex = makeTokenIndex({ readLogs, LOCKER, BURNER, VESTING,
   log: (m) => console.log("[hoodlock]", m) });
+const airdropIndex = makeAirdropIndex({ readLogs, AIRDROP, getDb: () => db,
+  log: (m) => console.log("[hoodlock]", m) });
 
 /** Every fee-bearing action with its payer and timestamp: [{wallet, ts, fee, kind}] */
 async function feeActions() {
@@ -109,6 +122,8 @@ async function feeActions() {
   // VestingCreated(id, token, beneficiary, creator, …) — creator is the payer
   // but is NOT indexed, so it comes from the decoded params (first data word).
   await pull(VESTING, T_VESTING_CREATED, "vest", VEST_FEE_ETH, (l) => addrParam(l, "creator", 0));
+  // AirdropCreated(id, token indexed, creator indexed, …) — creator at topics[3]
+  await pull(AIRDROP, T_AIRDROP_CREATED, "airdrop", AIRDROP_FEE_ETH, (l) => addrArg(l, 3));
   return out;
 }
 
@@ -154,6 +169,11 @@ try {
       first_seen INTEGER, last_pass INTEGER, last_check INTEGER,
       misses INTEGER DEFAULT 0, liquidity REAL, volume24 REAL, holders INTEGER);
   `);
+  initAirdropTables(db);
+  /* An unbound list is one nobody ever created an airdrop for. Without this
+     sweep, an open upload endpoint is a slow way to fill the volume. */
+  setInterval(() => { try { pruneUnbound(db); } catch { /* not fatal */ } }, 6 * 3600_000).unref?.();
+
   // public affiliates: an affiliates row with an owner earns 30% (NULL = internal campaign)
   const cols = db.prepare("PRAGMA table_info(affiliates)").all().map((c) => c.name);
   if (!cols.includes("owner_wallet")) db.exec("ALTER TABLE affiliates ADD COLUMN owner_wallet TEXT");
@@ -313,7 +333,13 @@ const app = express();
 // Railway terminates TLS at one proxy hop in front of us; trust exactly that hop so
 // req.ip is the real client (trust:true would let clients forge X-Forwarded-For).
 app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 1));
-app.use(express.json({ limit: "16kb" }));
+/* 16 kB is right for every endpoint here except one. A recipient list is
+   megabytes, and a route-scoped parser cannot help if the global one has
+   already rejected the stream, so the global parser steps aside for that single
+   path rather than the limit being raised for all fourteen POST routes. */
+const smallJson = express.json({ limit: "16kb" });
+const BIG_BODY = new Set(["/api/airdrop/list"]);
+app.use((req, res, next) => (BIG_BODY.has(req.path) ? next() : smallJson(req, res, next)));
 // security headers: block framing (clickjacking on the wallet-sign prompt), sniffing, referrer leakage.
 // EXCEPTION: the developer embed (/embed, /embed.js, /embed-*) is MEANT to be framed by
 // partner sites, so it must not send frame-blocking headers.
@@ -1288,6 +1314,93 @@ app.get("/token/:slug", async (req, res) => {
     return next404(res);
   }
 });
+
+
+/* ---------- airdrops ----------
+ *
+ * The list upload needs its own body parser. The global one is 16 kB, which is
+ * right for every other endpoint here and far too small for a recipient list: a
+ * 50,000-entry list is about 4.4 MB. Raising the global limit would widen the
+ * DoS surface of thirteen other endpoints to fix one, so the larger parser is
+ * mounted on this route alone, and rate limited, which the rest of the POST
+ * surface still is not.
+ */
+if (AIRDROP) {
+  const listParser = express.json({ limit: "12mb" });
+
+  app.post("/api/airdrop/list", (req, res, next) => (limited(req, res, 12) ? undefined : listParser(req, res, next)), (req, res) => {
+    if (!db) return res.status(503).json({ error: "storage unavailable" });
+    try {
+      const { root, count, total } = saveList(db, req.body?.entries);
+      // The uploader tells us what root they expect. Recomputing it and
+      // comparing is what means neither side has to be trusted: a mismatch is
+      // a client bug or an attempt, and either way the list is not stored under
+      // a root it does not hash to.
+      const claimed = String(req.body?.root || "").toLowerCase();
+      if (claimed && claimed !== root.toLowerCase()) {
+        return res.status(400).json({ error: "root does not match the list", computed: root });
+      }
+      return res.json({ ok: true, root, count, total: total.toString() });
+    } catch (e) {
+      return res.status(400).json({ error: String(e?.message || e) });
+    }
+  });
+
+  app.get("/api/airdrop/:id/proof", async (req, res) => {
+    if (limited(req, res, 120)) return;
+    const a = await airdropIndex.get(req.params.id);
+    if (!a) return res.status(404).json({ error: "no such airdrop" });
+    if (!db) return res.status(503).json({ error: "storage unavailable" });
+    const hit = proofFor(db, a.root, String(req.query.address || ""));
+    if (!hit) return res.status(404).json({ error: "not on this list" });
+    res.set("Cache-Control", "public, max-age=300");
+    return res.json(hit);
+  });
+
+  /* The whole list, downloadable.
+   *
+   * This is what stops a non-custodial contract having a custodial dependency.
+   * Without it nobody could rebuild a proof if this server disappeared, and the
+   * tokens would be stranded behind our uptime. */
+  app.get("/api/airdrop/:id/list.json", async (req, res) => {
+    const a = await airdropIndex.get(req.params.id);
+    if (!a || !db) return res.status(404).json({ error: "no such airdrop" });
+    const list = getList(db, a.root);
+    if (!list) return res.status(404).json({ error: "list not published" });
+    res.set("Cache-Control", "public, max-age=3600");
+    return res.json({
+      airdropId: a.id, token: a.token, merkleRoot: a.root, count: list.count, total: list.total.toString(),
+      note: "Rebuild any proof from this with shared/merkle.mjs. Leaves are keccak256(keccak256(abi.encode(index, account, amount))), pairs sorted.",
+      entries: list.entries.map((e, index) => ({ index, address: e.address, amount: e.amount.toString() })),
+    });
+  });
+
+  app.get("/api/airdrop/eligible", async (req, res) => {
+    if (limited(req, res, 60)) return;
+    const who = String(req.query.address || "");
+    if (!isAddress(who)) return res.status(400).json({ error: "bad address" });
+    if (!db) return res.status(503).json({ error: "storage unavailable" });
+    try {
+      const out = await eligibleFor({ index: airdropIndex, db, pub, AIRDROP, ABI: AIRDROP_READ_ABI, address: who,
+        log: (m) => console.log("[hoodlock]", m) });
+      res.set("Cache-Control", "public, max-age=30");
+      return res.json({ address: getAddress(who), claimable: out });
+    } catch (e) {
+      return res.status(500).json({ error: "lookup failed" });
+    }
+  });
+
+  /* Every airdrop, for the public index and the admin activity feed. */
+  app.get("/api/airdrops", async (_req, res) => {
+    const all = [...(await airdropIndex.all()).values()].sort((a, b) => b.id - a.id);
+    res.set("Cache-Control", "public, max-age=30");
+    return res.json({ count: all.length, airdrops: all.map((a) => ({
+      ...a, total: a.total.toString(), claimed: a.claimed.toString(),
+      swept: a.swept.toString(), remaining: a.remaining.toString(),
+      listPublished: !!(db && getList(db, a.root)),
+    })) });
+  });
+}
 
 /* Terms and privacy. Static content, so they get the plain HTML cache header
    the rest of the site's pages use. */
