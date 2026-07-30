@@ -3188,7 +3188,7 @@ async function renderAdMine(fresh = false) {
           <div><div class="n">$${escape(m.symbol)} <span class="tag">AIRDROP #${a.id}</span></div>
           <div class="a">${fmtNum(BigInt(a.total), m.decimals)} total</div></div></div></td>
         <td>${a.claims} of ${a.maxClaims} claimed</td>
-        <td>${fmtNum(BigInt(a.remaining), m.decimals)} left</td>
+        <td>${fmtNum(BigInt(a.remaining), m.decimals)} $${escape(m.symbol)} left</td>
         <td>${a.endTime ? (closed ? "closed" : `closes ${dateLabel(a.endTime)}`) : "no deadline"}</td>
         <td><div class="row-actions">
           <a class="btn btn-line btn-sm" href="/airdrop/${a.id}">Page</a>
