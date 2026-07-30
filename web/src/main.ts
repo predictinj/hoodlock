@@ -3090,7 +3090,7 @@ async function adCreate() {
     msg.innerHTML = `Funded. <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a> — recipients can claim it now.`;
     ($("adList") as HTMLTextAreaElement).value = "";
     adBuilt = null; adRenderList();
-    invalidateEvents(); renderAdMine();
+    invalidateEvents(); renderAdMine(true);
   } catch (e: any) {
     msg.className = "msg bad"; msg.textContent = friendlyErr(e);
   } finally {
@@ -3102,19 +3102,16 @@ async function adCreate() {
 
 async function renderAdClaims() {
   const box = $("adClaimBox"), wrap = $("adClaimWrap");
-  wrap.style.display = "";
-  if (!AIRDROP) { box.innerHTML = `<div class="empty"><div class="small">Airdrops are not configured on this deployment.</div></div>`; return; }
-  // Nothing can be read without an address, and a heading with an empty panel
-  // under it reads as broken, so the whole block stands down until connect.
-  if (!account) { wrap.style.display = "none"; box.innerHTML = ""; return; }
-  box.innerHTML = `<div class="empty"><div class="small">Checking… <span class="spin"></span></div></div>`;
+  // Hidden unless this wallet actually has something to take. Almost nobody is
+  // on a list, so a heading over a "nothing waiting" panel is noise on nearly
+  // every visit, and it pushes the thing people came to do further down.
+  wrap.style.display = "none";
+  box.innerHTML = "";
+  if (!AIRDROP || !account) return;
   try {
     const r = await fetch(`/api/airdrop/eligible?address=${account}`).then((x) => x.json());
     const items: any[] = r.claimable || [];
-    if (!items.length) {
-      box.innerHTML = `<div class="empty"><div class="big">Nothing waiting</div><div class="small">This wallet is not on any airdrop list held here. If a project says otherwise, ask them to check the address they used.</div></div>`;
-      return;
-    }
+    if (!items.length) return;   // stays hidden
     const rows = await Promise.all(items.map(async (it) => {
       const m = await tokMeta(it.token);
       // The amount leads. It is the fact the visitor came for, and the button
@@ -3128,11 +3125,16 @@ async function renderAdClaims() {
         <td><div class="row-actions"><button class="btn btn-neon btn-sm" data-adclaim="${it.id}" data-adidx="${it.index}" data-adamt="${it.amount}">Claim</button></div></td></tr>`;
     }));
     box.innerHTML = `<table>${rows.join("")}</table>`;
+    wrap.style.display = "";   // only now is there something worth a heading
     box.querySelectorAll<HTMLButtonElement>("[data-adclaim]").forEach((b) => {
       b.onclick = () => adClaim(Number(b.dataset.adclaim), Number(b.dataset.adidx), BigInt(b.dataset.adamt!), b);
     });
   } catch {
+    // The one case that stays visible with nothing to claim. Hiding it would
+    // turn "we could not check" into "you have nothing", and a wallet that is
+    // on a list would walk away believing it is not.
     box.innerHTML = `<div class="empty"><div class="big">Couldn't check right now</div><div class="small">The network is busy. Nothing was sent; try again in a moment.</div></div>`;
+    wrap.style.display = "";
   }
 }
 
@@ -3159,12 +3161,18 @@ async function adClaim(id: number, index: number, amount: bigint, btn: HTMLButto
 
 /* ---------- what this wallet funded ---------- */
 
-async function renderAdMine() {
+/** `fresh` bypasses the server's caches.
+ *
+ * Used right after funding or sweeping, when the creator is watching for their
+ * own airdrop. The log cache and the index cache each hold a minute and serve
+ * stale while refreshing, so without this the screen can say "Nothing yet" for
+ * two minutes after a transaction that plainly worked. */
+async function renderAdMine(fresh = false) {
   const box = $("adMineBox");
   if (!AIRDROP) { box.innerHTML = ""; return; }
   if (!account) { box.innerHTML = `<div class="empty"><div class="small">Connect your wallet to see the airdrops you funded.</div></div>`; return; }
   try {
-    const all = await fetch("/api/airdrops").then((r) => r.json());
+    const all = await fetch(`/api/airdrops${fresh ? "?fresh=1" : ""}`).then((r) => r.json());
     const mine = (all.airdrops || []).filter((a: any) => a.creator?.toLowerCase() === account.toLowerCase());
     if (!mine.length) {
       box.innerHTML = `<div class="empty"><div class="small">Nothing yet. Fund one on the left and it appears here.</div></div>`;
@@ -3193,7 +3201,7 @@ async function renderAdMine() {
         b.disabled = true; b.textContent = "Sweeping…";
         try {
           const h = await send(AIRDROP!, encodeFunctionData({ abi: AIRDROP_ABI as any, functionName: "sweep", args: [BigInt(b.dataset.adsweep!)] }));
-          await waitTx(h); notify("Swept ✓"); invalidateEvents(); renderAdMine();
+          await waitTx(h); notify("Swept ✓"); invalidateEvents(); renderAdMine(true);
         } catch (e: any) { notify(friendlyErr(e)); b.disabled = false; b.textContent = "Sweep"; }
       };
     });

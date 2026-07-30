@@ -1412,9 +1412,16 @@ if (AIRDROP) {
   });
 
   /* Every airdrop, for the public index and the admin activity feed. */
-  app.get("/api/airdrops", async (_req, res) => {
+  app.get("/api/airdrops", async (req, res) => {
+    /* `fresh=1` is what the app asks for straight after funding or sweeping,
+       when the creator is looking at the screen waiting for their own airdrop
+       to appear. It costs a chain read, so it is rate limited and never
+       cached; every other caller gets the ordinary cached view. */
+    const fresh = req.query.fresh === "1";
+    if (fresh && limited(req, res, 10)) return;
+    if (fresh) await airdropIndex.warm(true).catch(() => { /* fall back to cache */ });
     const all = [...(await airdropIndex.all()).values()].sort((a, b) => b.id - a.id);
-    res.set("Cache-Control", "public, max-age=30");
+    res.set("Cache-Control", fresh ? "no-store" : "public, max-age=30");
     return res.json({ count: all.length, airdrops: all.map((a) => ({
       ...a, total: a.total.toString(), claimed: a.claimed.toString(),
       swept: a.swept.toString(), remaining: a.remaining.toString(),

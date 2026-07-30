@@ -193,9 +193,22 @@ export async function buildAirdropIndex({ readLogs, AIRDROP }) {
  */
 export function makeAirdropIndex({ readLogs, AIRDROP, getDb = () => null, ttlMs = 60_000, log = () => {} }) {
   let cache = null, at = 0, inflight = null;
-  const refresh = () => {
+  /* `force` skips the log reader's own cache as well as this one.
+   *
+   * Both layers hold results for a minute and serve stale while refreshing, so
+   * they stack: a creator who just funded an airdrop could watch "Nothing yet"
+   * for about two minutes, which reads as "your transaction did nothing".
+   * A forced refresh is what the create path uses to close that window.
+   *
+   * A forced call still joins an in-flight unforced rebuild rather than
+   * starting a second one. That can leave it one cycle behind, which is the
+   * right trade against letting callers stampede the chain reader. */
+  const refresh = (force = false) => {
     if (inflight) return inflight;
-    inflight = buildAirdropIndex({ readLogs, AIRDROP })
+    const start = force && typeof readLogs.warm === "function"
+      ? readLogs.warm([AIRDROP]).then(() => buildAirdropIndex({ readLogs, AIRDROP }))
+      : buildAirdropIndex({ readLogs, AIRDROP });
+    inflight = start
       .then((m) => {
         cache = m; at = Date.now();
         // Anything the chain refers to must survive pruning. Read through a
@@ -215,7 +228,7 @@ export function makeAirdropIndex({ readLogs, AIRDROP, getDb = () => null, ttlMs 
       return cache || new Map();
     },
     async get(id) { return (await this.all()).get(Number(id)) || null; },
-    warm: refresh,
+    warm: (force = false) => refresh(force),
     get builtAt() { return at; },
   };
 }
