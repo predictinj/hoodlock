@@ -3076,11 +3076,9 @@ async function adOpenReview() {
     $("adRevIcon").innerHTML = await tokenIcoHTML(meta.addr, meta.symbol);
     $("adRevCount").textContent = built.count === 1 ? "1 wallet" : `${built.count.toLocaleString("en-US")} wallets`;
 
-    const [fee, allow] = await Promise.all([
-      pub.readContract({ address: AIRDROP!, abi: AIRDROP_ABI as any, functionName: "quote", args: [built.count] }) as Promise<bigint>,
-      pub.readContract({ address: meta.addr, abi: ERC20, functionName: "allowance", args: [account as `0x${string}`, AIRDROP!] }) as Promise<bigint>,
-    ]);
-    const needsApproval = allow < built.total;
+    const fee = await pub.readContract({
+      address: AIRDROP!, abi: AIRDROP_ABI as any, functionName: "quote", args: [built.count],
+    }) as bigint;
     const each = adMode === "equal" && built.count
       ? `${fmtNum(built.total / BigInt(built.count), meta.decimals)} $${escape(meta.symbol)}`
       : "varies by wallet";
@@ -3092,16 +3090,9 @@ async function adOpenReview() {
         ? `${dateLabel(Math.floor(Date.now() / 1000) + adDeadlineDays * 86400)}`
         : "None, claimable forever"],
       ["Unclaimed tokens", adDeadlineDays ? "Return to you after the deadline" : "Can never come back"],
-      ["Wallet steps", needsApproval ? "Approve, then fund" : "Fund"],
     ];
     $("adRevRows").innerHTML = rows.map(([k, v, cls]) =>
       `<div class="rev-row"><span class="k">${k}</span><span class="v ${cls || ""}">${v}</span></div>`).join("");
-
-    /* The one thing that cannot be undone deserves saying twice, and it is not
-       the same sentence in both cases. */
-    $("adRevNote").textContent = adDeadlineDays
-      ? "Once funded, nobody including HoodLock can move these tokens before the deadline."
-      : "With no deadline, these tokens are gone from your control permanently. Only the recipients can ever take them.";
 
     $("adReviewModal").classList.add("show");
   } catch (e: any) {
