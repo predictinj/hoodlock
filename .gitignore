@@ -13,3 +13,8 @@ server/config.json
 data
 contracts/cache
 contracts/out
+
+# Search Console service account key. Lives in ~/.config/hoodlock/gsc.json and
+# must never enter this repository, which is public.
+*gsc*.json
+*service-account*.json
