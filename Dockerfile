@@ -32,12 +32,26 @@ COPY server/package.json ./
 RUN npm install --no-audit --no-fund --omit=dev
 # every server module, not just the entrypoint — index.mjs imports logs.mjs
 COPY server/*.mjs ./
+# The server imports ../shared/merkle.mjs, so the directory has to exist in the
+# image. It did not, which took the site down: the container crashed on an
+# import that resolves fine in a checkout because the directory sits right
+# there. The symlink is what lets /app/shared resolve "viem", since Node walks
+# up from the importing file and would otherwise never look inside
+# /app/server/node_modules.
+COPY shared /app/shared
+RUN ln -s /app/server/node_modules /app/node_modules
 # the share-card fonts — *.mjs doesn't match a directory, and without these
 # every generated card renders as an empty gradient
 COPY server/fonts ./fonts
 # the static build + the chain config the server needs (single source of truth)
 COPY --from=build /app/web/dist ./public
 COPY web/src/config.json ./config.json
+
+# Prove the image can actually load the server before it is allowed to ship. The
+# outage this guards against was a directory the runtime stage never copied: the
+# build was green, the image was broken, and the failure only appeared as a
+# container that stopped. A failed build never replaces a running container.
+RUN node --input-type=module -e "await import('/app/server/airdrop.mjs'); await import('/app/server/airdrop-pages.mjs'); console.log('image imports ok')" 
 ENV PORT=8080
 EXPOSE 8080
 CMD ["node", "index.mjs"]
