@@ -330,6 +330,34 @@
   .wconn-acts{display:flex;gap:9px;flex-wrap:wrap}
   .wconn-acts .btn{flex:1;min-width:130px}
   .m-sub{color:var(--ink-2);font-size:12.5px;line-height:1.6;margin-bottom:14px}
+  /* Review sheet. Two sides, what leaves and what it becomes, then the terms
+     of the deal and one button. The shape a wallet confirmation uses, because
+     that is what people already read carefully. */
+  .rev-side{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .rev-amt{font-size:25px;font-weight:700;letter-spacing:-.03em;line-height:1.15}
+  .rev-sub{color:var(--ink-3);font-size:13px;margin-top:3px}
+  .rev-ico{width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:var(--input);border:1px solid var(--line-2);overflow:hidden}
+  .rev-ico img{width:100%;height:100%;object-fit:cover}
+  .rev-ico .tk-ico{width:42px;height:42px;font-size:14px}
+  /* A stack of three, so the second side reads as people rather than as a menu.
+     The vertical ellipsis that was here first looked like something to click. */
+  .rev-many{display:flex;align-items:center;justify-content:center;gap:-4px}
+  .rev-many i{width:13px;height:13px;border-radius:50%;background:rgba(0,224,90,.22);
+    border:1.5px solid var(--card-2);margin-left:-5px}
+  .rev-many i:first-child{margin-left:0;background:rgba(0,224,90,.5)}
+  .rev-many i:last-child{background:rgba(0,224,90,.12)}
+  .rev-arrow{color:var(--ink-3);font-size:17px;margin:11px 0 11px 2px;line-height:1}
+  .rev-rule{display:flex;align-items:center;gap:12px;margin:20px 0 14px;color:var(--ink-3);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.1em}
+  .rev-rule::before,.rev-rule::after{content:'';flex:1;height:1px;background:var(--line)}
+  .rev-rows{display:flex;flex-direction:column;gap:9px;font-size:13px}
+  .rev-row{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
+  .rev-row .k{color:var(--ink-3)}
+  .rev-row .v{color:var(--ink);font-weight:600;text-align:right}
+  .rev-row .v.free{color:var(--neon)}
+  .rev-cta{width:100%;margin-top:20px;padding:14px;font-size:15px;border-radius:999px}
+  .rev-note{color:var(--ink-3);font-size:11.5px;line-height:1.55;margin-top:12px;text-align:center}
   .m-sub b{color:var(--ink)}
 
   /* toast */
@@ -668,7 +696,7 @@
             <div class="field">
               <div class="hintline" id="adSummary"></div>
               <div class="msg" id="adMsg" style="display:none"></div>
-              <button class="btn btn-neon" id="adCreateBtn" style="width:100%;margin-top:10px">Fund airdrop</button>
+              <button class="btn btn-neon" id="adCreateBtn" style="width:100%;margin-top:10px">Review</button>
             </div>
           </div>
 
@@ -780,6 +808,38 @@
     <div class="m-head"><h3 id="walletModalTitle">Connect a wallet</h3><button id="walletModalClose" class="m-close">✕</button></div>
     <div id="walletChoices" class="wchoices"></div>
     <div id="walletConnected" style="display:none"></div>
+  </div>
+</div>
+
+<!-- airdrop review sheet -->
+<div id="adReviewModal" class="modal">
+  <div class="modal-card">
+    <div class="m-head"><h3>You're sending</h3><button id="adReviewClose" class="m-close">✕</button></div>
+
+    <div class="rev-side">
+      <div>
+        <div class="rev-amt" id="adRevAmount">&mdash;</div>
+        <div class="rev-sub" id="adRevAmountSub">leaves your wallet now</div>
+      </div>
+      <div class="rev-ico" id="adRevIcon"></div>
+    </div>
+
+    <div class="rev-arrow">&darr;</div>
+
+    <div class="rev-side">
+      <div>
+        <div class="rev-amt" id="adRevCount">&mdash;</div>
+        <div class="rev-sub" id="adRevCountSub">come and take their own share</div>
+      </div>
+      <div class="rev-ico"><span class="rev-many"><i></i><i></i><i></i></span></div>
+    </div>
+
+    <div class="rev-rule">DETAILS</div>
+    <div class="rev-rows" id="adRevRows"></div>
+
+    <button class="btn btn-neon rev-cta" id="adRevConfirm">Fund airdrop</button>
+    <div class="msg" id="adRevMsg" style="display:none;margin-top:12px"></div>
+    <div class="rev-note" id="adRevNote"></div>
   </div>
 </div>
 

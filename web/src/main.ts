@@ -3046,15 +3046,77 @@ async function adRefreshToken() {
 
 /* ---------- create ---------- */
 
-async function adCreate() {
-  const msg = $("adMsg"); msg.style.display = "block"; msg.className = "msg";
-  const btn = $("adCreateBtn") as HTMLButtonElement;
+/** What the review sheet checks before it will open.
+ *
+ * The same conditions the send path enforces. Reviewing something that cannot
+ * be sent wastes the reader's attention on a deal that does not exist. */
+function adReadyOrThrow(): { meta: NonNullable<typeof adTokenMeta>; built: NonNullable<typeof adBuilt> } {
+  if (!AIRDROP) throw new Error("Airdrops are not configured on this deployment.");
+  if (!adTokenMeta) throw new Error("Enter a token contract first.");
+  if (!adBuilt || !adBuilt.count) throw new Error("Add at least one recipient.");
+  if (adTokenMeta.bal < adBuilt.total) throw new Error(`You hold ${fmtNum(adTokenMeta.bal, adTokenMeta.decimals)} $${adTokenMeta.symbol}, and this list needs ${fmtNum(adBuilt.total, adTokenMeta.decimals)}.`);
+  return { meta: adTokenMeta, built: adBuilt };
+}
+
+/** Fill the review sheet and show it. Reads the fee and the allowance from the
+ *  chain so what is on screen is what will actually happen, not an estimate. */
+async function adOpenReview() {
+  const formMsg = $("adMsg");
   try {
-    if (!AIRDROP) throw new Error("Airdrops are not configured on this deployment.");
-    if (!account) { await connect(); if (!account) return; }
-    if (!adTokenMeta) throw new Error("Enter a token contract first.");
-    if (!adBuilt || !adBuilt.count) throw new Error("Add at least one recipient.");
-    if (adTokenMeta.bal < adBuilt.total) throw new Error(`You hold ${fmtNum(adTokenMeta.bal, adTokenMeta.decimals)} $${adTokenMeta.symbol}, and this list needs ${fmtNum(adBuilt.total, adTokenMeta.decimals)}.`);
+    if (!account) return openWalletModal();   // same prompt the lock and vesting forms use
+    const { meta, built } = adReadyOrThrow();
+    formMsg.style.display = "none";
+
+    const revMsg = $("adRevMsg"); revMsg.style.display = "none"; revMsg.className = "msg";
+    ($("adRevConfirm") as HTMLButtonElement).disabled = false;
+    $("adRevConfirm").textContent = "Fund airdrop";
+
+    $("adRevAmount").innerHTML = `${fmtNum(built.total, meta.decimals)} $${escape(meta.symbol)}`;
+    $("adRevAmountSub").textContent = `of your ${fmtNum(meta.bal, meta.decimals)} $${meta.symbol}`;
+    $("adRevIcon").innerHTML = await tokenIcoHTML(meta.addr, meta.symbol);
+    $("adRevCount").textContent = built.count === 1 ? "1 wallet" : `${built.count.toLocaleString("en-US")} wallets`;
+
+    const [fee, allow] = await Promise.all([
+      pub.readContract({ address: AIRDROP!, abi: AIRDROP_ABI as any, functionName: "quote", args: [built.count] }) as Promise<bigint>,
+      pub.readContract({ address: meta.addr, abi: ERC20, functionName: "allowance", args: [account as `0x${string}`, AIRDROP!] }) as Promise<bigint>,
+    ]);
+    const needsApproval = allow < built.total;
+    const each = adMode === "equal" && built.count
+      ? `${fmtNum(built.total / BigInt(built.count), meta.decimals)} $${escape(meta.symbol)}`
+      : "varies by wallet";
+
+    const rows: [string, string, string?][] = [
+      ["Platform fee", fee === 0n ? "Free" : `${formatEther(fee)} ETH`, fee === 0n ? "free" : ""],
+      ["Each wallet gets", each],
+      ["Deadline", adDeadlineDays
+        ? `${dateLabel(Math.floor(Date.now() / 1000) + adDeadlineDays * 86400)}`
+        : "None, claimable forever"],
+      ["Unclaimed tokens", adDeadlineDays ? "Return to you after the deadline" : "Can never come back"],
+      ["Wallet steps", needsApproval ? "Approve, then fund" : "Fund"],
+    ];
+    $("adRevRows").innerHTML = rows.map(([k, v, cls]) =>
+      `<div class="rev-row"><span class="k">${k}</span><span class="v ${cls || ""}">${v}</span></div>`).join("");
+
+    /* The one thing that cannot be undone deserves saying twice, and it is not
+       the same sentence in both cases. */
+    $("adRevNote").textContent = adDeadlineDays
+      ? "Once funded, nobody including HoodLock can move these tokens before the deadline."
+      : "With no deadline, these tokens are gone from your control permanently. Only the recipients can ever take them.";
+
+    $("adReviewModal").classList.add("show");
+  } catch (e: any) {
+    formMsg.style.display = "block";
+    formMsg.className = "msg bad";
+    formMsg.textContent = friendlyErr(e);
+  }
+}
+
+async function adCreate() {
+  const msg = $("adRevMsg"); msg.style.display = "block"; msg.className = "msg";
+  const btn = $("adRevConfirm") as HTMLButtonElement;
+  try {
+    if (!account) return openWalletModal();   // same prompt the lock and vesting forms use
+    const { meta: adTokenMeta, built: adBuilt } = adReadyOrThrow();
 
     btn.disabled = true;
 
@@ -3086,15 +3148,16 @@ async function adCreate() {
     }), fee);
     msg.innerHTML = `Funding… <span class="spin"></span>`;
     await waitTx(h);
-    msg.className = "msg ok";
-    msg.innerHTML = `Funded. <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a> — recipients can claim it now.`;
+    $("adReviewModal").classList.remove("show");
+    const done = $("adMsg"); done.style.display = "block"; done.className = "msg ok";
+    done.innerHTML = `Funded. <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a> — recipients can claim it now.`;
     ($("adList") as HTMLTextAreaElement).value = "";
     adBuilt = null; adRenderList();
     invalidateEvents(); renderAdHistory(true);
   } catch (e: any) {
     msg.className = "msg bad"; msg.textContent = friendlyErr(e);
   } finally {
-    ($("adCreateBtn") as HTMLButtonElement).disabled = false;
+    ($("adRevConfirm") as HTMLButtonElement).disabled = false;
   }
 }
 
@@ -3263,7 +3326,10 @@ $("adTokenAddr")?.addEventListener("input", debounce(adRefreshToken, 400));
 if ($("adTokenAddr")) wireTokenDropdown("adTokenAddr", "adTokDd", () => adRefreshToken());
 $("adList")?.addEventListener("input", debounce(adRenderList, 250));
 $("adEqualAmount")?.addEventListener("input", debounce(adRenderList, 250));
-$("adCreateBtn")?.addEventListener("click", adCreate);
+$("adCreateBtn")?.addEventListener("click", adOpenReview);
+$("adRevConfirm")?.addEventListener("click", adCreate);
+$("adReviewClose")?.addEventListener("click", () => $("adReviewModal").classList.remove("show"));
+$("adReviewModal")?.addEventListener("click", (e) => { if (e.target === $("adReviewModal")) $("adReviewModal").classList.remove("show"); });
 
 $("adModeChips")?.addEventListener("click", (e) => {
   const chip = (e.target as HTMLElement).closest<HTMLElement>("[data-admode]");
