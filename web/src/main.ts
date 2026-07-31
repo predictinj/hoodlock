@@ -1612,7 +1612,7 @@ async function renderAffDashboard(me: any) {
       <div class="tile"><div class="k">Claimable now</div><div class="v">${me.claimableEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(claimableUsd) : ""} · min $${me.minClaimUsd}</div></div>
       <div class="tile"><div class="k">Clicks</div><div class="v">${me.clicks.toLocaleString("en-US")}</div><div class="d">link visits</div></div>
       <div class="tile"><div class="k">Referred activity</div><div class="v">${me.qualifyingLocks.toLocaleString("en-US")}</div><div class="d">${(me.locksCount || 0)} locks · ${(me.burnsCount || 0)} burns · ${(me.vestsCount || 0)} vesting</div></div>
-      <div class="tile"><div class="k">Commission rate</div><div class="v g">${Math.round((me.commission || 0) * 100)}%</div><div class="d">${(me.commission || 0) > 0.3 ? "boosted rate" : "your share per lock"}</div></div>
+      <div class="tile"><div class="k">Commission rate</div><div class="v g">${Math.round((me.commission || 0) * 100)}%</div><div class="d">${(me.commission || 0) > 0.3 ? "boosted rate" : "your share"}</div></div>
     </div>
     <div class="card" style="margin-bottom:12px">
       <div class="card-head"><div><h3>Claim earnings</h3><div class="sub">PAID IN ETH TO ${short(account).toUpperCase()}</div></div>
@@ -1731,7 +1731,7 @@ async function renderDevDashboard(me: any) {
       <div class="tile"><div class="k">Lifetime earnings</div><div class="v g">${me.lifetimeEarnedEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(me.lifetimeEarnedEth * me.ethUsd) : "50% of generated fees"}</div></div>
       <div class="tile"><div class="k">Claimable now</div><div class="v">${me.claimableEth.toFixed(4)} ETH</div><div class="d">${me.ethUsd > 0 ? fmtUsd(claimableUsd) : ""} · min $${me.minClaimUsd}</div></div>
       <div class="tile"><div class="k">Actions generated</div><div class="v">${me.qualifyingLocks.toLocaleString("en-US")}</div><div class="d">from ${me.lockers.toLocaleString("en-US")} users</div></div>
-      <div class="tile"><div class="k">Commission rate</div><div class="v g">${Math.round((me.commission || 0) * 100)}%</div><div class="d">your share per lock</div></div>
+      <div class="tile"><div class="k">Commission rate</div><div class="v g">${Math.round((me.commission || 0) * 100)}%</div><div class="d">your share</div></div>
     </div>
     <div class="card" style="margin-bottom:12px">
       <div class="card-head"><div><h3>Claim earnings</h3><div class="sub">PAID IN ETH TO ${short(account).toUpperCase()}</div></div>
