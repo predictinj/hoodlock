@@ -3068,6 +3068,9 @@ async function adOpenReview() {
     formMsg.style.display = "none";
 
     const revMsg = $("adRevMsg"); revMsg.style.display = "none"; revMsg.className = "msg";
+    $("adRevBody").style.display = "";
+    $("adRevDone").style.display = "none";
+    $("adRevTitle").textContent = "You're sending";
     ($("adRevConfirm") as HTMLButtonElement).disabled = false;
     $("adRevConfirm").textContent = "Fund airdrop";
 
@@ -3100,6 +3103,56 @@ async function adOpenReview() {
     formMsg.className = "msg bad";
     formMsg.textContent = friendlyErr(e);
   }
+}
+
+/* AirdropCreated(uint256 indexed id, address indexed token, address indexed creator, ...)
+   The id is the first indexed argument, so it is topics[1] of the log this
+   contract emitted in this transaction. */
+const T_AIRDROP_CREATED = keccak256(toHex(
+  "AirdropCreated(uint256,address,address,bytes32,uint256,uint32,uint64,string)"));
+
+function adIdFromReceipt(receipt: any): number | null {
+  const want = String(AIRDROP).toLowerCase();
+  for (const l of receipt?.logs || []) {
+    if (String(l.address).toLowerCase() !== want) continue;
+    if (String(l.topics?.[0]).toLowerCase() !== T_AIRDROP_CREATED.toLowerCase()) continue;
+    try { return Number(BigInt(l.topics[1])); } catch { return null; }
+  }
+  return null;
+}
+
+/** The same sheet, now a receipt.
+ *
+ * The one thing worth saying at this moment is that nothing was sent anywhere.
+ * People fund an airdrop expecting tokens to land in wallets, and here they do
+ * not: the recipients have to come and take them. So the link they need to
+ * share is the whole point of this state, not an afterthought at the bottom. */
+function adShowFunded(receipt: any, meta: { symbol: string; decimals: number },
+                      built: { total: bigint; count: number }, hash: string) {
+  const id = adIdFromReceipt(receipt);
+  const url = id === null ? `${location.origin}/airdrops` : `${location.origin}/airdrop/${id}`;
+
+  $("adRevTitle").textContent = "Funded";
+  $("adRevBody").style.display = "none";
+  $("adRevDone").style.display = "";
+
+  $("adRevDoneHead").textContent = id === null ? "Airdrop funded" : `Airdrop #${id} funded`;
+  $("adRevDoneSub").innerHTML =
+    `<b>${fmtNum(built.total, meta.decimals)} $${escape(meta.symbol)}</b> is now held for `
+    + `<b>${built.count === 1 ? "1 wallet" : built.count.toLocaleString("en-US") + " wallets"}</b>. `
+    + `Nothing was sent to them. Each recipient has to open this page with their own wallet and take their share, `
+    + `so send them the link.`;
+
+  $("adRevLink").textContent = url;
+  ($("adRevOpen") as HTMLAnchorElement).href = url;
+  ($("adRevTx") as HTMLAnchorElement).href = `${EXP}/tx/${hash}`;
+
+  const copy = $("adRevCopy") as HTMLButtonElement;
+  copy.textContent = "Copy link";
+  copy.onclick = async () => {
+    try { await navigator.clipboard.writeText(url); notify("Link copied — send it to the recipients"); copy.textContent = "Copied ✓"; }
+    catch { prompt("Copy this link and send it to the recipients:", url); }
+  };
 }
 
 async function adCreate() {
@@ -3138,10 +3191,8 @@ async function adCreate() {
       args: [adTokenMeta.addr, adBuilt.root as `0x${string}`, adBuilt.total, adBuilt.count, endTime, ""],
     }), fee);
     msg.innerHTML = `Funding… <span class="spin"></span>`;
-    await waitTx(h);
-    $("adReviewModal").classList.remove("show");
-    const done = $("adMsg"); done.style.display = "block"; done.className = "msg ok";
-    done.innerHTML = `Funded. <a href="${EXP}/tx/${h}" target="_blank" rel="noopener">view tx</a> — recipients can claim it now.`;
+    const receipt = await waitTx(h);
+    adShowFunded(receipt, adTokenMeta, adBuilt, h);
     ($("adList") as HTMLTextAreaElement).value = "";
     adBuilt = null; adRenderList();
     invalidateEvents(); renderAdHistory(true);
@@ -3320,6 +3371,7 @@ $("adEqualAmount")?.addEventListener("input", debounce(adRenderList, 250));
 $("adCreateBtn")?.addEventListener("click", adOpenReview);
 $("adRevConfirm")?.addEventListener("click", adCreate);
 $("adReviewClose")?.addEventListener("click", () => $("adReviewModal").classList.remove("show"));
+$("adRevDoneBtn")?.addEventListener("click", () => $("adReviewModal").classList.remove("show"));
 $("adReviewModal")?.addEventListener("click", (e) => { if (e.target === $("adReviewModal")) $("adReviewModal").classList.remove("show"); });
 
 $("adModeChips")?.addEventListener("click", (e) => {

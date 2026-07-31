@@ -357,6 +357,13 @@
   .rev-row .v{color:var(--ink);font-weight:600;text-align:right}
   .rev-row .v.free{color:var(--neon)}
   .rev-cta{width:100%;margin-top:20px;padding:14px;font-size:15px;border-radius:999px}
+  .rev-done-mark{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;margin:2px 0 14px;
+    background:rgba(0,224,90,.12);border:1px solid rgba(0,224,90,.3);color:var(--neon);font-size:21px;font-weight:700}
+  .rev-done-head{font-size:22px;font-weight:700;letter-spacing:-.03em}
+  .rev-done-sub{color:var(--ink-2);font-size:13.5px;line-height:1.6;margin-top:8px}
+  .rev-done-sub b{color:var(--ink)}
+  .rev-txlink{display:block;text-align:center;color:var(--ink-3);font-size:12.5px;margin-top:14px}
+  .rev-txlink:hover{color:var(--neon)}
   .m-sub b{color:var(--ink)}
 
   /* toast */
@@ -813,8 +820,9 @@
 <!-- airdrop review sheet -->
 <div id="adReviewModal" class="modal">
   <div class="modal-card">
-    <div class="m-head"><h3>You're sending</h3><button id="adReviewClose" class="m-close">✕</button></div>
+    <div class="m-head"><h3 id="adRevTitle">You're sending</h3><button id="adReviewClose" class="m-close">✕</button></div>
 
+    <div id="adRevBody">
     <div class="rev-side">
       <div>
         <div class="rev-amt" id="adRevAmount">&mdash;</div>
@@ -838,6 +846,25 @@
 
     <button class="btn btn-neon rev-cta" id="adRevConfirm">Fund airdrop</button>
     <div class="msg" id="adRevMsg" style="display:none;margin-top:12px"></div>
+    </div>
+
+    <!-- Same sheet, second state. Funding is the moment the creator needs to be
+         told the one thing about this product that surprises people: nothing was
+         sent to anybody. The recipients have to come and take it. -->
+    <div id="adRevDone" style="display:none">
+      <div class="rev-done-mark">✓</div>
+      <div class="rev-done-head" id="adRevDoneHead">Airdrop funded</div>
+      <div class="rev-done-sub" id="adRevDoneSub"></div>
+
+      <div class="rev-rule">SHARE THIS LINK</div>
+      <div class="wconn-addr" id="adRevLink"></div>
+      <div class="wconn-acts">
+        <button class="btn btn-neon" id="adRevCopy">Copy link</button>
+        <a class="btn btn-line" id="adRevOpen" target="_blank" rel="noopener">Open page</a>
+      </div>
+      <a class="rev-txlink" id="adRevTx" target="_blank" rel="noopener">View transaction</a>
+      <button class="btn btn-line rev-cta" id="adRevDoneBtn">Done</button>
+    </div>
   </div>
 </div>
 
