@@ -737,6 +737,19 @@
           <div class="tile"><div class="k">Affiliate clicks</div><div class="v" id="adClicks">—</div><div class="d" id="adClicksSub">across all links</div></div>
         </div>
 
+        <!-- Airdrops get their own card rather than another row of top tiles:
+             the numbers are per-token, so they need a breakdown under them that
+             a flat tile grid has nowhere to put. -->
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><div><h3>Airdrops</h3><div class="sub" id="adDropSub">SENT · WALLETS REACHED · VALUE DISTRIBUTED</div></div></div>
+          <div class="tiles" style="margin-bottom:0">
+            <div class="tile"><div class="k">Airdrops sent</div><div class="v g" id="adDropCount">—</div><div class="d" id="adDropCountSub">&nbsp;</div></div>
+            <div class="tile"><div class="k">Wallets targeted</div><div class="v" id="adDropWallets">—</div><div class="d" id="adDropWalletsSub">&nbsp;</div></div>
+            <div class="tile"><div class="k">Value distributed</div><div class="v g" id="adDropUsd">—</div><div class="d" id="adDropEth">&nbsp;</div></div>
+          </div>
+          <div class="tbl-scroll" id="adDropTokens" style="margin-top:12px"></div>
+        </div>
+
         <div class="card" style="margin-bottom:12px">
           <div class="card-head"><div><h3>Products</h3><div class="sub" id="adProdSub">REVENUE · USERS · ACTIVITY — PER PRODUCT AND TOTAL</div></div></div>
           <div class="chips" id="adProdRange" style="margin-bottom:10px">

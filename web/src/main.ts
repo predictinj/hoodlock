@@ -2066,6 +2066,91 @@ function attributeRef() {
     body: JSON.stringify({ wallet: account, ref }) }).catch(() => { /* analytics only */ });
 }
 
+/** Airdrop analytics for the admin console.
+ *
+ * Everything comes from /api/airdrops, which is already built from the same
+ * event pass, so this adds no chain read beyond pricing the tokens.
+ *
+ * Two rules the numbers follow. Funded is what left the creator's wallet;
+ * claimed is what recipients have actually taken, and the two are different
+ * facts worth seeing side by side. And a token with no WETH pair has no price,
+ * which is reported as "N of M priced" rather than folded in as zero: a
+ * silently unpriced token would understate the total and look like a real
+ * figure.
+ */
+async function loadAdminAirdrops() {
+  const box = $("adDropTokens");
+  if (!AIRDROP) {
+    $("adDropCount").textContent = "—";
+    $("adDropSub").textContent = "AIRDROPS ARE NOT CONFIGURED ON THIS DEPLOYMENT";
+    box.innerHTML = "";
+    return;
+  }
+  try {
+    const r = await fetch("/api/airdrops").then((x) => x.json());
+    const drops: any[] = r.airdrops || [];
+    const now = Math.floor(Date.now() / 1000);
+
+    const open = drops.filter((a) => a.endTime === 0 || now < a.endTime).length;
+    const wallets = drops.reduce((n, a) => n + Number(a.maxClaims || 0), 0);
+    const claims = drops.reduce((n, a) => n + Number(a.claims || 0), 0);
+
+    $("adDropCount").textContent = drops.length.toLocaleString("en-US");
+    $("adDropCountSub").textContent = drops.length
+      ? `${open.toLocaleString("en-US")} still open`
+      : "none yet";
+    $("adDropWallets").textContent = wallets.toLocaleString("en-US");
+    $("adDropWalletsSub").textContent = wallets
+      ? `${claims.toLocaleString("en-US")} claimed · ${Math.round((claims / wallets) * 100)}%`
+      : "no recipients yet";
+
+    if (!drops.length) {
+      $("adDropUsd").textContent = "$0";
+      $("adDropEth").textContent = "nothing funded yet";
+      box.innerHTML = "";
+      return;
+    }
+
+    // Per token, because summing raw amounts across different tokens is a
+    // number that means nothing.
+    const byToken = new Map<string, { funded: bigint; claimed: bigint; drops: number }>();
+    for (const a of drops) {
+      const t = String(a.token).toLowerCase();
+      const cur = byToken.get(t) || { funded: 0n, claimed: 0n, drops: 0 };
+      cur.funded += BigInt(a.total);
+      cur.claimed += BigInt(a.claimed);
+      cur.drops += 1;
+      byToken.set(t, cur);
+    }
+
+    let usdFunded = 0, usdClaimed = 0, priced = 0;
+    const rows = await Promise.all([...byToken.entries()].map(async ([token, v]) => {
+      const m = await tokMeta(token);
+      const fUsd = await amountValueUsd(pub as any, token as `0x${string}`, v.funded, m.decimals).catch(() => null);
+      const cUsd = await amountValueUsd(pub as any, token as `0x${string}`, v.claimed, m.decimals).catch(() => null);
+      if (fUsd !== null) { usdFunded += fUsd; priced += 1; }
+      if (cUsd !== null) usdClaimed += cUsd;
+      return `<tr>
+        <td><div class="tk-cell">${await tokenIcoHTML(token, m.symbol)}
+          <div><div class="n">$${escape(m.symbol)}</div><div class="a">${v.drops} airdrop${v.drops === 1 ? "" : "s"}</div></div></div></td>
+        <td>${fmtNum(v.funded, m.decimals)} funded</td>
+        <td>${fmtNum(v.claimed, m.decimals)} claimed</td>
+        <td>${fUsd === null ? '<span style="color:var(--ink-3)">no price</span>' : fmtUsd(fUsd)}</td></tr>`;
+    }));
+
+    const ethUsd = Number((typeof localStorage !== "undefined" && localStorage.getItem("hl_ethusd")) || 0);
+    $("adDropUsd").textContent = priced ? fmtUsd(usdFunded) : "no price";
+    $("adDropEth").textContent = priced
+      ? `${ethUsd > 0 ? (usdFunded / ethUsd).toFixed(4) + " ETH · " : ""}${fmtUsd(usdClaimed)} claimed`
+        + (priced < byToken.size ? ` · ${priced} of ${byToken.size} tokens priced` : "")
+      : `${byToken.size} token${byToken.size === 1 ? "" : "s"}, none with a WETH pair`;
+
+    box.innerHTML = `<table>${rows.join("")}</table>`;
+  } catch {
+    box.innerHTML = `<div class="empty"><div class="small">Couldn't read airdrops right now.</div></div>`;
+  }
+}
+
 async function loadAdmin() {
   if (!isAdmin()) {
     $("adminBody").style.display = "none";
@@ -2091,6 +2176,7 @@ async function loadAdmin() {
   loadAffiliates();
   loadAdminClaims();
   loadAdminPublicAffiliates();
+  loadAdminAirdrops();
   const logsP = loadLockedLogs().catch(() => [] as Awaited<ReturnType<typeof loadLockedLogs>>);
   fetch("/api/admin/stats", { headers: { Authorization: "Bearer " + cachedToken() } })
     .then((r) => (r.ok ? r.json() : null))
