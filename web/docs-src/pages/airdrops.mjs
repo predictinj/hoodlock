@@ -6,7 +6,7 @@ export default {
   seoTitle: "Airdrops on HoodLock | Merkle Claims, Pricing and Deadlines",
   desc: "How a HoodLock airdrop works: the creator funds a Merkle root, recipients take their own share, and the recipient list is published so claims outlive this website.",
   updated: "2026-07-30",
-  h1: 'Airdrops that <span class="serif">arrive.</span>',
+  h1: 'Airdrops without the <span class="serif">spam.</span>',
   lede: "Most airdrops push tokens into wallets that never asked for them, and the sender pays gas for every recipient who ignores it. HoodLock inverts that: you fund it once, and each recipient comes and takes their own share.",
   body: `
 ${h2("What actually happens")}
