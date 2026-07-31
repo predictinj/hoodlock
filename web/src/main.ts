@@ -3009,18 +3009,19 @@ function adRenderList() {
   adSummary();
 }
 
-async function adSummary() {
+/** The line above the Review button: how many wallets, and how much in total.
+ *
+ * Nothing else. The fee, the deadline and the balance all have their own place
+ * in the review sheet, and repeating them here made the reader check the same
+ * facts twice before pressing a button that only opens a preview. Dropping the
+ * fee also drops a chain read that ran on every keystroke of the list. */
+function adSummary() {
   const el = $("adSummary");
   if (!AIRDROP || !adBuilt) { el.textContent = ""; return; }
-  let fee = 0n;
-  try {
-    fee = await pub.readContract({ address: AIRDROP, abi: AIRDROP_ABI as any, functionName: "quote", args: [adBuilt.count] }) as bigint;
-  } catch { /* shown as unknown below rather than guessed */ }
   const dec = adTokenMeta?.decimals ?? 18;
-  const short_ = adTokenMeta && adTokenMeta.bal < adBuilt.total;
-  el.innerHTML = `Fee <b>${fee === 0n ? "free" : formatEther(fee) + " ETH"}</b> for ${adBuilt.count} wallets · deposit <b>${fmtNum(adBuilt.total, dec)} ${adTokenMeta ? "$" + escape(adTokenMeta.symbol) : ""}</b>${
-    short_ ? ` <span style="color:var(--red)">— your balance is ${fmtNum(adTokenMeta!.bal, dec)}</span>` : ""}
-    <br>${adDeadlineDays ? `Unclaimed tokens can come back to you after ${adDeadlineDays} days.` : "No deadline: claimable forever, and you can never take the unclaimed tokens back."}`;
+  const wallets = adBuilt.count === 1 ? "1 wallet" : `${adBuilt.count.toLocaleString("en-US")} wallets`;
+  const symbol = adTokenMeta ? ` $${escape(adTokenMeta.symbol)}` : "";
+  el.innerHTML = `<b>${wallets}</b> · <b>${fmtNum(adBuilt.total, dec)}${symbol}</b> in total`;
 }
 
 async function adRefreshToken() {
@@ -3130,7 +3131,11 @@ function adIdFromReceipt(receipt: any): number | null {
 function adShowFunded(receipt: any, meta: { symbol: string; decimals: number },
                       built: { total: bigint; count: number }, hash: string) {
   const id = adIdFromReceipt(receipt);
-  const url = id === null ? `${location.origin}/airdrops` : `${location.origin}/airdrop/${id}`;
+  /* Always the app, never the per-airdrop page. A recipient needs to connect a
+     wallet and press Claim, and this is the one view that does both, whichever
+     airdrops they happen to be on. The id is still read from the receipt,
+     because naming the airdrop is worth doing even when the link is fixed. */
+  const url = `${location.origin}/app/airdrops`;
 
   $("adRevTitle").textContent = "Funded";
   $("adRevBody").style.display = "none";
@@ -3342,7 +3347,7 @@ async function renderAdHistory(fresh = false) {
             ${canSweep ? `<button class="btn btn-neon btn-sm" data-adsweep="${a.id}">Sweep</button>` : ""}
           </div></td></tr>`;
       }));
-      parts.push(`<div class="sub" style="margin:${claimed.length ? "18px" : "2px"} 0 8px">SENT BY THIS WALLET &middot; SWEEP OPENS WHEN THE DEADLINE PASSES</div><table>${rows.join("")}</table>`);
+      parts.push(`<div class="sub" style="margin:${claimed.length ? "18px" : "2px"} 0 8px">SENT BY THIS WALLET</div><table>${rows.join("")}</table>`);
     }
 
     box.innerHTML = parts.join("");
