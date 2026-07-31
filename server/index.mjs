@@ -1746,6 +1746,7 @@ app.get("/sitemap.xml", async (_req, res) => {
       ["/blog/token-locks-vs-vesting-vs-burning", "monthly", "0.6"],
       ["/blog/how-to-check-if-liquidity-is-locked", "monthly", "0.7"],
       ["/blog/rug-pull-red-flags-checklist", "monthly", "0.7"],
+      ["/blog/how-to-airdrop-tokens-on-robinhood-chain", "monthly", "0.7"],
       ["/blog/how-to-set-up-token-vesting", "monthly", "0.7"],
       ["/blog/what-is-a-vesting-cliff", "monthly", "0.6"],
       ["/blog/how-long-should-you-lock-liquidity", "monthly", "0.6"],

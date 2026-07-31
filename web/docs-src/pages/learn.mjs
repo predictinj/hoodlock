@@ -44,6 +44,7 @@ const SECTIONS = [
     b("custodial-vs-non-custodial-locking", "Custodial vs non-custodial", "Who holds the tokens, and why the distinction is not academic."),
     b("how-to-lock-liquidity-on-robinhood-chain", "Locking liquidity on Robinhood Chain", "The general walkthrough, independent of any one platform."),
     b("how-to-burn-tokens-on-robinhood-chain", "Burning tokens with proof", "Removing supply permanently and making it checkable."),
+    b("how-to-airdrop-tokens-on-robinhood-chain", "Airdropping tokens on Robinhood Chain", "One transaction, no platform fee, and recipients who claim their own share."),
   ]],
 ];
 

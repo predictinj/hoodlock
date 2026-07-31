@@ -178,7 +178,7 @@ ${airdrops.length > 200 ? `<p class="hint">Showing the 200 most recent of ${nf(a
   <h2>Running an airdrop?</h2>
   <p>Fund it once and let recipients take their own share. They come to a page that reads the chain, which is also why the tokens never land in a wallet that never asked for them.</p>
   <a class="btn" href="/app/airdrops">Fund an airdrop →</a>
-  <p class="cta-alt">${priceLine(feeEth)} <a href="/docs/airdrops">How it works</a>.</p>
+  <p class="cta-alt">${priceLine(feeEth)} <a href="/blog/how-to-airdrop-tokens-on-robinhood-chain">How to airdrop tokens on Robinhood Chain</a> or read the <a href="/docs/airdrops">reference</a>.</p>
 </div>`,
   });
 }
