@@ -306,14 +306,15 @@ export function initRevenueDrop() {
     </div>
 
     <div class="rvd-actions">
-      <a class="rvd-cta" href="/app">Open HoodLock</a>
+      <a class="rvd-cta" href="/app/airdrops">Allocation Here</a>
       <button class="rvd-more" type="button" aria-expanded="false" aria-controls="rvdHow">How revenue sharing works</button>
     </div>
     <div class="rvd-how" id="rvdHow" hidden>
-      Each week, <b>50% of the platform revenue HoodLock earns</b> across its products is set aside
-      for $LOCK holders. Every Saturday at 21:30 CET, the week's pool is divided among $LOCK holders
-      in proportion to how much $LOCK each one holds, and paid out. Holding the token is enough;
-      nothing has to be locked. The countdown above always points at the next distribution.
+      HoodLock earns fees every time someone locks, burns, vests or airdrops on the platform.
+      <b>Half of that revenue belongs to $LOCK holders.</b> Through the week the pool fills, and
+      every Saturday at 21:30 CET it is split across all $LOCK holders, weighted by how much $LOCK
+      each wallet holds. Holding the token is all it takes; nothing needs to be locked or staked.
+      The countdown above always shows the next distribution.
     </div>
   </div>`;
   document.body.appendChild(veil);
