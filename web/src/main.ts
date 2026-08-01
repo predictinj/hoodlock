@@ -1121,7 +1121,7 @@ async function burnRowHTML(b: BurnRow, variant: "mine" | "explore" = "mine"): Pr
     <td><div class="tk-cell">${await tokenIcoHTML(b.token, m2.symbol)}
       <div><div class="n">$${sym} <span class="tag" style="color:#ff8a8a;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)">BURN #${b.id}</span></div><div class="a">${short(b.token)}</div></div></div></td>
     <td>${fmtNum(b.amount, m2.decimals)}</td>
-    <td>${dateLabel(b.timestamp)}</td>
+    <td><span style="color:#ff8a8a">Never</span></td>
     <td>${tvl}</td>
     <td><span class="status burned"><i></i>BURNED FOREVER</span></td>
     <td><div class="row-actions"><button class="btn btn-line btn-sm" data-shareburn="${b.id}">Share</button></div></td></tr>`;
@@ -1281,7 +1281,13 @@ function inferTimes(rows: ExploreItem[], now: number) {
  * still look right, which is why it is worth spending the extra reads. */
 const EXPLORE_ROWS = 50;
 
-async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], vestRows: VestRow[] = [], limit = EXPLORE_ROWS): Promise<string> {
+/* Launch-day test locks (both $TESTT) the owner wants off the public explore
+ * listing. Their records still exist on chain; the server redirects their
+ * proof pages to /app/explore. */
+const HIDDEN_LOCK_IDS = new Set([0, 1]);
+
+async function buildExploreRows(lockRowsIn: LockRow[], burnRows: BurnRow[], vestRows: VestRow[] = [], limit = EXPLORE_ROWS): Promise<string> {
+  const lockRows = lockRowsIn.filter((l) => !HIDDEN_LOCK_IDS.has(l.id));
   const [lockItems, vestItems] = await Promise.all([
     Promise.all(lockRows.map(async (l): Promise<ExploreItem> => {
       const ts = await lockedAtTs(l.id).catch(() => null);
@@ -1335,7 +1341,7 @@ function recordIds(address: string): Promise<IdSets | null> {
 }
 const asBig = (xs: number[]) => xs.map((n) => BigInt(n));
 
-type ExploreRef = { kind: "lock" | "burn" | "vest"; id: number; ts: number };
+type ExploreRef = { kind: "lock" | "burn" | "vest"; id: number; ts: number; block: number };
 
 /* The newest records across all three products, newest first, resolved without a
  * single eth_call.
@@ -1357,16 +1363,23 @@ async function exploreOrder(): Promise<ExploreRef[] | null> {
       BURNER ? eventLogs(BURNER, TOPIC_BURNED).catch(() => []) : Promise.resolve([]),
       VESTING ? eventLogs(VESTING, TOPIC_VESTING_CREATED).catch(() => []) : Promise.resolve([]),
     ]);
-    if (!locks.length && !burns.length && !vests.length) return null;
+    // The locker has had records since launch, so an empty lock list can only
+    // mean its log source failed this session. Rendering the survivors would
+    // show a page of nothing but burns and vests, in the wrong order and
+    // presented as the latest activity — fall back instead.
+    if (!locks.length) return null;
     const refs: ExploreRef[] = [
-      ...locks.map((l) => ({ kind: "lock" as const, id: l.id, ts: l.ts })),
-      ...burns.map((l) => ({ kind: "burn" as const, id: l.id, ts: l.ts })),
-      ...vests.map((l) => ({ kind: "vest" as const, id: l.id, ts: l.ts })),
+      ...locks.filter((l) => !HIDDEN_LOCK_IDS.has(l.id)).map((l) => ({ kind: "lock" as const, id: l.id, ts: l.ts, block: l.block })),
+      ...burns.map((l) => ({ kind: "burn" as const, id: l.id, ts: l.ts, block: l.block })),
+      ...vests.map((l) => ({ kind: "vest" as const, id: l.id, ts: l.ts, block: l.block })),
     ];
-    // Blockscout indexes a few seconds behind the chain, so the newest record can
-    // come back with ts 0. Those sort to the front rather than the back, because
-    // a record with no timestamp yet is the one that just happened.
-    return refs.sort((a, b) => (b.ts || Infinity) - (a.ts || Infinity)
+    // Order by block number, not timestamp: every log carries its block, block
+    // order IS chain order, and it cannot lie. Timestamps could be missing
+    // whenever a source lagged (ts 0), and the old "no timestamp means it just
+    // happened" guess then pinned old records to the top of the page. A block
+    // that is genuinely unknown still sorts first — that one really is a
+    // record so new its log hasn't settled.
+    return refs.sort((a, b) => (b.block || Infinity) - (a.block || Infinity)
       || (a.kind === b.kind ? b.id - a.id : 0));
   } catch { return null; }
 }

@@ -1626,6 +1626,9 @@ app.get("/", (_req, res) => send(res, "index.html"));
    rather than break — one canonical URL per proof, permanently. */
 app.get("/proof/:kind/:id", async (req, res) => {
   const { kind, id } = req.params;
+  /* Locks #0 and #1 are launch-day $TESTT test locks the owner retired from
+     the public site. Old links still land somewhere useful. */
+  if (kind === "lock" && (id === "0" || id === "1")) return res.redirect(302, "/app/explore");
   if (!["lock", "burn", "vesting"].includes(kind) || !/^\d{1,9}$/.test(id)) return send(res, "app.html");
   // Serve the plain shell rather than keeping a crawler waiting: a generic
   // title costs a little SEO, a timeout reads as a 5xx and costs the crawl.
