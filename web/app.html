@@ -120,7 +120,12 @@
   .dash-sec a:hover{border-color:var(--line-2);background:var(--card-2)}
   .dash-sec b{font-size:14px;font-weight:500;display:block}
   .dash-sec i{font-style:normal;color:var(--ink-3);font-size:12px;display:block;margin-top:3px}
-  @media(max-width:760px){.dash-pri{grid-template-columns:1fr}}
+  @media(max-width:760px){.dash-pri{grid-template-columns:1fr}
+  /* Fixed-layout tables (explore) crush their percentage columns on narrow
+     screens until cells overlap. A floor width makes them scroll sideways
+     inside .tbl-scroll instead, with every column intact. */
+  table.tbl-fixed{min-width:700px}
+  td{padding:12px 10px}}
 
   /* tiles */
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
