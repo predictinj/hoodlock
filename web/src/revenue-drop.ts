@@ -306,7 +306,7 @@ export function initRevenueDrop() {
     </div>
 
     <div class="rvd-actions">
-      <a class="rvd-cta" href="/app/airdrops">Allocation Here</a>
+      <a class="rvd-cta" href="/app">Open HoodLock</a>
       <button class="rvd-more" type="button" aria-expanded="false" aria-controls="rvdHow">How revenue sharing works</button>
     </div>
     <div class="rvd-how" id="rvdHow" hidden>
