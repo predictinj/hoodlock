@@ -1316,12 +1316,105 @@ function recordIds(address: string): Promise<IdSets | null> {
 }
 const asBig = (xs: number[]) => xs.map((n) => BigInt(n));
 
+/* How many rows land at a time. Small enough that the first paint is quick,
+ * large enough that the page is not visibly assembling itself for ten seconds. */
+const EXPLORE_BATCH = 10;
+
+type ExploreRef = { kind: "lock" | "burn" | "vest"; id: number; ts: number };
+
+/* The newest records across all three products, newest first, resolved without a
+ * single eth_call.
+ *
+ * The event logs already carry both the record id and its block timestamp, and
+ * bsLogs caches one Blockscout request per contract, so three cached requests
+ * are enough to know the exact global ordering of every record that has ever
+ * existed. That is what makes streaming possible: the old code had to read all
+ * 150 records before it could sort them, because it derived candidates by
+ * counting down from the totals and only learned the times afterwards. Ordering
+ * first means we fetch only the rows we are actually going to show.
+ *
+ * Returns null when the logs are unavailable, so the caller can fall back rather
+ * than render an empty page. */
+async function exploreOrder(): Promise<ExploreRef[] | null> {
+  try {
+    const [locks, burns, vests] = await Promise.all([
+      eventLogs(LOCKER, TOPIC_LOCKED).catch(() => []),
+      BURNER ? eventLogs(BURNER, TOPIC_BURNED).catch(() => []) : Promise.resolve([]),
+      VESTING ? eventLogs(VESTING, TOPIC_VESTING_CREATED).catch(() => []) : Promise.resolve([]),
+    ]);
+    if (!locks.length && !burns.length && !vests.length) return null;
+    const refs: ExploreRef[] = [
+      ...locks.map((l) => ({ kind: "lock" as const, id: l.id, ts: l.ts })),
+      ...burns.map((l) => ({ kind: "burn" as const, id: l.id, ts: l.ts })),
+      ...vests.map((l) => ({ kind: "vest" as const, id: l.id, ts: l.ts })),
+    ];
+    // Blockscout indexes a few seconds behind the chain, so the newest record can
+    // come back with ts 0. Those sort to the front rather than the back, because
+    // a record with no timestamp yet is the one that just happened.
+    return refs.sort((a, b) => (b.ts || Infinity) - (a.ts || Infinity)
+      || (a.kind === b.kind ? b.id - a.id : 0));
+  } catch { return null; }
+}
+
+/** One batch of rows, in the order given. A row that fails to read is dropped
+ *  rather than allowed to abort the batch around it. */
+async function exploreBatchHTML(refs: ExploreRef[]): Promise<string> {
+  const html = await Promise.all(refs.map(async (r) => {
+    try {
+      if (r.kind === "lock") return await lockRowHTML(await readLock(r.id), false, "explore");
+      if (r.kind === "burn") return await burnRowHTML(await readBurn(r.id), "explore");
+      const v = await readVest(r.id);
+      return v ? await vestExploreRowHTML(v) : "";
+    } catch { return ""; }
+  }));
+  return html.join("");
+}
+
 async function loadExplore() {
   const box = $("exploreBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading latest activity… <span class="spin"></span></div></div>`;
   // Lock timestamps come from Blockscout and that call alone takes ~3s, so
   // start it now rather than partway through building the rows.
   loadLockedLogs().catch(() => []);
+
+  const order = await exploreOrder();
+  if (order) {
+    const wanted = order.slice(0, EXPLORE_ROWS);
+    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody></tbody></table>`;
+    const tbody = box.querySelector("tbody")!;
+    let painted = 0;
+    for (let i = 0; i < wanted.length; i += EXPLORE_BATCH) {
+      const html = await exploreBatchHTML(wanted.slice(i, i + EXPLORE_BATCH));
+      if (!html) continue;
+      // Parsed into a detached tbody and wired there, for two reasons. Only this
+      // batch gets wired, because wireActions has no already-wired guard and
+      // handing it the whole table again would double-bind every earlier row and
+      // fire each withdraw twice. And it has to be a container rather than the
+      // rows themselves, because wireActions looks for [data-proof] with
+      // querySelectorAll, which never matches the element it is called on, and
+      // data-proof sits on the tr.
+      const staging = document.createElement("tbody");
+      staging.innerHTML = html;
+      wireActions(staging); wireVestActions(staging);
+      while (staging.firstChild) {
+        const tr = staging.firstChild as HTMLElement;
+        if (tr.nodeType === 1) { tr.classList.add("row-in"); painted++; }
+        tbody.appendChild(tr); // appendChild moves the node and keeps its listeners
+      }
+    }
+    if (!painted) {
+      // We knew about records from the logs but could not read a single one, so
+      // this is a failure, not an empty chain. Saying "nothing yet" here would
+      // tell a visitor the product is unused when the truth is the RPC is down.
+      box.innerHTML = `<div class="empty"><div class="big">Couldn't reach Robinhood Chain</div><div class="small">Check your connection and try again.</div></div>`;
+      return;
+    }
+    exploreLoaded = true;
+    return;
+  }
+
+  // Fallback: no event logs, so candidates have to come from the totals and the
+  // whole set has to be read before it can be ordered.
   try {
     const [totalLocks, totalBurns, totalVests] = await Promise.all([
       pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }).then(Number),
