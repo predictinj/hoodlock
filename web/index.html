@@ -114,8 +114,11 @@
      on the wrapper. Left on the pill it would push the pill down and leave the
      note floating away from it. */
   .hero-teaser{position:relative;margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:10px}
-  /* balance stops "weekly." being orphaned on a line of its own */
-  .hero-note{font-size:14px;line-height:1.5;color:var(--ink-2);max-width:46ch;margin:0;text-wrap:balance}
+  /* One line wherever it fits. The line is 60 characters, so the old 46ch cap
+     guaranteed a wrap on every screen size including desktop. It now sizes to
+     its content and only wraps when the viewport is genuinely too narrow, where
+     balance splits it evenly instead of orphaning "weekly." on its own line. */
+  .hero-note{font-size:14px;line-height:1.5;color:var(--ink-2);max-width:100%;margin:0;text-wrap:balance}
   .hero-note b{color:var(--ink);font-weight:600}
   .hero-proof{position:relative;display:inline-flex;align-items:center;gap:10px;
     font-family:var(--mono);font-size:13px;letter-spacing:.06em;
