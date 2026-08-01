@@ -127,6 +127,27 @@
   .hero-proof .tok{color:var(--neon);font-weight:600}
   .hero-proof .soon{color:var(--ink-2)}
   .hero-proof em{font-style:normal;color:var(--ink-2)}
+  /* The whole pill is the copy target rather than just the icon: a 42-character
+     address is the one thing on this page nobody should be asked to select by
+     hand, and a wider hit area is the difference between copying it and
+     mistyping it. */
+  button.ca{cursor:pointer;color:inherit;font:inherit;letter-spacing:inherit;
+    transition:border-color .2s,background .2s}
+  button.ca:hover{border-color:rgba(0,224,90,.45);background:rgba(0,224,90,.09)}
+  button.ca:focus-visible{outline:2px solid var(--neon);outline-offset:3px}
+  .ca-addr{color:var(--ink-2)}
+  .ca-short{display:none}
+  .ca-ico{color:var(--ink-3);flex:none;transition:color .2s}
+  button.ca:hover .ca-ico{color:var(--neon)}
+  /* Confirmation replaces the pill's contents in place, so nothing reflows and
+     the address does not jump while the user is reading it back. */
+  .ca-done{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    border-radius:999px;background:var(--neon);color:#03130a;font-weight:600;letter-spacing:.08em}
+  button.ca.copied .ca-done{display:flex}
+  @media (max-width:560px){
+    .ca-full{display:none}
+    .ca-short{display:inline}
+  }
   /* app window mock */
   .stage{position:relative;margin-top:84px;perspective:1400px}
   .stage-glow{position:absolute;left:50%;bottom:-8%;width:70%;height:50%;transform:translateX(-50%);
@@ -359,7 +380,14 @@
       <a class="btn btn-line btn-lg" href="/app/explore">Verify a lock</a>
     </div>
     <div class="hero-teaser reveal d4">
-      <div class="hero-proof"><span class="tok">$LOCK</span><span class="soon">coming soon…</span></div>
+      <button type="button" class="hero-proof ca" id="caCopy"
+              data-addr="0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94"
+              aria-label="Copy the $LOCK contract address">
+        <span class="tok">$LOCK</span>
+        <span class="ca-addr"><span class="ca-full">0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94</span><span class="ca-short">0xd5BF…4B94</span></span>
+        <svg class="ca-ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span class="ca-done" aria-hidden="true">Copied</span>
+      </button>
     </div>
 
     <div class="stage reveal d4">

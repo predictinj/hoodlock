@@ -52,6 +52,29 @@ async function tokenLogo(addr: string): Promise<string | null> {
   } catch { return null; }
 }
 
+/* ---------- $LOCK contract address: one click to copy ----------
+   The address lives in the markup rather than here so the page shows it even if
+   this bundle never loads. prompt() is the fallback because clipboard.writeText
+   is unavailable on insecure origins and blocked outright by some in-app
+   browsers, which is exactly where people open a token link from. */
+{
+  const btn = $("caCopy") as HTMLButtonElement | null;
+  const addr = btn?.dataset.addr;
+  if (btn && addr) {
+    let restore: ReturnType<typeof setTimeout> | undefined;
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(addr);
+        btn.classList.add("copied");
+        clearTimeout(restore);
+        restore = setTimeout(() => btn.classList.remove("copied"), 1500);
+      } catch {
+        prompt("Copy the $LOCK contract address:", addr);
+      }
+    });
+  }
+}
+
 /* ---------- contract links ---------- */
 const contractUrl = `${cfg.explorer}/address/${LOCKER}?tab=contract`;
 ($("ctaContract") as HTMLAnchorElement | null)?.setAttribute("href", contractUrl);
