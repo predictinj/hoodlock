@@ -1252,7 +1252,17 @@ function inferTimes(rows: ExploreItem[], now: number) {
   for (let i = asc.length - 1; i >= 0 && !asc[i].known; i--) asc[i].ts = now;
 }
 
-async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], vestRows: VestRow[] = [], limit = 25): Promise<string> {
+/* How many rows Explore shows.
+ *
+ * This is also the per-product read cap in loadExplore, and the two have to stay
+ * equal. Reading fewer of each product than the page displays looks like a
+ * harmless saving but is not: if the newest 50 records all happen to be locks, a
+ * lower lock cap means those locks are never fetched, and the page quietly fills
+ * the gap with older burns instead. The list would still be 50 rows long and
+ * still look right, which is why it is worth spending the extra reads. */
+const EXPLORE_ROWS = 50;
+
+async function buildExploreRows(lockRows: LockRow[], burnRows: BurnRow[], vestRows: VestRow[] = [], limit = EXPLORE_ROWS): Promise<string> {
   const [lockItems, vestItems] = await Promise.all([
     Promise.all(lockRows.map(async (l): Promise<ExploreItem> => {
       const ts = await lockedAtTs(l.id).catch(() => null);
@@ -1319,9 +1329,9 @@ async function loadExplore() {
       VESTING ? (pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "totalSchedules" }).then(Number).catch(() => 0)) : Promise.resolve(0),
     ]);
     if (!totalLocks && !totalBurns && !totalVests) { box.innerHTML = `<div class="empty"><div class="big">Nothing yet</div><div class="small">Be the first to lock, burn or vest on Robinhood Chain.</div></div>`; exploreLoaded = true; return; }
-    const lockIds: number[] = []; for (let i = totalLocks - 1; i >= 0 && lockIds.length < 25; i--) lockIds.push(i);
-    const burnIds: number[] = []; for (let i = totalBurns - 1; i >= 0 && burnIds.length < 25; i--) burnIds.push(i);
-    const vestIds: number[] = []; for (let i = totalVests - 1; i >= 0 && vestIds.length < 25; i--) vestIds.push(i);
+    const lockIds: number[] = []; for (let i = totalLocks - 1; i >= 0 && lockIds.length < EXPLORE_ROWS; i--) lockIds.push(i);
+    const burnIds: number[] = []; for (let i = totalBurns - 1; i >= 0 && burnIds.length < EXPLORE_ROWS; i--) burnIds.push(i);
+    const vestIds: number[] = []; for (let i = totalVests - 1; i >= 0 && vestIds.length < EXPLORE_ROWS; i--) vestIds.push(i);
     const [lockRows, burnRows, vestRows] = await Promise.all([
       Promise.all(lockIds.map(readLock)),
       Promise.all(burnIds.map(readBurn)),
