@@ -179,9 +179,20 @@
      rather than snapping in. `both` holds the from-state before the animation
      starts, which is what stops a batch flashing at full opacity for one frame
      before it begins. */
-  @keyframes hlRowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  tbody tr.row-in{animation:hlRowIn .34s cubic-bezier(.2,.7,.3,1) both}
+  @keyframes hlRowIn{from{opacity:0}to{opacity:1}}
+  tbody tr.row-in{animation:hlRowIn .22s ease both}
   @media (prefers-reduced-motion:reduce){tbody tr.row-in{animation:none}}
+  /* Placeholder rows. Their only job is to hold the table at its final height
+     so that filling it never moves anything below it. */
+  tbody tr.row-skel{cursor:default}
+  tbody tr.row-skel:hover{background:none}
+  .sk-tok{display:flex;align-items:center;gap:10px}
+  .sk-av{width:28px;height:28px;border-radius:50%;flex:none;background:rgba(255,255,255,.06)}
+  .sk-bar{display:block;height:9px;border-radius:4px;background:rgba(255,255,255,.06);margin:3px 0}
+  .sk-bar.sk-sm{height:7px;background:rgba(255,255,255,.04)}
+  @keyframes hlSkel{0%,100%{opacity:.55}50%{opacity:1}}
+  tr.row-skel .sk-av,tr.row-skel .sk-bar{animation:hlSkel 1.4s ease-in-out infinite}
+  @media (prefers-reduced-motion:reduce){tr.row-skel .sk-av,tr.row-skel .sk-bar{animation:none}}
   .tk-cell{display:flex;align-items:center;gap:11px;min-width:150px}
   .token-ico{position:relative;overflow:hidden;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-family:var(--mono);font-weight:600;font-size:9.5px;color:#03130a;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.1) inset}

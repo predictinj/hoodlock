@@ -1316,10 +1316,6 @@ function recordIds(address: string): Promise<IdSets | null> {
 }
 const asBig = (xs: number[]) => xs.map((n) => BigInt(n));
 
-/* How many rows land at a time. Small enough that the first paint is quick,
- * large enough that the page is not visibly assembling itself for ten seconds. */
-const EXPLORE_BATCH = 10;
-
 type ExploreRef = { kind: "lock" | "burn" | "vest"; id: number; ts: number };
 
 /* The newest records across all three products, newest first, resolved without a
@@ -1356,19 +1352,60 @@ async function exploreOrder(): Promise<ExploreRef[] | null> {
   } catch { return null; }
 }
 
-/** One batch of rows, in the order given. A row that fails to read is dropped
- *  rather than allowed to abort the batch around it. */
-async function exploreBatchHTML(refs: ExploreRef[]): Promise<string> {
-  const html = await Promise.all(refs.map(async (r) => {
-    try {
-      if (r.kind === "lock") return await lockRowHTML(await readLock(r.id), false, "explore");
-      if (r.kind === "burn") return await burnRowHTML(await readBurn(r.id), "explore");
-      const v = await readVest(r.id);
-      return v ? await vestExploreRowHTML(v) : "";
-    } catch { return ""; }
-  }));
-  return html.join("");
+/** One row's HTML, memoised on the record so a prefetch and the later render
+ *  share the same in-flight promise instead of reading the record twice. */
+const exploreRowCache = new Map<string, Promise<string>>();
+function exploreRowHTML(r: ExploreRef): Promise<string> {
+  const key = `${r.kind}:${r.id}`;
+  if (!exploreRowCache.has(key)) {
+    exploreRowCache.set(key, (async () => {
+      try {
+        if (r.kind === "lock") return await lockRowHTML(await readLock(r.id), false, "explore");
+        if (r.kind === "burn") return await burnRowHTML(await readBurn(r.id), "explore");
+        const v = await readVest(r.id);
+        return v ? await vestExploreRowHTML(v) : "";
+      } catch { return ""; }
+    })());
+  }
+  return exploreRowCache.get(key)!;
 }
+
+/* Warm Explore before anyone asks for it.
+ *
+ * Every part of this page is a read of public data that does not depend on the
+ * connected wallet, so there is nothing to wait for. Starting at app boot means
+ * the several seconds of Blockscout and RPC latency happen while the visitor is
+ * reading the dashboard, and clicking Explore then renders from memory.
+ *
+ * Deliberately not awaited by its caller and never rejects, so a cold or broken
+ * network delays nothing and breaks nothing. */
+let explorePrefetch: Promise<ExploreRef[] | null> | null = null;
+function prefetchExplore(): Promise<ExploreRef[] | null> {
+  if (!explorePrefetch) {
+    explorePrefetch = (async () => {
+      const order = await exploreOrder();
+      // Fire every row read at once and let them settle into the cache. Nothing
+      // awaits them here: loadExplore awaits the same promises, so whatever has
+      // finished by the time the visitor arrives is already free.
+      if (order) for (const r of order.slice(0, EXPLORE_ROWS)) void exploreRowHTML(r).catch(() => "");
+      return order;
+    })().catch(() => null);
+  }
+  return explorePrefetch;
+}
+
+/* A placeholder at the same height as the row that will replace it.
+ *
+ * The point is not decoration, it is that the table reaches its final height in
+ * one step. Growing the table as rows arrive moves everything below it and
+ * moves whatever the visitor was about to click. */
+const exploreSkeletonRow = () =>
+  `<tr class="row-skel"><td><div class="sk-tok"><span class="sk-av"></span><span><i class="sk-bar" style="width:74px"></i><i class="sk-bar sk-sm" style="width:96px"></i></span></div></td>` +
+  `<td><i class="sk-bar" style="width:88px"></i></td>` +
+  `<td><i class="sk-bar" style="width:76px"></i></td>` +
+  `<td><i class="sk-bar" style="width:44px"></i></td>` +
+  `<td><i class="sk-bar" style="width:92px"></i></td>` +
+  `<td style="text-align:right"><i class="sk-bar" style="width:56px"></i></td></tr>`;
 
 async function loadExplore() {
   const box = $("exploreBox");
@@ -1377,31 +1414,39 @@ async function loadExplore() {
   // start it now rather than partway through building the rows.
   loadLockedLogs().catch(() => []);
 
-  const order = await exploreOrder();
+  const order = await prefetchExplore();
   if (order) {
     const wanted = order.slice(0, EXPLORE_ROWS);
-    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody></tbody></table>`;
+
+    // The whole table at its final height, immediately. Everything after this
+    // swaps a row for a row, so nothing below the table ever moves again.
+    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${wanted.map(exploreSkeletonRow).join("")}</tbody></table>`;
     const tbody = box.querySelector("tbody")!;
+    const slots = [...tbody.children] as HTMLElement[];
     let painted = 0;
-    for (let i = 0; i < wanted.length; i += EXPLORE_BATCH) {
-      const html = await exploreBatchHTML(wanted.slice(i, i + EXPLORE_BATCH));
-      if (!html) continue;
-      // Parsed into a detached tbody and wired there, for two reasons. Only this
-      // batch gets wired, because wireActions has no already-wired guard and
-      // handing it the whole table again would double-bind every earlier row and
-      // fire each withdraw twice. And it has to be a container rather than the
-      // rows themselves, because wireActions looks for [data-proof] with
-      // querySelectorAll, which never matches the element it is called on, and
-      // data-proof sits on the tr.
+
+    // Every row is fetched at once and fills its own slot the moment it lands.
+    // The previous version awaited a batch before starting the next, which made
+    // the total wait the sum of the batches rather than the slowest single row,
+    // and produced the visible staircase.
+    await Promise.all(wanted.map(async (r, i) => {
+      const html = await exploreRowHTML(r);
+      const slot = slots[i];
+      if (!slot.isConnected) return;
+      if (!html) { slot.remove(); return; }
+      // Wired on a detached container, because wireActions has no already-wired
+      // guard and finds [data-proof] with querySelectorAll, which never matches
+      // the element it is called on, and data-proof sits on the tr itself.
       const staging = document.createElement("tbody");
       staging.innerHTML = html;
       wireActions(staging); wireVestActions(staging);
-      while (staging.firstChild) {
-        const tr = staging.firstChild as HTMLElement;
-        if (tr.nodeType === 1) { tr.classList.add("row-in"); painted++; }
-        tbody.appendChild(tr); // appendChild moves the node and keeps its listeners
-      }
-    }
+      const tr = staging.firstElementChild as HTMLElement | null;
+      if (!tr) { slot.remove(); return; }
+      tr.classList.add("row-in");
+      slot.replaceWith(tr); // replaceWith keeps the position, so nothing reorders
+      painted++;
+    }));
+
     if (!painted) {
       // We knew about records from the logs but could not read a single one, so
       // this is a failure, not an empty chain. Saying "nothing yet" here would
@@ -3657,3 +3702,15 @@ else if (_burnParam && /^\d+$/.test(_burnParam) && BURNER) showBurnProof(Number(
 else if (_vestParam && /^\d+$/.test(_vestParam) && VESTING) showVestingProof(Number(_vestParam), false);
 else if (_pathView && TITLES[_pathView]) go(_pathView);
 else if (location.hash && TITLES[location.hash.slice(1)]) go(location.hash.slice(1));   // gamla #-länkar
+
+/* Warm Explore in the background from the moment the app opens.
+ *
+ * It is the slowest view in the app and none of what it needs depends on the
+ * wallet, so there is no reason to wait for a click to start. Whichever view the
+ * visitor actually landed on paints first: this is queued behind the initial
+ * render via requestIdleCallback, never awaited, and cannot reject. */
+{
+  const warm = () => { void prefetchExplore(); };
+  if (typeof (window as any).requestIdleCallback === "function") (window as any).requestIdleCallback(warm, { timeout: 2500 });
+  else setTimeout(warm, 800);
+}
