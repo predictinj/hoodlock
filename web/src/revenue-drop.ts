@@ -224,7 +224,7 @@ export function initRevenueDrop() {
       <span class="rvd-txt">
         <span class="rvd-label">WEEKLY REVENUE DROP</span>
         <span class="rvd-count" id="rvdFabCount">&nbsp;</span>
-        <span class="rvd-peek">Lock holders receive <b>50%</b> of HoodLock revenue.</span>
+        <span class="rvd-peek">$LOCK holders receive <b>50%</b> of HoodLock revenue.</span>
       </span>
     </button>
     <button class="rvd-hide" type="button" aria-label="Minimize the revenue drop widget">×</button>`;
@@ -265,8 +265,8 @@ export function initRevenueDrop() {
   <div class="rvd-modal" role="dialog" aria-modal="true" aria-labelledby="rvdTitle" id="rvdModal">
     <button class="rvd-x" type="button" aria-label="Close">×</button>
     <div class="rvd-eyebrow">HOODLOCK · REVENUE DISTRIBUTION</div>
-    <h2 class="rvd-h" id="rvdTitle">Lock. Earn. <span class="s">Get paid weekly.</span></h2>
-    <p class="rvd-sub">HoodLock distributes <b>50%</b> of its revenue to lock holders, every single week.</p>
+    <h2 class="rvd-h" id="rvdTitle">Hold $LOCK. <span class="s">Get paid weekly.</span></h2>
+    <p class="rvd-sub">HoodLock distributes <b>50%</b> of its platform revenue to $LOCK holders, every single week.</p>
 
     <section class="rvd-stage">
       <div id="rvdStCount">
@@ -277,9 +277,8 @@ export function initRevenueDrop() {
           <div class="rvd-cell"><span class="rvd-num" data-c="m"></span><b>MIN</b></div><span class="rvd-sep">:</span>
           <div class="rvd-cell"><span class="rvd-num" data-c="s"></span><b>SEC</b></div>
         </div>
-        <div class="rvd-when"><b>SATURDAY · 21:30</b>
+        <div class="rvd-when"><b>SATURDAY · 21:30 CET</b>
           <span id="rvdDate"></span>
-          <span>HoodLock Time · Europe/Stockholm</span>
           <span id="rvdLocal" hidden></span>
         </div>
       </div>
@@ -299,22 +298,22 @@ export function initRevenueDrop() {
 
     <div class="rvd-facts">
       <div class="rvd-fact"><div class="v">50%</div><h4>Revenue Share</h4>
-        <p>Half of HoodLock's revenue is allocated to eligible lock holders.</p></div>
-      <div class="rvd-fact"><div class="v">SAT</div><h4>Weekly Distribution</h4>
+        <p>Half of HoodLock's platform revenue is allocated to $LOCK holders.</p></div>
+      <div class="rvd-fact"><div class="v">WEEKLY</div><h4>Weekly Distribution</h4>
         <p>Revenue rewards are calculated and distributed every Saturday.</p></div>
       <div class="rvd-fact"><div class="v">1:1</div><h4>Based on Your Share</h4>
-        <p>Your payout is determined by your proportional share of eligible locked holdings.</p></div>
+        <p>Your payout is determined by your proportional share of $LOCK holdings. No locking required.</p></div>
     </div>
 
     <div class="rvd-actions">
-      <a class="rvd-cta" href="/app/locks">View your locks</a>
+      <a class="rvd-cta" href="/app">Open HoodLock</a>
       <button class="rvd-more" type="button" aria-expanded="false" aria-controls="rvdHow">How revenue sharing works</button>
     </div>
     <div class="rvd-how" id="rvdHow" hidden>
-      Each week, <b>50% of the revenue HoodLock earns</b> across its products is set aside for lock
-      holders. Every Saturday at 21:30 HoodLock time, the week's pool is divided among eligible locked
-      holdings in proportion to each holder's share, and paid out. The countdown above always points
-      at the next distribution.
+      Each week, <b>50% of the platform revenue HoodLock earns</b> across its products is set aside
+      for $LOCK holders. Every Saturday at 21:30 CET, the week's pool is divided among $LOCK holders
+      in proportion to how much $LOCK each one holds, and paid out. Holding the token is enough;
+      nothing has to be locked. The countdown above always points at the next distribution.
     </div>
   </div>`;
   document.body.appendChild(veil);
@@ -447,7 +446,7 @@ export function initRevenueDrop() {
       if (summary !== lastAnnounced) { srLine.textContent = summary; lastAnnounced = summary; }
     } else {
       const next = payoutDateLabel(phase.target).toUpperCase();
-      veil.querySelector<HTMLElement>("#rvdDoneNext")!.textContent = `NEXT DROP · ${next} · 21:30`;
+      veil.querySelector<HTMLElement>("#rvdDoneNext")!.textContent = `NEXT DROP · ${next} · 21:30 CET`;
     }
   }
 
