@@ -5,6 +5,9 @@ import { createPublicClient, http, defineChain, formatUnits, getAddress } from "
 import cfg from "./config.json";
 import LOCKER_ABI from "./locker-abi.json";
 import { amountValueUsd, computeTvl, fmtUsd } from "./tvl";
+import { initRevenueDrop } from "./revenue-drop";
+
+initRevenueDrop();
 
 const CHAIN = defineChain({
   id: cfg.chainId, name: "Robinhood Chain",

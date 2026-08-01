@@ -11,6 +11,7 @@ import LOCKER_ABI from "./locker-abi.json";
 import BURNER_ABI from "./burner-abi.json";
 import VESTING_ABI from "./vesting-abi.json";
 import { amountValueUsd, computeTvl, fmtUsd, tokenPriceUsd, tokenDepthCapUsd } from "./tvl";
+import { initRevenueDrop } from "./revenue-drop";
 
 /* ---------- chain + clients ----------
    Robinhood's public RPC is free but rate-limited, so a read-heavy session can
@@ -3724,3 +3725,6 @@ else if (location.hash && TITLES[location.hash.slice(1)]) go(location.hash.slice
   if (typeof (window as any).requestIdleCallback === "function") (window as any).requestIdleCallback(warm, { timeout: 2500 });
   else setTimeout(warm, 800);
 }
+
+// Weekly revenue drop widget + countdown dialog (self-contained).
+initRevenueDrop();
