@@ -1156,14 +1156,22 @@ async function renderMine() {
   boxes.forEach((b) => b.innerHTML = `<div class="empty"><div class="small">Loading your locks… <span class="spin"></span></div></div>`);
   try {
     const idx = await recordIds(account);
-    const [ids, burnIds] = idx
-      ? [asBig(idx.locks.owner).reverse(), asBig(idx.burns.burner).reverse()]
-      : await Promise.all([
-        pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByOwner", args: [account as `0x${string}`] }) as Promise<bigint[]>,
-        BURNER
-          ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [account as `0x${string}`] }) as Promise<bigint[]>).catch(() => [] as bigint[])
-          : Promise.resolve([] as bigint[]),
-      ]);
+    /* Union with the contract's own per-wallet arrays. Those are safe here
+     * because lock() and burn() record msg.sender, so only this wallet can
+     * ever have appended to them, and unlike the server's event index they
+     * are exact the moment a transaction lands — without this, a lock made
+     * seconds ago was missing from "My locks" for as long as the server's
+     * log cache and Blockscout lagged. Capped like the server caps its own. */
+    const [chainLockIds, chainBurnIds] = await Promise.all([
+      (pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByOwner", args: [account as `0x${string}`] }) as Promise<bigint[]>).catch(() => [] as bigint[]),
+      BURNER
+        ? (pub.readContract({ address: BURNER, abi: BURNER_ABI as any, functionName: "burnsByBurner", args: [account as `0x${string}`] }) as Promise<bigint[]>).catch(() => [] as bigint[])
+        : Promise.resolve([] as bigint[]),
+    ]);
+    const union = (server: number[], chain: bigint[]) =>
+      asBig([...new Set([...server, ...chain.map((x) => Number(x))])].sort((a, b) => a - b).slice(-250)).reverse();
+    const ids = union(idx ? idx.locks.owner : [], chainLockIds);
+    const burnIds = union(idx ? idx.burns.burner : [], chainBurnIds);
     document.getElementById("yourLocksSub")?.replaceChildren(`${ids.length} LOCK${ids.length === 1 ? "" : "S"}${burnIds.length ? ` · ${burnIds.length} BURN${burnIds.length === 1 ? "" : "S"}` : ""} · ${short(account).toUpperCase()}`);
     const rows = (await Promise.all(ids.map((i) => readLock(Number(i))))).reverse();
     const burns = (await Promise.all(burnIds.map((i) => readBurn(Number(i))))).reverse();
@@ -2979,12 +2987,21 @@ async function renderVestMine() {
   }
   try {
     const vIdx = await recordIds(account);
-    const [benIds, creIds] = vIdx
-      ? [asBig(vIdx.vests.beneficiary).reverse(), asBig(vIdx.vests.creator).reverse()]
-      : await Promise.all([
-        pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByBeneficiary", args: [account as `0x${string}`] }) as Promise<bigint[]>,
-        pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByCreator", args: [account as `0x${string}`] }) as Promise<bigint[]>,
-      ]);
+    /* The server index lags the chain by its cache TTL plus Blockscout's
+     * indexing delay, so a schedule created seconds ago is missing from it
+     * and "Created by you" looked like the transaction did nothing. The
+     * contract's creator array is safe to read directly: only the wallet
+     * itself can append to it (create sets creator = msg.sender), so the
+     * junk-spam problem the server index exists for cannot occur there.
+     * Union of both, capped, so the row is there the moment the tx lands.
+     * The beneficiary array stays server-first — anyone can append to that
+     * one for the price of a 1-wei schedule. */
+    const chainCre = await (pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByCreator", args: [account as `0x${string}`] }) as Promise<bigint[]>).catch(() => [] as bigint[]);
+    const benIds = vIdx
+      ? asBig(vIdx.vests.beneficiary).reverse()
+      : await (pub.readContract({ address: VESTING, abi: VESTING_ABI as any, functionName: "schedulesByBeneficiary", args: [account as `0x${string}`] }) as Promise<bigint[]>).catch(() => [] as bigint[]);
+    const creIds = asBig([...new Set([...(vIdx ? vIdx.vests.creator : []), ...chainCre.map((x) => Number(x))])]
+      .sort((a, b) => a - b).slice(-250)).reverse();
     const uniq = (xs: bigint[]) => [...new Set(xs.map(Number))];
     const mineRows = (await Promise.all(uniq(benIds).map((i) => readVest(i).catch(() => null))))
       .filter((v): v is VestRow => !!v && v.beneficiary.toLowerCase() === account.toLowerCase()) // F-5: skip stale ids after Move
