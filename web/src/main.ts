@@ -1915,7 +1915,10 @@ function syncAdminNav() {
 // first-touch referral: if arrived via /r/<code>, tell the backend which wallet connected
 /* admin products table — same range selector as the chart (1D/7D/30D/lifetime) */
 type ProdItem = { ts: number; wallet: string; active: boolean };
-let prodData: { locks: ProdItem[]; burns: ProdItem[]; vests: ProdItem[]; lockTs: Map<string, number>; fees: { lock: number; burn: number; vest: number }; ethUsd: number } | null = null;
+// Airdrop fees are quote(recipients) at creation, not one flat number, so each
+// airdrop carries the fee it actually paid instead of using prodData.fees.
+type DropItem = ProdItem & { fee: number };
+let prodData: { locks: ProdItem[]; burns: ProdItem[]; vests: ProdItem[]; drops: DropItem[]; lockTs: Map<string, number>; fees: { lock: number; burn: number; vest: number }; ethUsd: number } | null = null;
 let prodRange = 0; // days; 0 = lifetime
 function renderProducts() {
   const box = document.getElementById("adProdBox"); if (!box || !prodData) return;
@@ -1926,20 +1929,28 @@ function renderProducts() {
   if (sub) sub.textContent = prodRange === 0 ? "REVENUE · USERS · ACTIVITY — LIFETIME" : `REVENUE · USERS · ACTIVITY — LAST ${prodRange} DAY${prodRange === 1 ? "" : "S"}`;
 
   const L = prodData.locks.filter(inRange), B = prodData.burns.filter(inRange), V = prodData.vests.filter(inRange);
+  const D = prodData.drops.filter(inRange);
   const u = (xs: ProdItem[]) => new Set(xs.map((x) => x.wallet)).size;
-  const all = new Set([...L, ...B, ...V].map((x) => x.wallet)).size;
+  const all = new Set([...L, ...B, ...V, ...D].map((x) => x.wallet)).size;
   const revL = L.length * prodData.fees.lock, revB = B.length * prodData.fees.burn, revV = V.length * prodData.fees.vest;
+  const revD = D.reduce((n, d) => n + d.fee, 0);
   const usd = prodData.ethUsd;
   const rev = (n: number) => `${n.toFixed(4)} ETH${usd > 0 ? ` <span style="color:var(--ink-3);font-size:11px">≈ ${fmtUsd(n * usd)}</span>` : ""}`;
   // "Active" is a point-in-time count, so it always reflects now regardless of range
   const activeLocks = prodData.locks.filter((x) => x.active).length;
   const activeVest = prodData.vests.filter((x) => x.active).length;
+  const openDrops = prodData.drops.filter((x) => x.active).length;
+  // The airdrops row only exists on deployments that have the contract at all.
+  const dropRow = AIRDROP
+    ? `<tr><td><b>Airdrops</b></td><td>${D.length}</td><td>${rev(revD)}</td><td>${u(D)}</td><td>${openDrops} open</td></tr>`
+    : "";
   box.innerHTML = `<table style="table-layout:fixed;width:100%"><thead><tr>
       <th style="width:22%">Product</th><th style="width:14%">Count</th><th style="width:26%">Revenue</th><th style="width:20%">Unique users</th><th style="width:18%">Active now</th></tr></thead><tbody>
     <tr><td><b>Token Locks</b></td><td>${L.length}</td><td>${rev(revL)}</td><td>${u(L)}</td><td>${activeLocks} locked</td></tr>
     <tr><td><b>Burns</b></td><td>${B.length}</td><td>${rev(revB)}</td><td>${u(B)}</td><td>—</td></tr>
     <tr><td><b>Vesting</b></td><td>${V.length}</td><td>${rev(revV)}</td><td>${u(V)}</td><td>${activeVest} vesting</td></tr>
-    <tr style="border-top:1px solid var(--line-2)"><td><b style="color:var(--neon)">TOTAL</b></td><td><b>${L.length + B.length + V.length}</b></td><td><b>${rev(revL + revB + revV)}</b></td><td><b>${all}</b></td><td>—</td></tr>
+    ${dropRow}
+    <tr style="border-top:1px solid var(--line-2)"><td><b style="color:var(--neon)">TOTAL</b></td><td><b>${L.length + B.length + V.length + D.length}</b></td><td><b>${rev(revL + revB + revV + revD)}</b></td><td><b>${all}</b></td><td>—</td></tr>
     </tbody></table>`;
 }
 document.querySelectorAll<HTMLElement>("#adProdRange .chip-dur").forEach((c) => c.addEventListener("click", () => {
@@ -1948,6 +1959,45 @@ document.querySelectorAll<HTMLElement>("#adProdRange .chip-dur").forEach((c) => 
   prodRange = Number(c.dataset.range);
   renderProducts();
 }));
+
+/** Airdrops for the product table.
+ *
+ * Counts and creators come from /api/airdrops. Revenue cannot: the fee is
+ * quote(recipients) at creation, so there is no flat number to multiply by.
+ * The ETH value of each creation transaction IS the fee that was paid, and a
+ * paid fee can never change, so each one is read from the chain once and then
+ * kept in localStorage forever. */
+async function loadProdDrops() {
+  if (!AIRDROP) return;
+  try {
+    const r = await fetch("/api/airdrops").then((x) => x.json());
+    const drops: any[] = r.airdrops || [];
+    const nowS = Math.floor(Date.now() / 1000);
+    let feeCache: Record<string, string> = {};
+    try { feeCache = JSON.parse(localStorage.getItem("hl_adfees") || "{}") || {}; } catch { /* rebuild below */ }
+    const items = await Promise.all(drops.map(async (a): Promise<DropItem> => {
+      let fee = 0;
+      if (feeCache[a.id] !== undefined) fee = Number(feeCache[a.id]) || 0;
+      else if (a.tx) {
+        try {
+          const t = await pub.getTransaction({ hash: a.tx });
+          fee = Number(formatUnits(t.value, 18)) || 0;
+          feeCache[a.id] = String(fee);
+        } catch { /* leave 0 for this render; retried on the next load */ }
+      }
+      return {
+        ts: Number(a.ts || 0),
+        wallet: String(a.creator || "").toLowerCase(),
+        active: Number(a.endTime) === 0 || nowS < Number(a.endTime),
+        fee,
+      };
+    }));
+    try { localStorage.setItem("hl_adfees", JSON.stringify(feeCache)); } catch { /* cache only */ }
+    if (!prodData) return;
+    prodData.drops = items;
+    renderProducts();
+  } catch { /* the table keeps its other rows */ }
+}
 
 /* admin activity chart — stacked bars (locks/burns/vesting) with a range
    selector (1D hourly · 7D · 30D · lifetime) and a hover tooltip per bar */
@@ -2237,10 +2287,12 @@ async function loadAdmin() {
       locks: rows.map((r) => ({ ts: 0, wallet: r.owner.toLowerCase(), active: !r.withdrawn && r.unlockTime > now })),
       burns: burnRows.map((b) => ({ ts: b.timestamp, wallet: b.burner.toLowerCase(), active: false })),
       vests: vestRows.map((v) => ({ ts: vestTs.get(v.id) || 0, wallet: v.creator.toLowerCase(), active: v.claimed < v.total })),
+      drops: [],
       lockTs: new Map<string, number>(),
       fees: { lock: feeEth, burn: burnFeeEth, vest: vestFeeEth },
       ethUsd,
     };
+    loadProdDrops();
     // lock timestamps come from the Locked logs (same source the chart uses)
     const lockLogs = await logsP;
     prodData.locks = lockLogs.map((l) => ({

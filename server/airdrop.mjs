@@ -175,6 +175,10 @@ export async function buildAirdropIndex({ readLogs, AIRDROP }) {
         claimers: [],
         swept: 0n,
         ts: l.timestamp || 0,
+        /* The fee paid for an airdrop is quote(recipients) at creation, which
+           no event carries. The creation tx does: its ETH value IS the fee, so
+           the admin console reads it from here rather than guessing. */
+        tx: l.transactionHash || null,
       });
     } else if (t0 === T_AIRDROP_CLAIMED.toLowerCase()) {
       const r = byId.get(id);
