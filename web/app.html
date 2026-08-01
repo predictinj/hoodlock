@@ -184,6 +184,15 @@
   @media (prefers-reduced-motion:reduce){tbody tr.row-in{animation:none}}
   /* Placeholder rows. Their only job is to hold the table at its final height
      so that filling it never moves anything below it. */
+  /* Column geometry decided once from the colgroup instead of from cell content,
+     so rows arriving one at a time cannot make the table shuffle sideways. */
+  table.tbl-fixed{table-layout:fixed}
+  /* With fixed widths a long token name would spill into its neighbour, so the
+     two text lines in the token cell truncate instead. The avatar is a flex item
+     and needs the min-width reset or it refuses to let the text shrink. */
+  table.tbl-fixed .tk-cell{min-width:0}
+  table.tbl-fixed .tk-cell>div{min-width:0}
+  table.tbl-fixed .tk-cell .n,table.tbl-fixed .tk-cell .a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   tbody tr.row-skel{cursor:default}
   tbody tr.row-skel:hover{background:none}
   .sk-tok{display:flex;align-items:center;gap:10px}

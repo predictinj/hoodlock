@@ -107,12 +107,9 @@ function drawMockChart(logs: any[]) {
 }
 
 async function loadLive() {
-  // fee (hero + mock tile)
-  try {
-    const fee = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "fee" }) as bigint;
-    const feeStr = `${formatUnits(fee, 18)} ETH`;
-    $("heroFee")!.textContent = feeStr;
-  } catch { /* keep placeholders */ }
+  // The hero used to print the live lock fee here. It now carries the $LOCK
+  // teaser instead, so the read and its element are both gone rather than left
+  // to throw on a missing node inside a catch that would hide it.
 
   try {
     const total = Number(await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "totalLocks" }));

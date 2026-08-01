@@ -1073,11 +1073,21 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
     <td><div class="row-actions">${acts.join("")}</div></td></tr>`;
 }
 const TABLE_HEAD = `<thead><tr><th>Token</th><th>Amount</th><th>Owner</th><th>Unlocks</th><th>Progress</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>`;
-const TABLE_HEAD_EXPLORE = `<thead><tr><th>Token</th><th>Amount</th><th>Unlocks</th><th>TVL</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>`;
+/* The colgroup is what stops Explore twitching sideways while it fills.
+ *
+ * With the default auto layout a table sizes its columns from the content of
+ * every row, so each row that swapped in could change the widest cell in a
+ * column and force the whole table to re-lay out. Thirty rows arriving at
+ * fourteen different moments meant fourteen horizontal jumps. Fixed layout with
+ * declared widths decides the geometry once, from these numbers, and never
+ * consults the cells again. The percentages are the widths the table settled on
+ * naturally, so nothing looks different once loaded. */
+const EXPLORE_COLS = `<colgroup><col style="width:30%"><col style="width:17%"><col style="width:14%"><col style="width:10%"><col style="width:18%"><col style="width:11%"></colgroup>`;
+const TABLE_HEAD_EXPLORE = `${EXPLORE_COLS}<thead><tr><th>Token</th><th>Amount</th><th>Unlocks</th><th>TVL</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>`;
 async function renderTable(box: HTMLElement, rows: LockRow[], mine: boolean, emptyBig: string, emptySmall: string, variant: "mine" | "explore" = "mine") {
   if (!rows.length) { box.innerHTML = `<div class="empty"><div class="big">${emptyBig}</div><div class="small">${emptySmall}</div></div>`; return; }
   const html = (await Promise.all(rows.map((r) => lockRowHTML(r, mine, variant)))).join("");
-  box.innerHTML = `<table>${variant === "explore" ? TABLE_HEAD_EXPLORE : TABLE_HEAD}<tbody>${html}</tbody></table>`;
+  box.innerHTML = `<table${variant === "explore" ? ' class="tbl-fixed"' : ""}>${variant === "explore" ? TABLE_HEAD_EXPLORE : TABLE_HEAD}<tbody>${html}</tbody></table>`;
   wireActions(box);
 }
 function wireActions(container: HTMLElement) {
@@ -1130,7 +1140,7 @@ async function burnsTableHTML(burns: BurnRow[], heading: string, variant: "mine"
   if (!burns.length) return "";
   const rows = (await Promise.all(burns.map((b) => burnRowHTML(b, variant)))).join("");
   return `<div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#ff8a8a;margin:20px 0 4px">${heading}</div>
-    <table>${variant === "explore" ? TABLE_HEAD_EXPLORE : TABLE_HEAD}<tbody>${rows}</tbody></table>`;
+    <table${variant === "explore" ? ' class="tbl-fixed"' : ""}>${variant === "explore" ? TABLE_HEAD_EXPLORE : TABLE_HEAD}<tbody>${rows}</tbody></table>`;
 }
 
 /* ---------- my locks ---------- */
@@ -1420,7 +1430,7 @@ async function loadExplore() {
 
     // The whole table at its final height, immediately. Everything after this
     // swaps a row for a row, so nothing below the table ever moves again.
-    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${wanted.map(exploreSkeletonRow).join("")}</tbody></table>`;
+    box.innerHTML = `<table class="tbl-fixed">${TABLE_HEAD_EXPLORE}<tbody>${wanted.map(exploreSkeletonRow).join("")}</tbody></table>`;
     const tbody = box.querySelector("tbody")!;
     const slots = [...tbody.children] as HTMLElement[];
     let painted = 0;
@@ -1480,7 +1490,7 @@ async function loadExplore() {
     // Both halves read token metadata and prices, so build them together —
     // waiting for the vesting rows first doubled the time to first render.
     const rowsHTML = await buildExploreRows(lockRows, burnRows, vests);
-    box.innerHTML = `<table>${TABLE_HEAD_EXPLORE}<tbody>${rowsHTML}</tbody></table>`;
+    box.innerHTML = `<table class="tbl-fixed">${TABLE_HEAD_EXPLORE}<tbody>${rowsHTML}</tbody></table>`;
     wireActions(box); wireVestActions(box);
     exploreLoaded = true;
   } catch {
@@ -1527,7 +1537,7 @@ async function runSearch() {
       ]);
       // Search results are one list too — same ordering rule as Explore.
       const combined = await buildExploreRows(rows, burns, vrows, 100);
-    box.innerHTML = combined ? `<table>${TABLE_HEAD_EXPLORE}<tbody>${combined}</tbody></table>` : `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
+    box.innerHTML = combined ? `<table class="tbl-fixed">${TABLE_HEAD_EXPLORE}<tbody>${combined}</tbody></table>` : `<div class="empty"><div class="big">No locks found</div><div class="small"></div></div>`;
     wireActions(box); wireVestActions(box);
   } catch {
     box.innerHTML = `<div class="empty"><div class="big">Search failed</div><div class="small">Couldn't reach Robinhood Chain — try again.</div></div>`;
