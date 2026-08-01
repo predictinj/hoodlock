@@ -110,7 +110,14 @@
      was meant to notice. This is a teaser, so it has to be legible: brighter
      ink, a size that holds its own under the buttons, and the ticker carrying
      the accent so the eye lands on the name rather than the wait. */
-  .hero-proof{position:relative;margin-top:24px;display:inline-flex;align-items:center;gap:10px;
+  /* The pill and its one-line explanation move as a unit, so the margin lives
+     on the wrapper. Left on the pill it would push the pill down and leave the
+     note floating away from it. */
+  .hero-teaser{position:relative;margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:10px}
+  /* balance stops "weekly." being orphaned on a line of its own */
+  .hero-note{font-size:14px;line-height:1.5;color:var(--ink-2);max-width:46ch;margin:0;text-wrap:balance}
+  .hero-note b{color:var(--ink);font-weight:600}
+  .hero-proof{position:relative;display:inline-flex;align-items:center;gap:10px;
     font-family:var(--mono);font-size:13px;letter-spacing:.06em;
     padding:7px 14px;border:1px solid rgba(0,224,90,.22);border-radius:999px;
     background:rgba(0,224,90,.05)}
@@ -348,7 +355,10 @@
       <a class="btn btn-neon btn-lg" href="/app/locks">Start locking</a>
       <a class="btn btn-line btn-lg" href="/app/explore">Verify a lock</a>
     </div>
-    <div class="hero-proof reveal d4"><span class="tok">$LOCK</span><span class="soon">coming soon…</span></div>
+    <div class="hero-teaser reveal d4">
+      <div class="hero-proof"><span class="tok">$LOCK</span><span class="soon">coming soon…</span></div>
+      <p class="hero-note"><b>$LOCK</b> holders earn 50% of HoodLock revenue. Paid out weekly.</p>
+    </div>
 
     <div class="stage reveal d4">
       <div class="stage-glow"></div>
