@@ -21,6 +21,7 @@ import {
 } from "./airdrop.mjs";
 import { makeTokenIndex } from "./tokenindex.mjs";
 import { selectTokens } from "./gate.mjs";
+import { previousPayout, nextPayout, firstPayout } from "../shared/revenue-schedule.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -1337,6 +1338,68 @@ app.get("/token/:slug", async (req, res) => {
 });
 
 
+/* ---------- $LOCK revenue share ----------
+ *
+ * The week's accrued holder pool: every fee-bearing action since the last
+ * drop boundary, minus the affiliate commission those same actions earned,
+ * times the 50% holder share. Boundaries come from the shared schedule so
+ * this window agrees with the countdown to the second. Before the first
+ * drop (Aug 8) the window opens one week earlier, when the program went
+ * live: fees from before Saturday Aug 1 21:30 Stockholm never enter drop #1.
+ *
+ * Actions whose log has no timestamp (ts 0) fall out of every window. That
+ * under-counts the pool and never over-counts it, which is the right way to
+ * be wrong about money. */
+let poolCache = { at: 0, body: null };
+app.get("/api/revenue/pool", async (req, res) => {
+  if (limited(req, res, 60)) return;
+  res.set("Cache-Control", "public, max-age=60");
+  if (Date.now() - poolCache.at < 60_000 && poolCache.body) return res.json(poolCache.body);
+  try {
+    const now = Date.now();
+    const sinceSec = Math.floor((previousPayout(now) ?? firstPayout() - 7 * 86_400_000) / 1000);
+    const actions = (await feeActions()).filter((a) => a.ts >= sinceSec);
+    const feesByKind = {};
+    let fees = 0;
+    for (const a of actions) {
+      fees += a.fee;
+      const k = feesByKind[a.kind] || (feesByKind[a.kind] = { count: 0, fees: 0 });
+      k.count += 1; k.fees += a.fee;
+    }
+    /* Commission mirrors affiliateEarnings, but across every code and only
+     * for actions inside this window: post-attribution actions of each
+     * referred wallet, self-referral excluded, at the code's effective rate. */
+    let commission = 0;
+    if (db) {
+      const records = await actionRecords();
+      const owners = new Map(db.prepare("SELECT code, owner_wallet FROM affiliates").all()
+        .map((r) => [r.code.toLowerCase(), (r.owner_wallet || "").toLowerCase()]));
+      const rates = new Map();
+      for (const at of db.prepare("SELECT wallet, code, ts FROM attributions").all()) {
+        const code = String(at.code || "").toLowerCase();
+        const w = String(at.wallet || "").toLowerCase();
+        if (w === owners.get(code)) continue;
+        const q = (records.get(w) || []).filter((r) => r.ts > at.ts && r.ts >= sinceSec);
+        if (!q.length) continue;
+        if (!rates.has(code)) rates.set(code, commissionFor(code));
+        commission += rates.get(code) * q.reduce((s, r) => s + r.fee, 0);
+      }
+    }
+    const pool = Math.max(0, fees - commission) * 0.5;
+    const body = {
+      since: sinceSec,
+      next: Math.floor(nextPayout(now) / 1000),
+      fees, feesByKind, affiliateCommission: commission, pool,
+      ethUsd: await ethUsd(),
+    };
+    poolCache = { at: Date.now(), body };
+    return res.json(body);
+  } catch {
+    return res.status(500).json({ error: "pool unavailable" });
+  }
+});
+
+
 /* ---------- airdrops ----------
  *
  * The list upload needs its own body parser. The global one is 16 kB, which is
@@ -1690,6 +1753,11 @@ const VIEW_META = {
     desc: "Earn a commission on the fee from every lock, burn and vesting schedule created through your referral link. Paid in ETH on Robinhood Chain.",
     heading: "Affiliate program",
   },
+  revenue: {
+    title: "$LOCK revenue share: 50% of HoodLock fees, paid weekly | HoodLock",
+    desc: "Hold $LOCK and receive half of HoodLock's platform fee revenue. Snapshot every Saturday 21:30 CET, paid as a claimable airdrop on Robinhood Chain.",
+    heading: "$LOCK revenue share",
+  },
 };
 /* Views with nothing to rank: the wallet-gated console, the two unshipped
    products, and the in-app proof view that /proof/:kind/:id already covers. */
@@ -1735,6 +1803,7 @@ app.get("/sitemap.xml", async (_req, res) => {
     const today = new Date().toISOString().slice(0, 10);
     const statics = [
       ["/", "daily", "1.0"], ["/app/locks", "weekly", "0.9"], ["/app/vesting", "weekly", "0.9"],
+      ["/app/revenue", "weekly", "0.8"],
       ["/app/explore", "daily", "0.8"], ["/app/affiliate", "monthly", "0.7"], ["/app/developers", "monthly", "0.7"],
       ["/app", "weekly", "0.6"], ["/blog", "weekly", "0.7"],
       // The three checkers answer the questions people actually type, so they

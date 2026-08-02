@@ -12,6 +12,7 @@ import BURNER_ABI from "./burner-abi.json";
 import VESTING_ABI from "./vesting-abi.json";
 import { amountValueUsd, computeTvl, fmtUsd, tokenPriceUsd, tokenDepthCapUsd } from "./tvl";
 import { initRevenueDrop } from "./revenue-drop";
+import { nextPayout, countdownParts, payoutDateLabel, localTimeLabel } from "./revenue";
 
 /* ---------- chain + clients ----------
    Robinhood's public RPC is free but rate-limited, so a read-heavy session can
@@ -180,7 +181,7 @@ document.addEventListener("click", (e) => {
 });
 
 /* ---------- view routing ---------- */
-const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", streams: "STREAMS", affiliate: "AFFILIATE", developers: "DEVELOPERS", admin: "ADMIN CONSOLE" };
+const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", revenue: "$LOCK REVENUE SHARE", streams: "STREAMS", affiliate: "AFFILIATE", developers: "DEVELOPERS", admin: "ADMIN CONSOLE" };
 const ADMIN_WALLET = "0x79c1230cab12d53d040f5fe1f5279e1a481ccea2";
 function go(view: string, writeHistory = true) {
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
@@ -192,6 +193,7 @@ function go(view: string, writeHistory = true) {
   if (view === "locks") renderMine();
   if (view === "vesting") loadVestingView();
   if (view === "airdrops") loadAirdropView();
+  if (view === "revenue") loadRevenueView();
   if (view === "admin") loadAdmin();
   if (view === "affiliate") loadAffiliatePage();
   if (view === "developers") loadDevelopersPage();
@@ -325,6 +327,7 @@ function onConnected(silent = false) {
   syncAdminNav(); attributeRef();
   if ($("view-vesting").classList.contains("active")) { vRefreshToken(); renderVestMine(); updateVSummary(); }
   if ($("view-airdrops").classList.contains("active")) loadAirdropView();
+  if ($("view-revenue").classList.contains("active")) loadRevenueView();
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
   if ($("view-developers").classList.contains("active")) loadDevelopersPage();
   fetch("/api/track/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wallet: account }) }).catch(() => { /* analytics only */ });
@@ -384,6 +387,7 @@ function disconnect() {
   renderMine(); updateSummary(); closeWalletModal(); syncAdminNav();
   try { localStorage.removeItem("hl_afftok"); localStorage.removeItem("hl_affexp"); localStorage.removeItem("hl_conn"); localStorage.removeItem("hl_acct"); } catch { /* */ }
   if ($("view-airdrops").classList.contains("active")) loadAirdropView();
+  if ($("view-revenue").classList.contains("active")) loadRevenueView();
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
   if ($("view-developers").classList.contains("active")) loadDevelopersPage();
 }
@@ -3725,6 +3729,192 @@ $("adDeadlineChips")?.addEventListener("click", (e) => {
   adSummary();
 });
 
+
+/* ---------- $LOCK revenue share ----------
+ *
+ * Everything on this page is either read live (chain, pool endpoint) or
+ * clearly labeled as an example. The pool endpoint failing renders
+ * "Unavailable", never zeros: a zero here would read as "there is no
+ * revenue", which is a claim, not an error state. */
+const LOCK_TOKEN = "0xd5bf43f29bf7aa5bb42ae9e217b84b86eb7a4b94";
+type RevPool = { since: number; next: number; fees: number; feesByKind: Record<string, { count: number; fees: number }>; affiliateCommission: number; pool: number; ethUsd: number };
+let revPool: RevPool | null = null;
+let revPoolFailed = false;
+let revCirc: { at: number; circulating: bigint; total: bigint } | null = null;
+let revShare: number | null = null;   // connected wallet's fraction of circulating
+let revTimer: ReturnType<typeof setInterval> | null = null;
+let revWired = false;
+
+const rvPad = (n: number) => String(n).padStart(2, "0");
+const revEth = (n: number) => `${n >= 0.01 || n === 0 ? n.toFixed(3) : n >= 0.0001 ? n.toFixed(4) : n.toFixed(6)} ETH`;
+const revUsdStr = (eth: number) => {
+  const p = revPool?.ethUsd || Number(localStorage.getItem("hl_ethusd")) || 0;
+  return p > 0 ? fmtUsd(eth * p) : "";
+};
+
+function loadRevenueView() {
+  if (revTimer) clearInterval(revTimer);
+  const tick = () => {
+    // Self-clearing: go() has no teardown hook, so the timer checks the view.
+    if (!$("view-revenue").classList.contains("active")) { if (revTimer) clearInterval(revTimer); return; }
+    const now = Date.now();
+    const target = nextPayout(now);
+    const p = countdownParts(target - now);
+    $("rvCountdown").innerHTML = `${rvPad(p.days)}<span>D</span>${rvPad(p.hours)}<span>H</span>${rvPad(p.minutes)}<span>M</span>${rvPad(p.seconds)}<span>S</span>`;
+    $("rvNextDate").textContent = payoutDateLabel(target).toUpperCase();
+    const local = localTimeLabel(target);
+    $("rvLocalHint").textContent = local ? ` · your time ${local}` : "";
+  };
+  revTimer = setInterval(tick, 1000); tick();
+  if (!revWired) {
+    revWired = true;
+    $("rvSimRange").addEventListener("input", () => revSimRender());
+    $("rvSimHoldings").addEventListener("input", debounce(() => revSimRender(), 250));
+  }
+  revLoadPool(); revLoadPosition(); revLoadDrops(); revSimRender();
+}
+
+async function revLoadPool() {
+  try {
+    const r = await fetch("/api/revenue/pool");
+    if (!r.ok) throw new Error(String(r.status));
+    revPool = await r.json();
+    revPoolFailed = false;
+  } catch { revPoolFailed = true; revPool = null; }
+  if (!revPool) {
+    $("rvPoolV").textContent = "Unavailable";
+    $("rvFeesV").textContent = "Unavailable";
+    $("rvAffV").textContent = "Unavailable";
+  } else {
+    $("rvPoolV").textContent = revEth(revPool.pool);
+    const usdP = revUsdStr(revPool.pool);
+    $("rvPoolD").textContent = `${usdP ? usdP + " · " : ""}accrued so far · paid in $LOCK`;
+    $("rvFeesV").textContent = revEth(revPool.fees);
+    const n = Object.values(revPool.feesByKind || {}).reduce((s, k) => s + k.count, 0);
+    $("rvFeesD").textContent = `${n} fee-paying action${n === 1 ? "" : "s"} since the last drop`;
+    $("rvAffV").textContent = revEth(revPool.affiliateCommission);
+  }
+  revRenderCut(); revSimRender();
+}
+
+/* Circulating supply for the share math: total minus TEAM-locked $LOCK.
+ * Tokens the team locked cannot claim a drop, so they must not dilute the
+ * holders who can. Read live from the locker so a new team lock, an expiry
+ * or a withdrawal changes the math without a code change. */
+async function revCirculating(): Promise<{ circulating: bigint; total: bigint } | null> {
+  if (revCirc && Date.now() - revCirc.at < 5 * 60_000) return revCirc;
+  try {
+    const lockAddr = getAddress(LOCK_TOKEN);
+    const [total, ids] = await Promise.all([
+      pub.readContract({ address: lockAddr, abi: ERC20, functionName: "totalSupply" }) as Promise<bigint>,
+      pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByToken", args: [lockAddr] }) as Promise<bigint[]>,
+    ]);
+    const now = Math.floor(Date.now() / 1000);
+    const locks = await Promise.all(ids.map((i) => readLock(Number(i)).catch(() => null)));
+    const teamLocked = locks.reduce((s, l) =>
+      l && l.owner.toLowerCase() === ADMIN_WALLET && !l.withdrawn && l.unlockTime > now ? s + l.amount : s, 0n);
+    const circulating = total - teamLocked;
+    revCirc = { at: Date.now(), circulating: circulating > 0n ? circulating : total, total };
+    return revCirc;
+  } catch { return revCirc; }
+}
+
+async function revLoadPosition() {
+  const box = $("rvPosBox");
+  if (!account) {
+    revShare = null;
+    box.innerHTML = `<div class="empty"><div class="big">No wallet connected</div><div class="small">Connect to see your $LOCK balance and your share of the weekly pool.</div><button class="btn btn-neon btn-sm" id="rvConnect" style="margin-top:12px">Connect wallet</button></div>`;
+    document.getElementById("rvConnect")?.addEventListener("click", openWalletModal);
+    $("rvSimHoldWrap").style.display = "";
+    revRenderCut(); revSimRender();
+    return;
+  }
+  try {
+    const [bal, circ] = await Promise.all([
+      pub.readContract({ address: getAddress(LOCK_TOKEN), abi: ERC20, functionName: "balanceOf", args: [account as `0x${string}`] }) as Promise<bigint>,
+      revCirculating(),
+    ]);
+    if (!circ || circ.circulating <= 0n) throw new Error("no supply");
+    revShare = Number(bal * 1_000_000_000n / circ.circulating) / 1e9;
+    const pct = Number(bal * 1_000_000n / circ.circulating) / 10_000;
+    const eligible = bal > 0n;
+    box.innerHTML = `
+      <div class="rv-sim-row"><span class="rv-sim-label">$LOCK balance</span><b>${fmtNum(bal, 18)}</b></div>
+      <div class="rv-sim-row"><span class="rv-sim-label">Share of circulating supply</span><b>${eligible && pct < 0.0001 ? "<0.0001" : pct.toFixed(4)}%</b></div>
+      <div class="rv-sim-row" style="margin-bottom:0"><span class="rv-sim-label">Next drop</span>
+        <span class="status ${eligible ? "unlockable" : "locked"}"><i></i>${eligible ? "ELIGIBLE" : "NOT ELIGIBLE"}</span></div>
+      ${eligible ? "" : `<div class="hintline" style="margin-top:10px">Hold any amount of $LOCK at the snapshot to join the next distribution.</div>`}`;
+    $("rvSimHoldWrap").style.display = "none";
+  } catch {
+    revShare = null;
+    box.innerHTML = `<div class="empty"><div class="small">Couldn't read your position from the chain right now.</div></div>`;
+  }
+  revRenderCut(); revSimRender();
+}
+
+function revRenderCut() {
+  const v = $("rvCutV"), d = $("rvCutD");
+  if (!account) { v.textContent = "Connect wallet"; d.textContent = "your live share of the pool"; return; }
+  if (!revPool || revShare === null) { v.textContent = revPoolFailed ? "Unavailable" : "--"; return; }
+  const cut = revPool.pool * revShare;
+  v.textContent = revEth(cut);
+  const u = revUsdStr(cut);
+  d.textContent = `${u ? u + " · " : ""}of the pool accrued so far`;
+}
+
+const rvTimeLeft = (s: number) => s >= 86_400 ? `${Math.ceil(s / 86_400)}D LEFT` : `${Math.max(1, Math.ceil(s / 3600))}H LEFT`;
+async function revLoadDrops() {
+  const box = $("rvDropsBox");
+  try {
+    const r = await (await fetch("/api/airdrops")).json();
+    const drops = (r.airdrops || [])
+      .filter((a: any) => String(a.token).toLowerCase() === LOCK_TOKEN && String(a.creator).toLowerCase() === ADMIN_WALLET)
+      .sort((a: any, b: any) => b.id - a.id).slice(0, 5);
+    if (!drops.length) {
+      box.innerHTML = `<div class="empty"><div class="small">No revenue drops yet. The first one lands Saturday, August 8 at 21:30 CET.</div></div>`;
+      return;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    box.innerHTML = drops.map((a: any) => {
+      const total = BigInt(a.total || "0"), claimed = BigInt(a.claimed || "0"), swept = BigInt(a.swept || "0");
+      const pct = total > 0n ? Number(claimed * 1000n / total) / 10 : 0;
+      const end = Number(a.endTime || 0);
+      const status = swept > 0n ? `<span class="status withdrawn"><i></i>SWEPT</span>`
+        : end && now >= end ? `<span class="status withdrawn"><i></i>CLOSED</span>`
+        : `<span class="status unlockable"><i></i>OPEN${end ? " · " + rvTimeLeft(end - now) : ""}</span>`;
+      return `<div class="rv-sim-row" style="margin-bottom:8px"><span class="rv-sim-label">Drop #${a.id} · ${fmtNum(total, 18)} $LOCK · ${pct.toFixed(1)}% claimed</span>${status}</div>`;
+    }).join("");
+  } catch {
+    box.innerHTML = `<div class="empty"><div class="small">Couldn't load drops right now.</div></div>`;
+  }
+}
+
+function revSimRender() {
+  const range = $("rvSimRange") as HTMLInputElement;
+  const n = Number(range.value) || 5;
+  range.style.setProperty("--fill", `${((n - 5) / 495) * 100}%`);
+  $("rvSimLocks").textContent = String(n);
+  const feeEth = Number(formatUnits(lockFee ?? 0n, 18)) || 0.005;
+  const weeklyRev = n * feeEth * 7;
+  const weeklyPool = weeklyRev * 0.5;
+  let fraction = revShare;
+  if (fraction === null) {
+    // Example holdings drive the projection until a wallet is connected.
+    const circ = revCirc?.circulating ?? 1_000_000_000n * 10n ** 18n;
+    const raw = ($("rvSimHoldings") as HTMLInputElement).value || "";
+    const hold = Math.max(0, Number(raw.replace(/[,\s_]/g, "")) || 0);
+    const circNum = Number(formatUnits(circ, 18));
+    fraction = circNum > 0 ? Math.min(1, hold / circNum) : 0;
+  }
+  const you = weeklyPool * fraction;
+  $("rvSimRev").textContent = revEth(weeklyRev);
+  $("rvSimRevD").textContent = revUsdStr(weeklyRev) || " ";
+  $("rvSimPool").textContent = revEth(weeklyPool);
+  $("rvSimPoolD").textContent = revUsdStr(weeklyPool) || " ";
+  $("rvSimYou").textContent = revEth(you);
+  $("rvSimYouD").textContent = revUsdStr(you) || " ";
+  $("rvSimNote").textContent = `Assumes ${n} locks per day at the live ${feeEth} ETH lock fee, before affiliate payouts. A projection, not a promise.`;
+}
 
 /* ---------- boot ---------- */
 restoreConnection();

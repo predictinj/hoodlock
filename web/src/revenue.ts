@@ -1,135 +1,19 @@
-/* Revenue drop schedule — pure calculation, no DOM.
+/* Revenue drop schedule for the web app.
  *
- * The payout clock belongs to HoodLock, not to the visitor: every deadline is
- * "Saturday 21:30 in Europe/Stockholm", whatever the viewer's device is set
- * to. Date has no timezone support of its own, so the conversion goes through
- * Intl: read what the Stockholm wall clock shows at a given instant, and
- * invert that to find the instant a given wall-clock time happens. The
- * inversion is done twice because the first guess can land on the wrong side
- * of a DST switch; the second pass corrects it. 21:30 itself can never fall
- * inside the skipped/repeated DST hour (02:00-03:00), so the result is always
- * a real, unambiguous instant.
+ * The actual schedule math lives in shared/revenue-schedule.mjs so the server
+ * can compute the same weekly windows (the pool endpoint must agree with the
+ * countdown to the second). This file re-exports it and keeps the web-only
+ * parts: the TypeScript shapes and the payout-status fetch.
  */
-
-export const PAYOUT = {
-  timeZone: "Europe/Stockholm",
-  /** 6 = Saturday (Date.getUTCDay numbering). */
-  weekday: 6,
-  hour: 21,
-  minute: 30,
-  /** First distribution: Saturday, August 8, 2026. The feature went live one
-   *  week earlier, so a countdown started before this date must aim here and
-   *  not at the launch Saturday itself. */
-  first: { year: 2026, month: 8, day: 8 },
-  /** How long after the deadline the UI shows "processing" before it rolls
-   *  over to the next week when no status endpoint answers. */
-  processingMs: 45 * 60_000,
-} as const;
-
-const partsFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: PAYOUT.timeZone,
-  year: "numeric", month: "2-digit", day: "2-digit",
-  hour: "2-digit", minute: "2-digit", second: "2-digit",
-  hourCycle: "h23",
-});
-
-type Wall = { year: number; month: number; day: number; hour: number; minute: number; second: number };
-
-/** What the Stockholm wall clock reads at instant `t` (ms epoch). */
-function wallClock(t: number): Wall {
-  const out: Record<string, number> = {};
-  for (const { type, value } of partsFmt.formatToParts(t)) {
-    if (type !== "literal") out[type] = Number(value);
-  }
-  return out as Wall;
-}
-
-/** Zone offset at instant `t`, as (wall-clock-read-as-UTC) minus t. */
-function zoneOffset(t: number): number {
-  const w = wallClock(t);
-  return Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute, w.second) - Math.floor(t / 1000) * 1000;
-}
-
-/** The instant at which the Stockholm wall clock shows y-m-d h:mi. */
-export function instantAt(year: number, month: number, day: number, hour: number, minute: number): number {
-  const guess = Date.UTC(year, month - 1, day, hour, minute);
-  const once = guess - zoneOffset(guess);
-  return guess - zoneOffset(once);
-}
-
-const firstPayout = () =>
-  instantAt(PAYOUT.first.year, PAYOUT.first.month, PAYOUT.first.day, PAYOUT.hour, PAYOUT.minute);
-
-/** Next payout instant strictly after `now`, never before the first payout. */
-export function nextPayout(now: number): number {
-  for (let i = 0; i < 9; i++) {
-    const w = wallClock(now + i * 86_400_000);
-    if (new Date(Date.UTC(w.year, w.month - 1, w.day)).getUTCDay() !== PAYOUT.weekday) continue;
-    const t = instantAt(w.year, w.month, w.day, PAYOUT.hour, PAYOUT.minute);
-    if (t > now) return Math.max(t, firstPayout());
-  }
-  // Unreachable: any 9-day window contains a Saturday. Kept as a hard fail
-  // rather than a silent wrong date.
-  throw new Error("no payout date found");
-}
-
-/** Most recent payout instant at or before `now`, or null before the first. */
-export function previousPayout(now: number): number | null {
-  const first = firstPayout();
-  if (now < first) return null;
-  for (let i = 0; i < 9; i++) {
-    const w = wallClock(now - i * 86_400_000);
-    if (new Date(Date.UTC(w.year, w.month - 1, w.day)).getUTCDay() !== PAYOUT.weekday) continue;
-    const t = instantAt(w.year, w.month, w.day, PAYOUT.hour, PAYOUT.minute);
-    if (t <= now) return t;
-  }
-  return null;
-}
+export {
+  PAYOUT, instantAt, firstPayout, nextPayout, previousPayout,
+  dropPhase, countdownParts, payoutDateLabel, localTimeLabel,
+} from "@shared/revenue-schedule.mjs";
 
 export type DropPhase =
   | { phase: "countdown"; target: number }
   | { phase: "processing"; since: number; target: number }
   | { phase: "complete"; since: number; target: number };
-
-/** Where the weekly cycle stands right now. `complete` is only ever entered
- *  from real backend data, never from the clock alone. */
-export function dropPhase(now: number, status: PayoutStatus): DropPhase {
-  const prev = previousPayout(now);
-  if (prev !== null && now - prev < PAYOUT.processingMs) {
-    if (status.state === "complete") return { phase: "complete", since: prev, target: nextPayout(now) };
-    return { phase: "processing", since: prev, target: nextPayout(now) };
-  }
-  return { phase: "countdown", target: nextPayout(now) };
-}
-
-export function countdownParts(msLeft: number) {
-  const s = Math.max(0, Math.floor(msLeft / 1000));
-  return {
-    days: Math.floor(s / 86_400),
-    hours: Math.floor((s % 86_400) / 3600),
-    minutes: Math.floor((s % 3600) / 60),
-    seconds: s % 60,
-  };
-}
-
-/** "Saturday, August 8" for the payout instant, in HoodLock time. */
-export function payoutDateLabel(t: number): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: PAYOUT.timeZone, weekday: "long", month: "long", day: "numeric",
-  }).format(t);
-}
-
-/** The same instant on the visitor's own clock, or null when it matches
- *  Stockholm and saying it twice would just be noise. */
-export function localTimeLabel(t: number): string | null {
-  const local = new Intl.DateTimeFormat("en-US", {
-    weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).format(t);
-  const stockholm = new Intl.DateTimeFormat("en-US", {
-    timeZone: PAYOUT.timeZone, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).format(t);
-  return local === stockholm ? null : local;
-}
 
 /* ---------- payout status (backend hook) ----------
  * There is no payout-status endpoint yet. This is the seam it plugs into:

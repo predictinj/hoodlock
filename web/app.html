@@ -135,6 +135,26 @@
   .tile .v{font-size:25px;font-weight:700;letter-spacing:-.04em;margin-top:9px;font-variant-numeric:tabular-nums}
   .tile .v.g{color:var(--neon)}
   .tile .d{font-family:var(--mono);font-size:10px;margin-top:7px;color:var(--ink-3)}
+  /* revenue share page */
+  .rv-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--ink-2);margin-bottom:14px}
+  .rv-eyebrow i{font-style:normal;color:var(--neon);margin-right:8px}
+  .rv-count{font-family:var(--mono);font-weight:600;font-size:clamp(34px,6vw,56px);letter-spacing:1px;font-variant-numeric:tabular-nums}
+  .rv-count span{color:var(--ink-3);font-size:.45em;margin:0 6px 0 2px;letter-spacing:2px}
+  .rv-when{font-family:var(--mono);font-size:12px;letter-spacing:1.6px;color:var(--ink-2);margin-top:12px}
+  .rv-when b{color:var(--ink);font-weight:600}
+  .rv-elig{font-size:12px;color:var(--ink-3);margin-top:10px}
+  .rv-sim-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:13px;color:var(--ink-2)}
+  .rv-sim-row b{font-size:19px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .rv-sim-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--ink-3);margin-top:6px}
+  .rv-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;outline:none;cursor:pointer;
+    background:linear-gradient(90deg,var(--neon) var(--fill,4%),var(--line) var(--fill,4%))}
+  .rv-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--neon);
+    border:2px solid #04130a;box-shadow:0 0 12px rgba(0,224,90,.55);cursor:grab}
+  .rv-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--neon);border:2px solid #04130a;
+    box-shadow:0 0 12px rgba(0,224,90,.55);cursor:grab}
+  .rv-slider:focus-visible{outline:2px solid var(--neon);outline-offset:4px}
+  .rv-how{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:10px;font-size:13px;line-height:1.55;color:var(--ink-2)}
+  .rv-how b{color:var(--ink)}
   .tile .d .up{color:var(--neon)}
 
   /* cards */
@@ -445,6 +465,7 @@
     <button class="nav-item" data-view="vesting"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 17l5-5 4 3 6-7"/><path d="M14 8h4v4"/></svg>Vesting</button>
     <button class="nav-item" data-view="developers"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/><path d="M13 6l-2 12"/></svg>Developers</button>
     <button class="nav-item" data-view="airdrops"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v13"/><path d="M7 11l5 5 5-5"/><path d="M4 21h16"/></svg>Airdrops</button>
+    <button class="nav-item" data-view="revenue"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M19 5L5 19"/></svg>Revenue Share</button>
     <button class="nav-item" data-view="streams"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 12h6M14 12h6"/><circle cx="12" cy="12" r="2.5"/></svg>Streams<span class="soon">SOON</span></button>
   </div>
   <div class="nav-group" id="adminNav" style="display:none">
@@ -741,6 +762,69 @@
             <div class="card-head" style="margin-top:0"><div><h3>Your airdrop history</h3><div class="sub">SENT AND CLAIMED BY THE CONNECTED WALLET</div></div></div>
             <div id="adHistoryBox"></div>
           </div>
+        </div>
+      </section>
+      <section class="view" id="view-revenue">
+        <div class="page-head">
+          <div><h1>Hold $LOCK, earn the <span class="serif">fees.</span></h1>
+            <p>Half of HoodLock's platform revenue is bought back as $LOCK and dropped to holders every Saturday. Hold the token, claim your share.</p></div>
+        </div>
+
+        <!-- The countdown is the page's heartbeat: everything below is about
+             what happens when it reaches zero. -->
+        <div class="card" style="margin-bottom:14px;text-align:center;padding:30px 22px">
+          <div class="rv-eyebrow"><i>&#9679;</i>NEXT REVENUE DROP</div>
+          <div class="rv-count" id="rvCountdown">--</div>
+          <div class="rv-when"><b id="rvNextDate"></b> &middot; 21:30 CET<span id="rvLocalHint"></span></div>
+          <div class="rv-elig">Eligibility: hold $LOCK at the Saturday 21:30 CET snapshot. No locking, no staking.</div>
+        </div>
+
+        <div class="tiles">
+          <div class="tile"><div class="k">This week's pool</div><div class="v g" id="rvPoolV">--</div><div class="d" id="rvPoolD">accrued so far &middot; paid in $LOCK</div></div>
+          <div class="tile"><div class="k">Platform fees this week</div><div class="v" id="rvFeesV">--</div><div class="d" id="rvFeesD">locks &middot; burns &middot; vesting &middot; airdrops</div></div>
+          <div class="tile"><div class="k">Affiliate payouts</div><div class="v" id="rvAffV">--</div><div class="d">deducted before the split</div></div>
+          <div class="tile"><div class="k">Your estimated cut</div><div class="v g" id="rvCutV">--</div><div class="d" id="rvCutD">of the pool accrued so far</div></div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:14px">
+          <div class="card">
+            <div class="card-head" style="margin-top:0"><div><h3>Your position</h3><div class="sub">READ LIVE FROM ROBINHOOD CHAIN</div></div></div>
+            <div id="rvPosBox"><div class="empty"><div class="small">Loading&hellip;</div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head" style="margin-top:0"><div><h3>Revenue drops</h3><div class="sub">MERKLE AIRDROPS FROM THE TEAM WALLET</div></div></div>
+            <div id="rvDropsBox"><div class="empty"><div class="small">Loading&hellip;</div></div></div>
+            <a class="btn btn-line btn-sm" href="/app/airdrops" style="margin-top:12px">Claim on the Airdrops page</a>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-head" style="margin-top:0"><div><h3>Growth simulator</h3><div class="sub">EXAMPLE PROJECTION &middot; NOT REAL DATA</div></div></div>
+          <div class="rv-sim-row"><span class="rv-sim-label">Daily locks on HoodLock</span><b id="rvSimLocks">25</b></div>
+          <input type="range" id="rvSimRange" class="rv-slider" min="5" max="500" step="5" value="25" aria-label="Daily locks on HoodLock" />
+          <div class="rv-sim-scale"><span>5 / day</span><span>500 / day</span></div>
+          <div class="field" id="rvSimHoldWrap" style="margin-top:14px">
+            <label>Example $LOCK holdings <span class="hint">connect a wallet to use your real balance</span></label>
+            <div class="input-wrap"><input type="text" id="rvSimHoldings" value="1,000,000" spellcheck="false" autocomplete="off" inputmode="numeric" /></div>
+          </div>
+          <div class="tiles" style="margin:16px 0 0">
+            <div class="tile"><div class="k">Weekly platform revenue</div><div class="v" id="rvSimRev">--</div><div class="d" id="rvSimRevD">&nbsp;</div></div>
+            <div class="tile"><div class="k">Weekly holder pool &middot; 50%</div><div class="v" id="rvSimPool">--</div><div class="d" id="rvSimPoolD">&nbsp;</div></div>
+            <div class="tile"><div class="k">Your weekly cut</div><div class="v g" id="rvSimYou">--</div><div class="d" id="rvSimYouD">&nbsp;</div></div>
+          </div>
+          <div class="hintline" id="rvSimNote" style="margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head" style="margin-top:0"><div><h3>How it works</h3><div class="sub">THE WEEKLY CYCLE</div></div></div>
+          <ol class="rv-how">
+            <li><b>Fees accrue.</b> Every lock, burn, vesting schedule and airdrop pays a platform fee in ETH. Affiliate payouts are deducted first.</li>
+            <li><b>50% is set aside.</b> Half of what remains belongs to $LOCK holders. The pool grows all week and you can watch it on this page.</li>
+            <li><b>Buyback.</b> At Saturday 21:30 CET the pool buys $LOCK on the market, and holders are snapshotted.</li>
+            <li><b>Claim your share.</b> The bought $LOCK is distributed as a Merkle airdrop, split by each wallet's share of circulating supply. Claim it on the Airdrops page.</li>
+            <li><b>7 day window.</b> Anything unclaimed after 7 days is swept back to the treasury, so claim before the next drop lands.</li>
+          </ol>
+          <div class="hintline" style="margin-top:12px">$LOCK contract: <span class="mono">0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94</span> &middot; circulating supply excludes team-locked tokens.</div>
         </div>
       </section>
       <section class="view" id="view-streams">

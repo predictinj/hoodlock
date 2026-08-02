@@ -7,6 +7,7 @@
   <url><loc>https://hoodlock.tech/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
   <url><loc>https://hoodlock.tech/app/locks</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://hoodlock.tech/app/vesting</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://hoodlock.tech/app/revenue</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://hoodlock.tech/app/explore</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://hoodlock.tech/app/affiliate</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://hoodlock.tech/app/developers</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
