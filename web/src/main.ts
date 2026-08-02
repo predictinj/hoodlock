@@ -3978,6 +3978,7 @@ async function revLoadPool() {
   } catch { revPoolFailed = true; revPool = null; }
   revRenderPool();
   revRenderCut(); revSimRender();
+  void revLoadVerify();
 }
 
 /* Circulating supply for the share math: total minus TEAM-locked $LOCK.
@@ -4090,6 +4091,45 @@ async function revLoadDrops() {
     });
   } catch {
     box.innerHTML = `<div class="empty"><div class="small">Couldn't load drops right now.</div></div>`;
+  }
+}
+
+/* The public fee trail. Every number here is read from the chain in the
+ * visitor's own browser and every address links to the explorer, so nobody
+ * has to trust our server about what the platform earned:
+ *  - the locker and burner push their fee to the splitter inside the user's
+ *    own transaction (visible per action under the splitter's internal txs),
+ *  - the vesting and airdrop contracts hold theirs in a public accruedFees
+ *    counter until the weekly harvest drains them through the splitter. */
+const ACCRUED_ABI = [
+  { type: "function", name: "accruedFees", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+] as const;
+async function revLoadVerify() {
+  const box = document.getElementById("rvVerifyBox");
+  if (!box) return;
+  const splitter = (revPool as any)?.automation?.splitter as string | null;
+  try {
+    const [spBal, vestAcc, dropAcc] = await Promise.all([
+      splitter ? pub.getBalance({ address: getAddress(splitter) }) : Promise.resolve(0n),
+      VESTING ? (pub.readContract({ address: VESTING, abi: ACCRUED_ABI, functionName: "accruedFees" }) as Promise<bigint>).catch(() => 0n) : Promise.resolve(0n),
+      AIRDROP ? (pub.readContract({ address: AIRDROP, abi: ACCRUED_ABI, functionName: "accruedFees" }) as Promise<bigint>).catch(() => 0n) : Promise.resolve(0n),
+    ]);
+    const total = spBal + vestAcc + dropAcc;
+    const eth = (v: bigint) => `${Number(formatUnits(v, 18)).toFixed(4)} ETH`;
+    const link = (addr: string, label: string) =>
+      `<a href="${EXP}/address/${addr}" target="_blank" rel="noopener" style="color:var(--neon)">${label}</a>`;
+    box.innerHTML = `
+      <div class="rv-sim-row"><span class="rv-sim-label">Lock + burn fees waiting in the ${splitter ? link(splitter, "splitter") : "splitter"}
+        <span style="color:var(--ink-3)">· pushed in the same tx each fee is paid</span></span><b>${eth(spBal)}</b></div>
+      <div class="rv-sim-row"><span class="rv-sim-label">Vesting fees accrued in the ${VESTING ? link(VESTING, "vesting contract") : "vesting contract"}</span><b>${eth(vestAcc)}</b></div>
+      <div class="rv-sim-row"><span class="rv-sim-label">Airdrop fees accrued in the ${AIRDROP ? link(AIRDROP, "airdrop contract") : "airdrop contract"}</span><b>${eth(dropAcc)}</b></div>
+      <div class="rv-sim-row" style="border-top:1px solid var(--line);padding-top:10px;margin-bottom:0">
+        <span class="rv-sim-label"><b style="color:var(--ink)">Fees on-chain right now</b> <span style="color:var(--ink-3)">· holders receive 50% after affiliate payouts</span></span>
+        <b style="color:var(--neon)">${eth(total)}</b></div>
+      <div class="hintline" style="margin-top:10px">Every lock and burn shows up as a ${splitter ? `<a href="${EXP}/address/${splitter}?tab=internal_txns" target="_blank" rel="noopener" style="color:var(--neon)">0.005 ETH internal transaction</a>` : "0.005 ETH internal transaction"}
+        into the splitter the moment it happens. The splitter's source is verified: money can only leave it 50/50 to the team and the drop wallet.</div>`;
+  } catch {
+    box.innerHTML = `<div class="empty"><div class="small">Couldn't reach the chain right now. The addresses never change: splitter ${splitter ? splitter : "(deploying)"}.</div></div>`;
   }
 }
 
