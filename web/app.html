@@ -781,8 +781,6 @@
 
         <div class="tiles">
           <div class="tile"><div class="k">This week's pool</div><div class="v g" id="rvPoolV">--</div><div class="d" id="rvPoolD">accrued so far &middot; paid in $LOCK</div></div>
-          <div class="tile"><div class="k">Platform fees this week</div><div class="v" id="rvFeesV">--</div><div class="d" id="rvFeesD">locks &middot; burns &middot; vesting &middot; airdrops</div></div>
-          <div class="tile"><div class="k">Affiliate payouts</div><div class="v" id="rvAffV">--</div><div class="d">deducted before the split</div></div>
           <div class="tile"><div class="k">Your estimated cut</div><div class="v g" id="rvCutV">--</div><div class="d" id="rvCutD">of the pool accrued so far</div></div>
         </div>
 
@@ -794,14 +792,13 @@
           <div class="card">
             <div class="card-head" style="margin-top:0"><div><h3>Revenue drops</h3><div class="sub">MERKLE AIRDROPS FROM THE TEAM WALLET</div></div></div>
             <div id="rvDropsBox"><div class="empty"><div class="small">Loading&hellip;</div></div></div>
-            <a class="btn btn-line btn-sm" href="/app/airdrops" style="margin-top:12px">Claim on the Airdrops page</a>
           </div>
         </div>
 
         <div class="card" style="margin-bottom:14px">
           <div class="card-head" style="margin-top:0"><div><h3>Growth simulator</h3><div class="sub">EXAMPLE PROJECTION &middot; NOT REAL DATA</div></div></div>
-          <div class="rv-sim-row"><span class="rv-sim-label">Daily locks on HoodLock</span><b id="rvSimLocks">25</b></div>
-          <input type="range" id="rvSimRange" class="rv-slider" min="5" max="500" step="5" value="25" aria-label="Daily locks on HoodLock" />
+          <div class="rv-sim-row"><span class="rv-sim-label">Daily locks on HoodLock</span><b id="rvSimLocks">360</b></div>
+          <input type="range" id="rvSimRange" class="rv-slider" min="5" max="500" step="5" value="360" aria-label="Daily locks on HoodLock" />
           <div class="rv-sim-scale"><span>5 / day</span><span>500 / day</span></div>
           <div class="field" id="rvSimHoldWrap" style="margin-top:14px">
             <label>Example $LOCK holdings <span class="hint">connect a wallet to use your real balance</span></label>

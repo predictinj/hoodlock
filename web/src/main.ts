@@ -3752,6 +3752,44 @@ const revUsdStr = (eth: number) => {
   return p > 0 ? fmtUsd(eth * p) : "";
 };
 
+/* $LOCK spot price. Payouts are made in $LOCK bought at drop time, so pool
+ * figures read most truthfully in the token itself. DEXScreener first (it
+ * indexes whatever pair the token actually trades in), the Uniswap-v3 read
+ * as fallback, null when neither knows: an unpriced pool falls back to ETH
+ * display rather than inventing a conversion. */
+let revLockPrice: { at: number; v: number | null } = { at: 0, v: null };
+async function revLoadLockPrice(): Promise<number | null> {
+  if (Date.now() - revLockPrice.at < 5 * 60_000) return revLockPrice.v;
+  let price: number | null = null;
+  try {
+    const j: any = await (await fetch(`https://api.dexscreener.com/latest/dex/tokens/${LOCK_TOKEN}`)).json();
+    const pairs = (j.pairs || []).filter((p: any) => Number(p?.priceUsd) > 0)
+      .sort((a: any, b: any) => (Number(b?.liquidity?.usd) || 0) - (Number(a?.liquidity?.usd) || 0));
+    if (pairs.length) price = Number(pairs[0].priceUsd);
+  } catch { /* try the chain next */ }
+  if (price === null) {
+    price = await tokenPriceUsd(pub as any, getAddress(LOCK_TOKEN) as `0x${string}`, 18).catch(() => null);
+  }
+  revLockPrice = { at: Date.now(), v: price };
+  return price;
+}
+/* eth -> current $LOCK amount, or null when either price is missing. */
+function revEthToLock(eth: number): number | null {
+  const ethP = revPool?.ethUsd || Number(localStorage.getItem("hl_ethusd")) || 0;
+  const lockP = revLockPrice.v;
+  return ethP > 0 && lockP && lockP > 0 ? (eth * ethP) / lockP : null;
+}
+const revLockAmt = (n: number) =>
+  `${n >= 1000 ? Math.round(n).toLocaleString("en-US") : n.toFixed(n >= 1 ? 2 : 4)} $LOCK`;
+/* Main value in $LOCK when convertible, ETH otherwise; detail line carries
+ * the rest either way. */
+function revPayoutParts(eth: number): { v: string; extra: string } {
+  const lock = revEthToLock(eth);
+  const usd = revUsdStr(eth);
+  if (lock === null) return { v: revEth(eth), extra: usd };
+  return { v: revLockAmt(lock), extra: [revEth(eth), usd].filter(Boolean).join(" · ") };
+}
+
 function loadRevenueView() {
   if (revTimer) clearInterval(revTimer);
   const tick = () => {
@@ -3772,6 +3810,14 @@ function loadRevenueView() {
     $("rvSimHoldings").addEventListener("input", debounce(() => revSimRender(), 250));
   }
   revLoadPool(); revLoadPosition(); revLoadDrops(); revSimRender();
+  revLoadLockPrice().then(() => { revRenderPool(); revRenderCut(); revSimRender(); revLoadPosition(); });
+}
+
+function revRenderPool() {
+  if (!revPool) { $("rvPoolV").textContent = "Unavailable"; return; }
+  const p = revPayoutParts(revPool.pool);
+  $("rvPoolV").textContent = p.v;
+  $("rvPoolD").textContent = `${p.extra ? p.extra + " · " : ""}accrued so far`;
 }
 
 async function revLoadPool() {
@@ -3781,19 +3827,7 @@ async function revLoadPool() {
     revPool = await r.json();
     revPoolFailed = false;
   } catch { revPoolFailed = true; revPool = null; }
-  if (!revPool) {
-    $("rvPoolV").textContent = "Unavailable";
-    $("rvFeesV").textContent = "Unavailable";
-    $("rvAffV").textContent = "Unavailable";
-  } else {
-    $("rvPoolV").textContent = revEth(revPool.pool);
-    const usdP = revUsdStr(revPool.pool);
-    $("rvPoolD").textContent = `${usdP ? usdP + " · " : ""}accrued so far · paid in $LOCK`;
-    $("rvFeesV").textContent = revEth(revPool.fees);
-    const n = Object.values(revPool.feesByKind || {}).reduce((s, k) => s + k.count, 0);
-    $("rvFeesD").textContent = `${n} fee-paying action${n === 1 ? "" : "s"} since the last drop`;
-    $("rvAffV").textContent = revEth(revPool.affiliateCommission);
-  }
+  revRenderPool();
   revRenderCut(); revSimRender();
 }
 
@@ -3838,11 +3872,14 @@ async function revLoadPosition() {
     revShare = Number(bal * 1_000_000_000n / circ.circulating) / 1e9;
     const pct = Number(bal * 1_000_000n / circ.circulating) / 10_000;
     const eligible = bal > 0n;
+    const lockP = revLockPrice.v;
+    const balUsd = lockP && lockP > 0 ? fmtUsd(Number(formatUnits(bal, 18)) * lockP) : "";
     box.innerHTML = `
       <div class="rv-sim-row"><span class="rv-sim-label">$LOCK balance</span><b>${fmtNum(bal, 18)}</b></div>
+      ${balUsd ? `<div class="rv-sim-row"><span class="rv-sim-label">Balance value</span><b>${balUsd}</b></div>` : ""}
       <div class="rv-sim-row"><span class="rv-sim-label">Share of circulating supply</span><b>${eligible && pct < 0.0001 ? "<0.0001" : pct.toFixed(4)}%</b></div>
       <div class="rv-sim-row" style="margin-bottom:0"><span class="rv-sim-label">Next drop</span>
-        <span class="status ${eligible ? "unlockable" : "locked"}"><i></i>${eligible ? "ELIGIBLE" : "NOT ELIGIBLE"}</span></div>
+        <span class="status ${eligible ? "locked" : "withdrawn"}"><i></i>${eligible ? "ELIGIBLE" : "NOT ELIGIBLE"}</span></div>
       ${eligible ? "" : `<div class="hintline" style="margin-top:10px">Hold any amount of $LOCK at the snapshot to join the next distribution.</div>`}`;
     $("rvSimHoldWrap").style.display = "none";
   } catch {
@@ -3856,10 +3893,9 @@ function revRenderCut() {
   const v = $("rvCutV"), d = $("rvCutD");
   if (!account) { v.textContent = "Connect wallet"; d.textContent = "your live share of the pool"; return; }
   if (!revPool || revShare === null) { v.textContent = revPoolFailed ? "Unavailable" : "--"; return; }
-  const cut = revPool.pool * revShare;
-  v.textContent = revEth(cut);
-  const u = revUsdStr(cut);
-  d.textContent = `${u ? u + " · " : ""}of the pool accrued so far`;
+  const p = revPayoutParts(revPool.pool * revShare);
+  v.textContent = p.v;
+  d.textContent = `${p.extra ? p.extra + " · " : ""}of the pool accrued so far`;
 }
 
 const rvTimeLeft = (s: number) => s >= 86_400 ? `${Math.ceil(s / 86_400)}D LEFT` : `${Math.max(1, Math.ceil(s / 3600))}H LEFT`;
@@ -3874,16 +3910,35 @@ async function revLoadDrops() {
       box.innerHTML = `<div class="empty"><div class="small">No revenue drops yet. The first one lands Saturday, August 8 at 21:30 CET.</div></div>`;
       return;
     }
+    /* The wallet's own claim lives right here in the box: fetching eligibility
+       and rendering an inline Claim button beats sending people to another
+       page to collect what this page just told them about. */
+    let claimable = new Map<number, { index: number; amount: string }>();
+    if (account && AIRDROP) {
+      try {
+        const e = await fetch(`/api/airdrop/eligible?address=${account}`).then((x) => x.json());
+        for (const it of e.claimable || []) claimable.set(Number(it.id), { index: Number(it.index), amount: String(it.amount) });
+      } catch { /* the list still renders without claim buttons */ }
+    }
     const now = Math.floor(Date.now() / 1000);
     box.innerHTML = drops.map((a: any) => {
       const total = BigInt(a.total || "0"), claimed = BigInt(a.claimed || "0"), swept = BigInt(a.swept || "0");
       const pct = total > 0n ? Number(claimed * 1000n / total) / 10 : 0;
       const end = Number(a.endTime || 0);
+      const mine = claimable.get(Number(a.id));
+      const open = !(swept > 0n) && !(end && now >= end);
       const status = swept > 0n ? `<span class="status withdrawn"><i></i>SWEPT</span>`
-        : end && now >= end ? `<span class="status withdrawn"><i></i>CLOSED</span>`
-        : `<span class="status unlockable"><i></i>OPEN${end ? " · " + rvTimeLeft(end - now) : ""}</span>`;
-      return `<div class="rv-sim-row" style="margin-bottom:8px"><span class="rv-sim-label">Drop #${a.id} · ${fmtNum(total, 18)} $LOCK · ${pct.toFixed(1)}% claimed</span>${status}</div>`;
+        : !open ? `<span class="status withdrawn"><i></i>CLOSED</span>`
+        : `<span class="status locked"><i></i>OPEN${end ? " · " + rvTimeLeft(end - now) : ""}</span>`;
+      const claimRow = mine && open
+        ? `<div class="rv-sim-row" style="margin:2px 0 12px"><span class="rv-sim-label">Yours to claim: <b style="color:var(--neon)">${fmtNum(BigInt(mine.amount), 18)} $LOCK</b></span>
+             <button class="btn btn-neon btn-sm" data-rvclaim="${a.id}" data-rvidx="${mine.index}" data-rvamt="${mine.amount}">Claim</button></div>`
+        : "";
+      return `<div class="rv-sim-row" style="margin-bottom:8px"><span class="rv-sim-label">Drop #${a.id} · ${fmtNum(total, 18)} $LOCK · ${pct.toFixed(1)}% claimed</span>${status}</div>${claimRow}`;
     }).join("");
+    box.querySelectorAll<HTMLButtonElement>("[data-rvclaim]").forEach((b) => {
+      b.onclick = () => adClaim(Number(b.dataset.rvclaim), Number(b.dataset.rvidx), BigInt(b.dataset.rvamt!), b);
+    });
   } catch {
     box.innerHTML = `<div class="empty"><div class="small">Couldn't load drops right now.</div></div>`;
   }
@@ -3909,11 +3964,12 @@ function revSimRender() {
   const you = weeklyPool * fraction;
   $("rvSimRev").textContent = revEth(weeklyRev);
   $("rvSimRevD").textContent = revUsdStr(weeklyRev) || " ";
-  $("rvSimPool").textContent = revEth(weeklyPool);
-  $("rvSimPoolD").textContent = revUsdStr(weeklyPool) || " ";
-  $("rvSimYou").textContent = revEth(you);
-  $("rvSimYouD").textContent = revUsdStr(you) || " ";
-  $("rvSimNote").textContent = `Assumes ${n} locks per day at the live ${feeEth} ETH lock fee, before affiliate payouts. A projection, not a promise.`;
+  const poolP = revPayoutParts(weeklyPool), youP = revPayoutParts(you);
+  $("rvSimPool").textContent = poolP.v;
+  $("rvSimPoolD").textContent = poolP.extra || " ";
+  $("rvSimYou").textContent = youP.v;
+  $("rvSimYouD").textContent = youP.extra || " ";
+  $("rvSimNote").textContent = `Assumes ${n} locks per day at the live ${feeEth} ETH lock fee, before affiliate payouts. $LOCK amounts use the current market price. A projection, not a promise.`;
 }
 
 /* ---------- boot ---------- */
