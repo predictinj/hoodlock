@@ -2312,6 +2312,70 @@ function attributeRef() {
  * silently unpriced token would understate the total and look like a real
  * figure.
  */
+/* admin: route platform fees through the 50/50 revenue splitter.
+ *
+ * The server deploys the splitter itself once the drop wallet has gas; this
+ * card then offers the owner the four one-click setFeeCollector switches
+ * (the connected admin wallet is the contracts' admin, so the txs are its
+ * to sign). Once all four read ROUTED, the weekly drop funds itself. */
+const FEECOL_ABI = [
+  { type: "function", name: "feeCollector", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "setFeeCollector", stateMutability: "nonpayable", inputs: [{ name: "c", type: "address" }], outputs: [] },
+  { type: "function", name: "release", stateMutability: "nonpayable", inputs: [], outputs: [] },
+] as const;
+async function loadAdminSplit() {
+  const card = document.getElementById("adSplitCard"), box = document.getElementById("adSplitBox");
+  if (!card || !box) return;
+  try {
+    const r = await (await fetch("/api/revenue/pool")).json();
+    const auto = r?.automation;
+    if (!auto?.opsWallet) { card.style.display = "none"; return; }
+    card.style.display = "";
+    if (!auto.splitter) {
+      box.innerHTML = `<div class="empty"><div class="small">The splitter deploys itself as soon as the drop wallet holds gas.
+        Send ~0.01 ETH to <span class="mono">${escape(auto.opsWallet)}</span> and check back in a few minutes.</div></div>`;
+      return;
+    }
+    const splitter = getAddress(auto.splitter) as `0x${string}`;
+    const targets: [string, `0x${string}` | null][] = [["Locker", LOCKER], ["Burner", BURNER], ["Vesting", VESTING], ["Airdrop", AIRDROP]];
+    const states = await Promise.all(targets.map(async ([name, addr]) => {
+      if (!addr) return null;
+      const col = await (pub.readContract({ address: addr, abi: FEECOL_ABI, functionName: "feeCollector" }) as Promise<string>).catch(() => null);
+      return { name, addr, routed: !!col && col.toLowerCase() === splitter.toLowerCase() };
+    }));
+    const balSp = await pub.getBalance({ address: splitter }).catch(() => 0n);
+    box.innerHTML = states.filter((s): s is NonNullable<typeof s> => !!s).map((s) => `
+      <div class="rv-sim-row" style="margin-bottom:8px"><span class="rv-sim-label">${s.name} fees</span>
+        ${s.routed ? `<span class="status locked"><i></i>ROUTED 50/50</span>`
+        : `<button class="btn btn-neon btn-sm" data-adroute="${s.addr}">Route via splitter</button>`}</div>`).join("")
+      + `<div class="hintline" style="margin-top:10px">Splitter <span class="mono">${short(splitter)}</span> · holding ${Number(formatUnits(balSp, 18)).toFixed(5)} ETH
+         ${balSp > 0n ? `<button class="btn btn-line btn-sm" id="adSplitRelease" style="margin-left:10px">Release 50/50 now</button>` : ""}</div>`;
+    const msg = $("adSplitMsg");
+    box.querySelectorAll<HTMLButtonElement>("[data-adroute]").forEach((b) => b.addEventListener("click", async () => {
+      try {
+        b.disabled = true;
+        msg.style.display = "block"; msg.className = "msg"; msg.textContent = "Confirm in wallet…";
+        const h = await send(b.dataset.adroute as `0x${string}`, encodeFunctionData({ abi: FEECOL_ABI, functionName: "setFeeCollector", args: [splitter] }));
+        msg.innerHTML = `Routing… <span class="spin"></span>`;
+        await waitTx(h);
+        msg.className = "msg ok"; msg.textContent = "Routed ✓";
+        loadAdminSplit();
+      } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); b.disabled = false; }
+    }));
+    document.getElementById("adSplitRelease")?.addEventListener("click", async () => {
+      try {
+        msg.style.display = "block"; msg.className = "msg"; msg.textContent = "Confirm in wallet…";
+        const h = await send(splitter, encodeFunctionData({ abi: FEECOL_ABI, functionName: "release" }));
+        await waitTx(h);
+        msg.className = "msg ok"; msg.textContent = "Released ✓";
+        loadAdminSplit();
+      } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); }
+    });
+  } catch {
+    box.innerHTML = `<div class="empty"><div class="small">Couldn't read the routing state right now.</div></div>`;
+  }
+}
+
 async function loadAdminAirdrops() {
   const box = $("adDropTokens");
   if (!AIRDROP) {
@@ -2411,6 +2475,7 @@ async function loadAdmin() {
   loadAdminClaims();
   loadAdminPublicAffiliates();
   loadAdminAirdrops();
+  loadAdminSplit();
   const logsP = loadLockedLogs().catch(() => [] as Awaited<ReturnType<typeof loadLockedLogs>>);
   fetch("/api/admin/stats", { headers: { Authorization: "Bearer " + cachedToken() } })
     .then((r) => (r.ok ? r.json() : null))

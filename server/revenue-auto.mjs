@@ -33,7 +33,12 @@ import {
   encodePacked, createWalletClient,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { previousPayout, firstPayout, PAYOUT } from "../shared/revenue-schedule.mjs";
+
+const SPLITTER_ARTIFACT = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "revenue-splitter.json"), "utf8"));
 
 /* ---- verified constants (chain 4663) ---- */
 const LOCK = getAddress("0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94");
@@ -64,6 +69,16 @@ const POOL_ABI = [
 const ROUTER_ABI = [
   { type: "function", name: "execute", stateMutability: "payable", inputs: [
     { name: "commands", type: "bytes" }, { name: "inputs", type: "bytes[]" }, { name: "deadline", type: "uint256" } ], outputs: [] },
+];
+const SPLITTER_ABI = [
+  { type: "function", name: "release", stateMutability: "nonpayable", inputs: [], outputs: [] },
+  { type: "function", name: "pull", stateMutability: "nonpayable", inputs: [{ type: "address" }], outputs: [] },
+  { type: "function", name: "team", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "ops", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+];
+const FEE_SOURCE_ABI = [
+  { type: "function", name: "accruedFees", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "feeCollector", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
 ];
 const LOCKER_ABI = [
   { type: "function", name: "locksByToken", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "uint256[]" }] },
@@ -130,8 +145,76 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
       snapshot_block INTEGER, recipients INTEGER,
       merkle_root TEXT, bought_lock TEXT,
       swap_tx TEXT, approve_tx TEXT, create_tx TEXT, airdrop_id INTEGER,
-      error TEXT, updated_at INTEGER)`);
+      error TEXT, updated_at INTEGER);
+      CREATE TABLE IF NOT EXISTS revenue_meta (k TEXT PRIMARY KEY, v TEXT)`);
     return true;
+  }
+  const metaGet = (k) => db()?.prepare("SELECT v FROM revenue_meta WHERE k=?").get(k)?.v || null;
+  const metaSet = (k, v) => db()?.prepare("INSERT INTO revenue_meta (k,v) VALUES (?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(k, v);
+
+  /* ---- the 50/50 splitter ----
+   * Once the fee collectors point at it, the ops wallet's share arrives by
+   * itself and the float problem disappears. The server deploys the splitter
+   * on its own the first time the ops wallet holds enough for gas, remembers
+   * the address in SQLite, and the admin console reads it from there to offer
+   * the owner the four one-click setFeeCollector switches. */
+  function splitterAddr() {
+    const v = process.env.REVENUE_SPLITTER || metaGet("splitter");
+    return v && /^0x[0-9a-fA-F]{40}$/.test(v) ? getAddress(v) : null;
+  }
+  let deploying = false;
+  async function ensureSplitter() {
+    if (!account || !ENABLED || DRY || deploying || splitterAddr() || !initTable()) return;
+    try {
+      const bal = await pub.getBalance({ address: account.address });
+      if (bal < parseEther("0.0005")) return;   // not enough for deploy gas yet
+      deploying = true;
+      const hash = await wallet.deployContract({
+        abi: SPLITTER_ARTIFACT.abi, bytecode: SPLITTER_ARTIFACT.bytecode,
+        args: [getAddress(teamWallet), account.address],
+      });
+      const r = await pub.waitForTransactionReceipt({ hash, timeout: 120_000 });
+      if (r.status !== "success" || !r.contractAddress) throw new Error("deploy reverted");
+      // Trust nothing: read the payees back before remembering the address.
+      const [t, o] = await Promise.all([
+        pub.readContract({ address: r.contractAddress, abi: SPLITTER_ABI, functionName: "team" }),
+        pub.readContract({ address: r.contractAddress, abi: SPLITTER_ABI, functionName: "ops" }),
+      ]);
+      if (t.toLowerCase() !== String(teamWallet).toLowerCase() || o.toLowerCase() !== account.address.toLowerCase()) {
+        throw new Error("deployed splitter payees do not match");
+      }
+      metaSet("splitter", r.contractAddress);
+      log(`[revenue] splitter deployed at ${r.contractAddress} (team ${teamWallet}, ops ${account.address}) — owner can now route fees to it from /app/admin`);
+    } catch (e) {
+      log("[revenue] splitter deploy failed (will retry): " + (e?.message || e));
+    } finally { deploying = false; }
+  }
+
+  /* Harvest everything the splitter can reach: drain the two pull-style fee
+   * sources whose collector it is, then split whatever it holds. Failures
+   * here never block the drop — the wallet spends what it has. */
+  async function harvest() {
+    const sp = splitterAddr();
+    if (!sp) return;
+    try {
+      for (const src of [vesting, airdrop]) {
+        if (!src) continue;
+        const [collector, accrued] = await Promise.all([
+          pub.readContract({ address: src, abi: FEE_SOURCE_ABI, functionName: "feeCollector" }).catch(() => null),
+          pub.readContract({ address: src, abi: FEE_SOURCE_ABI, functionName: "accruedFees" }).catch(() => 0n),
+        ]);
+        if (!collector || collector.toLowerCase() !== sp.toLowerCase() || accrued === 0n) continue;
+        const h = await send(sp, encodeFunctionData({ abi: SPLITTER_ABI, functionName: "pull", args: [src] }));
+        await receiptOk(h);
+        log(`[revenue] harvested ${formatEther(accrued)} ETH of accrued fees via the splitter`);
+      }
+      const balSp = await pub.getBalance({ address: sp });
+      if (balSp > 0n) {
+        const h = await send(sp, encodeFunctionData({ abi: SPLITTER_ABI, functionName: "release" }));
+        await receiptOk(h);
+        log(`[revenue] released ${formatEther(balSp)} ETH from the splitter (50/50)`);
+      }
+    } catch (e) { log("[revenue] harvest failed (drop continues on current balance): " + (e?.message || e)); }
   }
   const row = (deadlineSec) => db()?.prepare("SELECT * FROM revenue_runs WHERE deadline=?").get(deadlineSec) || null;
   function upsert(deadlineSec, fields) {
@@ -259,7 +342,10 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
         return;
       }
 
-      // 2. Spend inside the rails.
+      // 2. Bring in the wallet's own share first: drain the pull-style fee
+      // sources through the splitter and split its balance. Only then look at
+      // what there is to spend.
+      if (!DRY) await harvest();
       const balWei = await pub.getBalance({ address: account.address });
       const bal = Number(formatEther(balWei));
       const spend = Math.min(pool, MAX_WEEKLY, Math.max(0, bal - GAS_RESERVE));
@@ -391,7 +477,8 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
         await receiptOk(h);
         log(`[revenue] swept expired drop #${id}: ${formatEther(a.remaining)} $LOCK back`);
       }
-      // Forward any held $LOCK to the team wallet.
+      // Forward any held $LOCK, and any ETH beyond the working buffer, to the
+      // team wallet — outside a run the ops wallet is a conduit, not a vault.
       const prev = previousPayout(Date.now());
       const curStatus = prev ? row(Math.floor(prev / 1000))?.status : null;
       if (!curStatus || ["complete", "skipped", "needs-owner"].includes(curStatus)) {
@@ -401,6 +488,18 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
           await receiptOk(h);
           log(`[revenue] forwarded ${formatEther(balLock)} $LOCK to the team wallet`);
         }
+        /* The affiliate deduction means the wallet's automatic 50% inflow can
+         * slightly exceed what the drops spend. Anything above the working
+         * buffer belongs to the team; with the splitter live this keeps the
+         * hot wallet permanently small. */
+        const buffer = parseEther(String(process.env.REVENUE_ETH_BUFFER || 0.01));
+        const balEth = await pub.getBalance({ address: account.address });
+        if (splitterAddr() && balEth > buffer * 2n) {
+          const surplus = balEth - buffer;
+          const h = await wallet.sendTransaction({ to: getAddress(teamWallet), value: surplus });
+          await receiptOk(h);
+          log(`[revenue] forwarded ${formatEther(surplus)} ETH surplus to the team wallet`);
+        }
       }
     } catch (e) { log("[revenue] sweep pass failed: " + (e?.message || e)); }
   }
@@ -408,9 +507,11 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
   /* One tick a minute. The run only fires inside the 6 days after a deadline
    * (a drop older than that is stale: better to skip a week loudly than to
    * pay out a surprise late), and everything downstream is idempotent. */
+  let lastDeployCheck = 0;
   setInterval(() => {
     if (!ENABLED || !account) return;
     const now = Date.now();
+    if (now - lastDeployCheck > 5 * 60_000) { lastDeployCheck = now; void ensureSplitter(); }
     const prev = previousPayout(now);
     if (prev && now - prev < 6 * 86_400_000) {
       const st = row(Math.floor(prev / 1000))?.status;
@@ -446,6 +547,7 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
       const prevRow = previousPayout(now) ? row(Math.floor(previousPayout(now) / 1000)) : null;
       return {
         enabled: ENABLED, dry: DRY, opsWallet: account?.address || null,
+        splitter: splitterAddr(),
         opsBalanceEth: Number(formatEther(balWei)),
         caps: { maxWeeklyEth: MAX_WEEKLY, slippageBps: SLIPPAGE_BPS, maxPoolShareBps: MAX_POOL_SHARE_BPS, minSpendEth: MIN_SPEND },
         poolSoFarEth: pool, plannedSpendEth: spend,
@@ -455,5 +557,7 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
       };
     },
     tick: () => { const p = previousPayout(Date.now()); if (p) return executeRun(p); },
+    splitter: () => (initTable() ? splitterAddr() : null),
+    opsWallet: () => account?.address || null,
   };
 }

@@ -1400,6 +1400,8 @@ app.get("/api/revenue/pool", async (req, res) => {
       next: Math.floor(nextPayout(now) / 1000),
       fees: b.fees, feesByKind: b.feesByKind, affiliateCommission: b.affiliateCommission, pool: b.pool,
       ethUsd: await ethUsd(),
+      // Read by the admin console's fee-routing card. Addresses only.
+      automation: revenueAuto ? { opsWallet: revenueAuto.opsWallet(), splitter: revenueAuto.splitter() } : null,
     };
     poolCache = { at: Date.now(), body };
     return res.json(body);
