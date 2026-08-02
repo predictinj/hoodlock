@@ -22,6 +22,7 @@ import {
 import { makeTokenIndex } from "./tokenindex.mjs";
 import { selectTokens } from "./gate.mjs";
 import { previousPayout, nextPayout, firstPayout } from "../shared/revenue-schedule.mjs";
+import { initRevenueAuto } from "./revenue-auto.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, "public");
@@ -1350,6 +1351,41 @@ app.get("/token/:slug", async (req, res) => {
  * Actions whose log has no timestamp (ts 0) fall out of every window. That
  * under-counts the pool and never over-counts it, which is the right way to
  * be wrong about money. */
+/** The holder pool for fee actions in [sinceSec, untilSec): total fees minus
+ * the affiliate commission those same actions earned, halved. Shared by the
+ * public endpoint (until = now) and the weekly automation (until = the frozen
+ * drop deadline). Commission mirrors affiliateEarnings, across every code:
+ * post-attribution actions of each referred wallet, self-referral excluded,
+ * at the code's effective rate. */
+async function poolBetween(sinceSec, untilSec) {
+  const actions = (await feeActions()).filter((a) => a.ts >= sinceSec && a.ts < untilSec);
+  const feesByKind = {};
+  let fees = 0;
+  for (const a of actions) {
+    fees += a.fee;
+    const k = feesByKind[a.kind] || (feesByKind[a.kind] = { count: 0, fees: 0 });
+    k.count += 1; k.fees += a.fee;
+  }
+  let commission = 0;
+  if (db) {
+    const records = await actionRecords();
+    const owners = new Map(db.prepare("SELECT code, owner_wallet FROM affiliates").all()
+      .map((r) => [r.code.toLowerCase(), (r.owner_wallet || "").toLowerCase()]));
+    const rates = new Map();
+    for (const at of db.prepare("SELECT wallet, code, ts FROM attributions").all()) {
+      const code = String(at.code || "").toLowerCase();
+      const w = String(at.wallet || "").toLowerCase();
+      if (w === owners.get(code)) continue;
+      const q = (records.get(w) || []).filter((r) => r.ts > at.ts && r.ts >= sinceSec && r.ts < untilSec);
+      if (!q.length) continue;
+      if (!rates.has(code)) rates.set(code, commissionFor(code));
+      commission += rates.get(code) * q.reduce((s, r) => s + r.fee, 0);
+    }
+  }
+  const pool = Math.max(0, fees - commission) * 0.5;
+  return { pool, fees, feesByKind, affiliateCommission: commission };
+}
+
 let poolCache = { at: 0, body: null };
 app.get("/api/revenue/pool", async (req, res) => {
   if (limited(req, res, 60)) return;
@@ -1358,38 +1394,11 @@ app.get("/api/revenue/pool", async (req, res) => {
   try {
     const now = Date.now();
     const sinceSec = Math.floor((previousPayout(now) ?? firstPayout() - 7 * 86_400_000) / 1000);
-    const actions = (await feeActions()).filter((a) => a.ts >= sinceSec);
-    const feesByKind = {};
-    let fees = 0;
-    for (const a of actions) {
-      fees += a.fee;
-      const k = feesByKind[a.kind] || (feesByKind[a.kind] = { count: 0, fees: 0 });
-      k.count += 1; k.fees += a.fee;
-    }
-    /* Commission mirrors affiliateEarnings, but across every code and only
-     * for actions inside this window: post-attribution actions of each
-     * referred wallet, self-referral excluded, at the code's effective rate. */
-    let commission = 0;
-    if (db) {
-      const records = await actionRecords();
-      const owners = new Map(db.prepare("SELECT code, owner_wallet FROM affiliates").all()
-        .map((r) => [r.code.toLowerCase(), (r.owner_wallet || "").toLowerCase()]));
-      const rates = new Map();
-      for (const at of db.prepare("SELECT wallet, code, ts FROM attributions").all()) {
-        const code = String(at.code || "").toLowerCase();
-        const w = String(at.wallet || "").toLowerCase();
-        if (w === owners.get(code)) continue;
-        const q = (records.get(w) || []).filter((r) => r.ts > at.ts && r.ts >= sinceSec);
-        if (!q.length) continue;
-        if (!rates.has(code)) rates.set(code, commissionFor(code));
-        commission += rates.get(code) * q.reduce((s, r) => s + r.fee, 0);
-      }
-    }
-    const pool = Math.max(0, fees - commission) * 0.5;
+    const b = await poolBetween(sinceSec, Math.floor(now / 1000) + 1);
     const body = {
       since: sinceSec,
       next: Math.floor(nextPayout(now) / 1000),
-      fees, feesByKind, affiliateCommission: commission, pool,
+      fees: b.fees, feesByKind: b.feesByKind, affiliateCommission: b.affiliateCommission, pool: b.pool,
       ethUsd: await ethUsd(),
     };
     poolCache = { at: Date.now(), body };
@@ -1397,6 +1406,38 @@ app.get("/api/revenue/pool", async (req, res) => {
   } catch {
     return res.status(500).json({ error: "pool unavailable" });
   }
+});
+
+/* The weekly buyback + drop robot. It does nothing without an ops key and an
+ * explicit REVENUE_DROP_ENABLED=true; every cap lives in env. */
+const revenueAuto = AIRDROP ? initRevenueAuto({
+  pub, chain: CHAIN, transport: rpcTransport,
+  getDb: () => db, saveList,
+  poolBetween: async (s, u) => (await poolBetween(s, u)).pool,
+  airdrop: AIRDROP, locker: LOCKER, vesting: VESTING, burner: BURNER,
+  teamWallet: ADMIN,
+  log: (m) => console.log("[hoodlock]", m),
+}) : null;
+
+/* Widget/status contract: 'complete' only ever from a finished run. */
+app.get("/api/revenue/status", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  return res.json(revenueAuto ? revenueAuto.status() : { state: "unknown" });
+});
+/* Owner visibility: the current week's full plan, computed live, nothing
+ * broadcast. Admin session required. */
+app.get("/api/admin/revenue/preview", async (req, res) => {
+  if (!validToken(req)) return res.status(401).json({ error: "unauthorized" });
+  if (!revenueAuto) return res.status(503).json({ error: "automation not configured" });
+  try { return res.json(await revenueAuto.preview()); }
+  catch (e) { return res.status(500).json({ error: String(e?.message || e).slice(0, 200) }); }
+});
+/* Manual retry of the current window (idempotent; respects all caps). */
+app.post("/api/admin/revenue/run", async (req, res) => {
+  if (!validToken(req)) return res.status(401).json({ error: "unauthorized" });
+  if (!revenueAuto) return res.status(503).json({ error: "automation not configured" });
+  void revenueAuto.tick();
+  return res.json({ ok: true, note: "run started; watch /api/admin/revenue/preview lastRun" });
 });
 
 
