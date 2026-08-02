@@ -1804,7 +1804,7 @@ const VIEW_META = {
 };
 /* Views with nothing to rank: the wallet-gated console, the two unshipped
    products, and the in-app proof view that /proof/:kind/:id already covers. */
-const NOINDEX_VIEWS = { admin: "Admin console", streams: "Streams", proof: "Proof" };
+const NOINDEX_VIEWS = { admin: "Admin console", streams: "Streams", proof: "Proof", fixlocker: "Locker admin handover" };
 app.get("/app/*", (req, res) => {
   const view = String(req.path).replace(/^\/app\/?/, "").replace(/\/+$/, "").toLowerCase();
   if (NOINDEX_VIEWS[view]) {

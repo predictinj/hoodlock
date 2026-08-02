@@ -181,7 +181,7 @@ document.addEventListener("click", (e) => {
 });
 
 /* ---------- view routing ---------- */
-const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", revenue: "$LOCK REVENUE SHARE", streams: "STREAMS", affiliate: "AFFILIATE", developers: "DEVELOPERS", admin: "ADMIN CONSOLE" };
+const TITLES: Record<string, string> = { dashboard: "DASHBOARD", locks: "TOKEN LOCKS", explore: "EXPLORE / VERIFY", proof: "LOCK PROOF", vesting: "VESTING", airdrops: "AIRDROPS", revenue: "$LOCK REVENUE SHARE", fixlocker: "LOCKER HANDOVER", streams: "STREAMS", affiliate: "AFFILIATE", developers: "DEVELOPERS", admin: "ADMIN CONSOLE" };
 const ADMIN_WALLET = "0x79c1230cab12d53d040f5fe1f5279e1a481ccea2";
 function go(view: string, writeHistory = true) {
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
@@ -194,6 +194,7 @@ function go(view: string, writeHistory = true) {
   if (view === "vesting") loadVestingView();
   if (view === "airdrops") loadAirdropView();
   if (view === "revenue") loadRevenueView();
+  if (view === "fixlocker") loadFixLocker();
   if (view === "admin") loadAdmin();
   if (view === "affiliate") loadAffiliatePage();
   if (view === "developers") loadDevelopersPage();
@@ -328,6 +329,7 @@ function onConnected(silent = false) {
   if ($("view-vesting").classList.contains("active")) { vRefreshToken(); renderVestMine(); updateVSummary(); }
   if ($("view-airdrops").classList.contains("active")) loadAirdropView();
   if ($("view-revenue").classList.contains("active")) loadRevenueView();
+  if ($("view-fixlocker").classList.contains("active")) loadFixLocker();
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
   if ($("view-developers").classList.contains("active")) loadDevelopersPage();
   fetch("/api/track/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wallet: account }) }).catch(() => { /* analytics only */ });
@@ -388,6 +390,7 @@ function disconnect() {
   try { localStorage.removeItem("hl_afftok"); localStorage.removeItem("hl_affexp"); localStorage.removeItem("hl_conn"); localStorage.removeItem("hl_acct"); } catch { /* */ }
   if ($("view-airdrops").classList.contains("active")) loadAirdropView();
   if ($("view-revenue").classList.contains("active")) loadRevenueView();
+  if ($("view-fixlocker").classList.contains("active")) loadFixLocker();
   if ($("view-affiliate").classList.contains("active")) loadAffiliatePage();
   if ($("view-developers").classList.contains("active")) loadDevelopersPage();
 }
@@ -2323,6 +2326,82 @@ const FEECOL_ABI = [
   { type: "function", name: "setFeeCollector", stateMutability: "nonpayable", inputs: [{ name: "c", type: "address" }], outputs: [] },
   { type: "function", name: "release", stateMutability: "nonpayable", inputs: [], outputs: [] },
 ] as const;
+/* The locker still answers to its original deploy wallet, so the routing
+ * switch must be signed by that wallet. This view is the in-house path: no
+ * admin console needed (the console is gated to the main wallet), no
+ * explorer. Connect the old wallet, one action does both transactions:
+ * route the fees, then hand admin to the main wallet for good. */
+const FX_ABI = [
+  { type: "function", name: "admin", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "feeCollector", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "setFeeCollector", stateMutability: "nonpayable", inputs: [{ name: "c", type: "address" }], outputs: [] },
+  { type: "function", name: "setAdmin", stateMutability: "nonpayable", inputs: [{ name: "a", type: "address" }], outputs: [] },
+] as const;
+async function loadFixLocker() {
+  const box = $("fxBox"), msg = $("fxMsg");
+  try {
+    const [adminNow, colNow, poolInfo] = await Promise.all([
+      pub.readContract({ address: LOCKER, abi: FX_ABI, functionName: "admin" }) as Promise<string>,
+      pub.readContract({ address: LOCKER, abi: FX_ABI, functionName: "feeCollector" }) as Promise<string>,
+      fetch("/api/revenue/pool").then((r) => r.json()).catch(() => null),
+    ]);
+    const splitter = poolInfo?.automation?.splitter as string | null;
+    const routed = !!splitter && colNow.toLowerCase() === splitter.toLowerCase();
+    const handed = adminNow.toLowerCase() === ADMIN_WALLET;
+    if (routed && handed) {
+      box.innerHTML = `<div class="empty"><div class="big">All done</div><div class="small">Locker fees route through the splitter and admin belongs to the main wallet. Nothing left to do here.</div></div>`;
+      return;
+    }
+    if (!splitter) {
+      box.innerHTML = `<div class="empty"><div class="small">The splitter is not deployed yet. Check the admin console first.</div></div>`;
+      return;
+    }
+    const rowsHtml = `
+      <div class="rv-sim-row"><span class="rv-sim-label">Locker admin today</span><b class="mono" style="font-size:13px">${short(adminNow)}</b></div>
+      <div class="rv-sim-row"><span class="rv-sim-label">Fees currently go to</span><b class="mono" style="font-size:13px">${short(colNow)}${routed ? " (splitter)" : ""}</b></div>
+      <div class="rv-sim-row"><span class="rv-sim-label">Fees should go to</span><b class="mono" style="font-size:13px">${short(splitter)} (splitter)</b></div>
+      <div class="rv-sim-row" style="margin-bottom:14px"><span class="rv-sim-label">Admin should become</span><b class="mono" style="font-size:13px">${short(ADMIN_WALLET)} (main wallet)</b></div>`;
+    if (!account) {
+      box.innerHTML = rowsHtml + `<button class="btn btn-neon" id="fxConnect" style="width:100%">Connect the locker admin wallet</button>
+        <div class="hintline" style="margin-top:8px">Connect <span class="mono">${escape(adminNow)}</span>, the wallet that deployed the locker.</div>`;
+      document.getElementById("fxConnect")?.addEventListener("click", openWalletModal);
+      return;
+    }
+    if (account.toLowerCase() !== adminNow.toLowerCase()) {
+      box.innerHTML = rowsHtml + `<div class="hintline">Connected as <span class="mono">${short(account)}</span>, but only the locker admin
+        <span class="mono">${escape(adminNow)}</span> can sign this. Switch account in your wallet, or</div>
+        <button class="btn btn-line btn-sm" id="fxReconnect" style="margin-top:10px">Connect a different wallet</button>`;
+      document.getElementById("fxReconnect")?.addEventListener("click", openWalletModal);
+      return;
+    }
+    box.innerHTML = rowsHtml + `<button class="btn btn-neon" id="fxGo" style="width:100%">${routed ? "Hand over admin" : handed ? "Route fees via splitter" : "Route fees + hand over admin"}</button>
+      <div class="hintline" style="margin-top:8px">${routed || handed ? "One transaction." : "Two transactions, confirmed one after the other."}</div>`;
+    document.getElementById("fxGo")?.addEventListener("click", async () => {
+      const b = document.getElementById("fxGo") as HTMLButtonElement;
+      try {
+        b.disabled = true;
+        msg.style.display = "block"; msg.className = "msg";
+        if (!routed) {
+          msg.textContent = "1/2 Routing fees, confirm in wallet…";
+          const h1 = await send(LOCKER, encodeFunctionData({ abi: FX_ABI, functionName: "setFeeCollector", args: [getAddress(splitter)] }));
+          msg.innerHTML = `Routing… <span class="spin"></span>`;
+          await waitTx(h1);
+        }
+        if (!handed) {
+          msg.textContent = "2/2 Handing over admin, confirm in wallet…";
+          const h2 = await send(LOCKER, encodeFunctionData({ abi: FX_ABI, functionName: "setAdmin", args: [getAddress(ADMIN_WALLET)] }));
+          msg.innerHTML = `Handing over… <span class="spin"></span>`;
+          await waitTx(h2);
+        }
+        msg.className = "msg ok"; msg.textContent = "Done. Locker fees route 50/50 and the main wallet is admin.";
+        loadFixLocker();
+      } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); b.disabled = false; }
+    });
+  } catch {
+    box.innerHTML = `<div class="empty"><div class="small">Couldn't read the locker state right now.</div></div>`;
+  }
+}
+
 async function loadAdminSplit() {
   const card = document.getElementById("adSplitCard"), box = document.getElementById("adSplitBox");
   if (!card || !box) return;
@@ -2340,13 +2419,18 @@ async function loadAdminSplit() {
     const targets: [string, `0x${string}` | null][] = [["Locker", LOCKER], ["Burner", BURNER], ["Vesting", VESTING], ["Airdrop", AIRDROP]];
     const states = await Promise.all(targets.map(async ([name, addr]) => {
       if (!addr) return null;
-      const col = await (pub.readContract({ address: addr, abi: FEECOL_ABI, functionName: "feeCollector" }) as Promise<string>).catch(() => null);
-      return { name, addr, routed: !!col && col.toLowerCase() === splitter.toLowerCase() };
+      const [col, adm] = await Promise.all([
+        (pub.readContract({ address: addr, abi: FEECOL_ABI, functionName: "feeCollector" }) as Promise<string>).catch(() => null),
+        (pub.readContract({ address: addr, abi: FX_ABI, functionName: "admin" }) as Promise<string>).catch(() => null),
+      ]);
+      return { name, addr, routed: !!col && col.toLowerCase() === splitter.toLowerCase(),
+        foreignAdmin: !!adm && adm.toLowerCase() !== ADMIN_WALLET };
     }));
     const balSp = await pub.getBalance({ address: splitter }).catch(() => 0n);
     box.innerHTML = states.filter((s): s is NonNullable<typeof s> => !!s).map((s) => `
       <div class="rv-sim-row" style="margin-bottom:8px"><span class="rv-sim-label">${s.name} fees</span>
         ${s.routed ? `<span class="status locked"><i></i>ROUTED 50/50</span>`
+        : s.foreignAdmin ? `<a class="btn btn-neon btn-sm" href="/app/fixlocker">Fix with the old wallet</a>`
         : `<button class="btn btn-neon btn-sm" data-adroute="${s.addr}">Route via splitter</button>`}</div>`).join("")
       + `<div class="hintline" style="margin-top:10px">Splitter <span class="mono">${short(splitter)}</span> · holding ${Number(formatUnits(balSp, 18)).toFixed(5)} ETH
          ${balSp > 0n ? `<button class="btn btn-line btn-sm" id="adSplitRelease" style="margin-left:10px">Release 50/50 now</button>` : ""}</div>`;
