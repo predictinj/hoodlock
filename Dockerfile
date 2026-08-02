@@ -32,6 +32,8 @@ COPY server/package.json ./
 RUN npm install --no-audit --no-fund --omit=dev
 # every server module, not just the entrypoint — index.mjs imports logs.mjs
 COPY server/*.mjs ./
+# data files the modules read at import time (the splitter deploy artifact)
+COPY server/*.json ./
 # The server imports ../shared/merkle.mjs, so the directory has to exist in the
 # image. It did not, which took the site down: the container crashed on an
 # import that resolves fine in a checkout because the directory sits right

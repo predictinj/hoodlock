@@ -38,7 +38,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { previousPayout, firstPayout, PAYOUT } from "../shared/revenue-schedule.mjs";
 
-const SPLITTER_ARTIFACT = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "revenue-splitter.json"), "utf8"));
+/* Tolerant on purpose: a missing artifact must degrade to "cannot deploy the
+ * splitter yet", never take the whole server down with it. */
+let SPLITTER_ARTIFACT = null;
+try {
+  SPLITTER_ARTIFACT = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "revenue-splitter.json"), "utf8"));
+} catch { /* ensureSplitter logs and skips */ }
 
 /* ---- verified constants (chain 4663) ---- */
 const LOCK = getAddress("0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94");
@@ -165,6 +170,7 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
   let deploying = false;
   async function ensureSplitter() {
     if (!account || !ENABLED || DRY || deploying || splitterAddr() || !initTable()) return;
+    if (!SPLITTER_ARTIFACT) { log("[revenue] splitter artifact missing from image — cannot self-deploy"); return; }
     try {
       const bal = await pub.getBalance({ address: account.address });
       if (bal < parseEther("0.0005")) return;   // not enough for deploy gas yet
