@@ -39,8 +39,8 @@ interface IERC20 {
 contract LockDistributor {
     IERC20 public immutable token;
 
-    address public keeper;   // may post roots, may never withdraw
-    address public admin;    // may rotate the keeper, may never withdraw
+    address public keeper;   // may propose roots, may never withdraw
+    address public admin;    // may rotate the keeper and veto, never withdraw
     address public pendingAdmin;
 
     /// Claims are always served by the ACTIVE root. A newly posted root waits.
@@ -79,8 +79,10 @@ contract LockDistributor {
     error Reentrant();
     error NoPendingRoot();
     error TooEarly(uint64 activeAt);
+    error NotGuardian();
 
     event RootProposed(bytes32 root, uint256 totalObligations, uint64 activeAt);
+    event RootCancelled(bytes32 root, address by);
     event RootUpdated(uint256 indexed roundId, bytes32 root, uint256 totalObligations, uint256 added);
     event Claimed(address indexed account, uint256 amount, uint256 cumulative);
     event KeeperChanged(address indexed keeper);
@@ -189,6 +191,29 @@ contract LockDistributor {
         if (k == address(0)) revert ZeroAddress();
         keeper = k;
         emit KeeperChanged(k);
+    }
+
+    /**
+     * Veto a proposed root before it activates.
+     *
+     * Without this the delay is decorative: rotating a stolen keeper does NOT
+     * stop a root it already proposed, because activateRoot() only checks the
+     * clock. The window existed with nothing to do in it.
+     *
+     * Safe to give the admin because it can only ever PREVENT a change. There
+     * is no path on this contract that moves tokens to an admin, and cancelling
+     * never creates an obligation, so a hostile admin can stall distributions
+     * and nothing more. Stalling is already possible for a hostile keeper via
+     * re-proposal, so this adds no new power over funds.
+     */
+    function cancelPendingRoot() external {
+        if (msg.sender != admin) revert NotAdmin();
+        if (pendingActiveAt == 0) revert NoPendingRoot();
+        bytes32 cancelled = pendingRoot;
+        pendingRoot = bytes32(0);
+        pendingTotal = 0;
+        pendingActiveAt = 0;
+        emit RootCancelled(cancelled, msg.sender);
     }
 
     /// Two-step, so a typo cannot orphan the contract.

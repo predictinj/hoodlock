@@ -658,4 +658,70 @@ contract RevenueShareTest is Test {
             assertEq(vault.threshold(), t);
         }
     }
+
+    /**
+     * The response the one-hour window is FOR. Rotating a stolen keeper does
+     * not stop a root it already proposed, so without a veto the delay gave
+     * you a window with nothing to do in it.
+     */
+    function test_adminCanVetoAHostileRoot() public {
+        lock.transfer(address(dist), 200e18);
+        bytes32 la = _leaf(alice, 100e18);
+        bytes32 lb = _leaf(bob, 100e18);
+        vm.prank(keeper);
+        dist.setRoot(_pair(la, lb), 200e18);
+        vm.warp(block.timestamp + 1 hours);
+        dist.activateRoot();
+
+        // Stolen key proposes taking everything.
+        bytes32 evil = _leaf(rando, 200e18);
+        bytes32 zero = _leaf(alice, 0);
+        vm.prank(keeper);
+        dist.setRoot(_pair(evil, zero), 200e18);
+
+        // Rotating the keeper alone does NOT save you.
+        vm.prank(admin);
+        dist.setKeeper(bob);
+        assertTrue(dist.pendingActiveAt() != 0, "rotation leaves the proposal armed");
+
+        // The veto does.
+        vm.prank(admin);
+        dist.cancelPendingRoot();
+        assertEq(dist.pendingActiveAt(), 0);
+
+        vm.warp(block.timestamp + 2 hours);
+        vm.expectRevert(LockDistributor.NoPendingRoot.selector);
+        dist.activateRoot();
+
+        // Honest holders still get exactly what the honest root owed them.
+        bytes32[] memory pa = new bytes32[](1); pa[0] = lb;
+        dist.claim(alice, 100e18, pa);
+        assertEq(lock.balanceOf(alice), 100e18);
+        assertEq(lock.balanceOf(rando), 0, "attacker gets nothing");
+    }
+
+    function test_onlyAdminCanVeto() public {
+        lock.transfer(address(dist), 10e18);
+        vm.prank(keeper);
+        dist.setRoot(_pair(_leaf(alice, 10e18), _leaf(bob, 0)), 10e18);
+        vm.prank(rando);
+        vm.expectRevert(LockDistributor.NotAdmin.selector);
+        dist.cancelPendingRoot();
+        vm.prank(keeper);
+        vm.expectRevert(LockDistributor.NotAdmin.selector);
+        dist.cancelPendingRoot();
+    }
+
+    function test_vetoCannotCreateOrMoveFunds() public {
+        lock.transfer(address(dist), 100e18);
+        vm.prank(keeper);
+        dist.setRoot(_pair(_leaf(alice, 100e18), _leaf(bob, 0)), 100e18);
+        uint256 adminBefore = lock.balanceOf(admin);
+        uint256 obligationsBefore = dist.totalObligations();
+        vm.prank(admin);
+        dist.cancelPendingRoot();
+        assertEq(lock.balanceOf(admin), adminBefore, "veto must not pay the admin");
+        assertEq(dist.totalObligations(), obligationsBefore, "veto must not change what is owed");
+        assertEq(lock.balanceOf(address(dist)), 100e18, "funds stay put");
+    }
 }

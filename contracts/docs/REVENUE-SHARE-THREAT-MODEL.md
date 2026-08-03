@@ -423,3 +423,40 @@ only thing between them and the funds.
 **Worth pairing with this:** an alert on the `RootProposed` event. It fires the
 moment a root is proposed and carries the new total. With a one-hour window, an
 alert is what converts the delay from a formality into an actual defence.
+
+---
+
+## C1 third pass: the window had nothing in it (2026-08-03)
+
+Asked to explain in plain terms what the delay protects against, the
+explanation exposed the hole.
+
+**The threat, stated simply.** Somebody has to compute who is owed what, because
+lock history and duration weighting cannot be derived on chain. A keeper server
+does it and publishes a fingerprint. The contract cannot distinguish a correct
+list from a fabricated one: both are a 32-byte hash. A stolen keeper key
+therefore publishes "everything to me" and the contract has no basis to object.
+
+**What the delay was supposed to buy** was time to respond.
+
+**What you could actually do in that time: nothing.** There was no cancel, and
+`setKeeper` does not disarm an already-proposed root, because `activateRoot()`
+only checks the clock. Rotating a compromised keeper left its proposal armed and
+ticking. The window existed with no action available inside it.
+
+*Now binding:* `cancelPendingRoot()`, admin only, clears a proposal before it
+activates.
+
+Safe to hand the admin because it can only **prevent** a change. No path on this
+contract moves tokens to an admin, and a veto never creates an obligation, so a
+hostile admin can stall distributions and nothing else. A hostile keeper could
+already stall by re-proposing, so this grants no new power over funds.
+
+The correct incident response is now: **veto, then rotate.** In that order,
+because rotation alone leaves the proposal live.
+
+Tests: `test_adminCanVetoAHostileRoot` (asserts explicitly that rotation alone
+leaves it armed, then that the veto disarms it and honest holders still get
+paid), `test_onlyAdminCanVeto`, `test_vetoCannotCreateOrMoveFunds`.
+
+Suite 45, repo 121.
