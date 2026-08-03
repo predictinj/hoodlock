@@ -1041,7 +1041,13 @@ async function vaultStatus() {
     };
   } catch { return null; }
 }
-const REV_MIN_LOCK_SEC = 7 * 86_400;
+/* The 7-day floor gets a 6h grace: the lock form computes "7 days" from when
+ * the form was filled, the chain stamps creation at mining time, and the gap
+ * (wallet confirmation, an open tab) otherwise disqualifies honest 7D-preset
+ * locks by minutes. Audited live: lock #28 chose 7 days and landed at 6.982.
+ * The intent of "7 days or more" is the chosen duration, so the floor is
+ * 7d minus 6h on-chain. */
+const REV_MIN_LOCK_SEC = 7 * 86_400 - 6 * 3600;
 const REV_LOCKS_BY_TOKEN_ABI = [{ type: "function", name: "locksByToken", stateMutability: "view",
   inputs: [{ type: "address" }], outputs: [{ type: "uint256[]" }] }];
 let revSnapCache = { at: 0, body: null };

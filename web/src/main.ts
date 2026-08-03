@@ -4195,7 +4195,10 @@ async function revCirculating(): Promise<{ circulating: bigint; total: bigint } 
    Ids come from the server's event index because locksByToken is appendable by
    anyone for the price of a 1-wei lock. Falling back to the contract array is
    fine for a display estimate: dust adds dust. */
-const REV_MIN_DAYS = 7 * 86_400;
+/* 7 days minus a 6h grace — the same floor the server's snapshot uses. The
+   form computes "7 days" at fill time, the chain stamps at mining time, and
+   without the grace an honest 7D-preset lock misses by minutes. */
+const REV_MIN_DAYS = 7 * 86_400 - 6 * 3600;
 type RevWeights = { mine: bigint; total: bigint; myLocks: LockRow[] };
 
 async function revLockWeights(who: string | null): Promise<RevWeights> {
