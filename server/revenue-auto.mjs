@@ -199,7 +199,12 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
   /* Harvest everything the splitter can reach: drain the two pull-style fee
    * sources whose collector it is, then split whatever it holds. Failures
    * here never block the drop — the wallet spends what it has. */
-  async function harvest() {
+  /* Continuous when idle, exhaustive at drop time. Owner decision: the 50/50
+   * split runs all week, not once on Saturday — fees never sit. The threshold
+   * only batches dust so the wallet is not spending gas to move crumbs; the
+   * weekly run passes force=true and sweeps everything to the wei. */
+  const SPLIT_MIN = parseEther(String(process.env.REVENUE_SPLIT_MIN_ETH || 0.0005));
+  async function harvest(force = false) {
     const sp = splitterAddr();
     if (!sp) return;
     try {
@@ -210,12 +215,13 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
           pub.readContract({ address: src, abi: FEE_SOURCE_ABI, functionName: "accruedFees" }).catch(() => 0n),
         ]);
         if (!collector || collector.toLowerCase() !== sp.toLowerCase() || accrued === 0n) continue;
+        if (!force && accrued < SPLIT_MIN) continue;
         const h = await send(sp, encodeFunctionData({ abi: SPLITTER_ABI, functionName: "pull", args: [src] }));
         await receiptOk(h);
         log(`[revenue] harvested ${formatEther(accrued)} ETH of accrued fees via the splitter`);
       }
       const balSp = await pub.getBalance({ address: sp });
-      if (balSp > 0n) {
+      if (balSp > 0n && (force || balSp >= SPLIT_MIN)) {
         const h = await send(sp, encodeFunctionData({ abi: SPLITTER_ABI, functionName: "release" }));
         await receiptOk(h);
         log(`[revenue] released ${formatEther(balSp)} ETH from the splitter (50/50)`);
@@ -351,7 +357,7 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
       // 2. Bring in the wallet's own share first: drain the pull-style fee
       // sources through the splitter and split its balance. Only then look at
       // what there is to spend.
-      if (!DRY) await harvest();
+      if (!DRY) await harvest(true);
       const balWei = await pub.getBalance({ address: account.address });
       const bal = Number(formatEther(balWei));
       const spend = Math.min(pool, MAX_WEEKLY, Math.max(0, bal - GAS_RESERVE));
@@ -498,13 +504,21 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
          * slightly exceed what the drops spend. Anything above the working
          * buffer belongs to the team; with the splitter live this keeps the
          * hot wallet permanently small. */
+        /* With the split running all week, the wallet legitimately holds the
+         * pool accrued so far — that part is the holders' and must never be
+         * forwarded. Owed = the live pool for the current window. */
         const buffer = parseEther(String(process.env.REVENUE_ETH_BUFFER || 0.01));
-        const balEth = await pub.getBalance({ address: account.address });
-        if (splitterAddr() && balEth > buffer * 2n) {
-          const surplus = balEth - buffer;
-          const h = await wallet.sendTransaction({ to: getAddress(teamWallet), value: surplus });
-          await receiptOk(h);
-          log(`[revenue] forwarded ${formatEther(surplus)} ETH surplus to the team wallet`);
+        const sinceMs = previousPayout(Date.now()) ?? (firstPayout() - 7 * 86_400_000);
+        const owed = await poolBetween(Math.floor(sinceMs / 1000), Math.floor(Date.now() / 1000) + 1).catch(() => null);
+        if (owed !== null && splitterAddr()) {
+          const owedWei = parseEther(Math.max(0, owed).toFixed(18));
+          const balEth = await pub.getBalance({ address: account.address });
+          if (balEth > buffer + owedWei + buffer) {
+            const surplus = balEth - buffer - owedWei;
+            const h = await wallet.sendTransaction({ to: getAddress(teamWallet), value: surplus });
+            await receiptOk(h);
+            log(`[revenue] forwarded ${formatEther(surplus)} ETH surplus to the team wallet (kept ${formatEther(owedWei)} pool + buffer)`);
+          }
         }
       }
     } catch (e) { log("[revenue] sweep pass failed: " + (e?.message || e)); }
@@ -513,11 +527,12 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
   /* One tick a minute. The run only fires inside the 6 days after a deadline
    * (a drop older than that is stale: better to skip a week loudly than to
    * pay out a surprise late), and everything downstream is idempotent. */
-  let lastDeployCheck = 0;
+  let lastDeployCheck = 0, lastHarvest = 0;
   setInterval(() => {
     if (!ENABLED || !account) return;
     const now = Date.now();
     if (now - lastDeployCheck > 5 * 60_000) { lastDeployCheck = now; void ensureSplitter(); }
+    if (!DRY && !running && now - lastHarvest > 10 * 60_000) { lastHarvest = now; void harvest(); }
     const prev = previousPayout(now);
     if (prev && now - prev < 6 * 86_400_000) {
       const st = row(Math.floor(prev / 1000))?.status;
