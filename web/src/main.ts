@@ -1991,7 +1991,16 @@ HoodLock.on("locked", ({ txHash, id }) =&gt; console.log("Locked!", id, txHash))
         <p><code>GET /api/dev/config?key=${escape(me.apiKey)}</code> → chain id, RPC, explorer, all three contract addresses, the fee for each product, and your commission. These endpoints send CORS headers, so they work from your own frontend as well as your server.<br>
         Each intent returns a prepared <code>{ to, data, value, chainId }</code> transaction to submit from the user's wallet. Approve the token for <code>to</code> first.<br><code>POST /api/dev/lock-intent</code> <code>{ key, token, amount, unlockTime }</code><br><code>POST /api/dev/burn-intent</code> <code>{ key, token, amount }</code><br><code>POST /api/dev/vesting-intent</code> <code>{ key, token, beneficiary, amount, end }</code> — optional <code>start</code> (defaults to now) and <code>cliff</code> (defaults to start). The contract's own rules are checked here, so a schedule that would revert never reaches a signature prompt.<br>
         <code>POST /api/dev/attribute</code> <code>{ key, wallet }</code> → credit the connecting wallet to you (call it when the user connects).</p>
-        <h4>4 · Network and contracts</h4>
+        <h4>4 · SDK (npm / Node)</h4>
+        <p>Server-side or build-step integrations use <code>@hoodlock/sdk</code>: airdrop creation and claims, the same Merkle code our server runs (your roots always match our claim pages), plus the attribution and lock-intent calls from this program. No keys are held by the SDK; every write returns calldata for your own signer.</p>
+        <pre class="code-block">import { HoodLock } from "@hoodlock/sdk";
+
+const hl = new HoodLock({ apiKey: "pk_…" });
+const list = hl.buildList("0xabc… 100\n0xdef… 250");
+const tx = await hl.createAirdropTx({ token, list, deadlineDays: 30 });
+// sign tx.approve, then tx.create — or hl.sendAirdrop() with a viem walletClient</pre>
+        <p class="hintline">Source and full README: <a href="https://github.com/predictinj/hoodlock/tree/main/sdk" target="_blank" rel="noopener" style="color:var(--neon)">github.com/predictinj/hoodlock → sdk/</a></p>
+        <h4>5 · Network and contracts</h4>
         <p>Everything runs on <b>Robinhood Chain</b>, chain id <code>${CHAIN.id}</code>. The embed asks the
         user's wallet to switch, and adds the network if they don't have it — you don't need to handle that.</p>
         <table class="dev-attrs"><thead><tr><th>Contract</th><th>Address</th></tr></thead><tbody>
