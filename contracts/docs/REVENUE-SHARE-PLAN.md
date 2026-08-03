@@ -7,7 +7,7 @@ Plan only. Nothing here is built. Confirm before implementation.
 ## 1. How it works, in one paragraph
 
 HoodLock charges a flat ETH fee on every lock, burn, vesting schedule and
-airdrop. A share of that ETH accumulates in a **BuybackVault**. Once the balance
+airdrop. Half of that ETH accumulates in a **BuybackVault**. Once the balance
 crosses a threshold, **anyone** can trigger it: the vault swaps its ETH for
 $LOCK on the open market and hands the tokens to a **distributor**, which pays
 them out to everyone who has $LOCK locked in HoodLock. Holding $LOCK earns
@@ -67,7 +67,7 @@ Sized against live numbers:
 
 ```
 pace          1.35 actions/day
-to the split  0.0047 ETH/day  (~$18/day)
+to the split  0.0034 ETH/day  (~$13/day)
 pool depth    1.93 WETH in the LOCK/WETH 1% pool
 ```
 
@@ -185,13 +185,71 @@ Each product contract holds its fees until `withdrawFees` is called, and each ha
 **Verify before building:** whether fees transfer on each action or accumulate
 pending a withdrawal, for all four contracts. The whole flow depends on it.
 
-**The split** between the buyback and the treasury is a constant, set once. If
+**The split is 50%** to the buyback, matching what /app/revenue already publishes. It is a constant, set once. If
 it is adjustable, it is an admin power over holder entitlement, which is exactly
 the thing criticised in StonkBrokers' vault.
 
 ---
 
-## 8. What to build
+## 8. Rebuilding /app/revenue
+
+The page shipped for a different model and now contradicts this one in three
+places. It is not a cosmetic pass.
+
+**What is live today and is wrong:**
+
+| Live copy | Problem |
+|---|---|
+| "dropped to holders **every Saturday**" | There is no schedule. It fires on a threshold. |
+| "Eligibility: hold $LOCK at the Saturday 21:30 CET snapshot. **No locking, no staking.**" | The exact opposite of the new rule. |
+| A countdown to the next drop (`rvCountdown`, `rvNextDate`) | Counting down to a moment that no longer exists. |
+| The floating widget in `revenue-drop.ts`: "every single week", plus its own countdown | Same problem, on every page. |
+
+**What replaces the countdown.** The heartbeat of the page becomes a progress
+bar toward the threshold, not a clock:
+
+```
+        NEXT BUYBACK
+   0.0134 / 0.02 ETH          67%
+   [==============·······]
+   Anyone can trigger it at 0.02 ETH
+   [ Trigger buyback ]   ← disabled until the threshold, then live for everyone
+```
+
+The Trigger button is the most valuable thing on the page. It is the proof that
+nobody controls the payout, and it should be visibly available to the visitor
+rather than described in prose.
+
+**Section by section:**
+
+- **Hero** — "Lock $LOCK, earn the fees." Locking is now the whole point and the
+  headline should say so.
+- **Threshold card** — replaces the countdown. Pending ETH, progress, the trigger
+  button, and the fallback line "or automatically after 30 days".
+- **Eligibility card** — new, and needed, because the rule is no longer obvious:
+  lock $LOCK for 7 days or more; any time remaining counts; unlocked balances
+  earn nothing.
+- **Your position** — keep, but read from locks rather than balance. Show each
+  lock, its unlock date, whether it qualifies, and the wallet's share of total
+  weight.
+- **Round history** — replaces "Revenue drops". Per round: ETH in, $LOCK bought,
+  who triggered it, the tx. This is the audit trail and it is worth more than the
+  simulator.
+- **Growth simulator** — already labelled "EXAMPLE PROJECTION, NOT REAL DATA".
+  Once real rounds exist, replace it with them. Real small numbers beat
+  impressive fake ones on a page whose entire job is trust.
+- **Floating widget** — either retire it or convert it to threshold progress. A
+  countdown to nothing is worse than no widget.
+
+**Sequencing.** The page cannot ship before the contracts, because a Trigger
+button with nothing behind it is a broken promise. But the copy that is wrong
+today is wrong today: "no locking, no staking" is live on a page describing a
+model that requires locking. Correcting that line is worth doing immediately,
+independently of everything else here.
+
+---
+
+## 9. What to build
 
 | | |
 |---|---|
@@ -199,7 +257,7 @@ the thing criticised in StonkBrokers' vault.
 | **New** | `LockBuybackVault` — accrues ETH, permissionless `execute()`, TWAP-bounded swap |
 | **New** | `CumulativeDistributor` — Merkle roots, claim-on-demand |
 | Server | Snapshot job, Merkle build, published round lists, `/api/revenue` |
-| Web | A revenue page: pending balance, threshold progress, a Trigger button, round history, total bought, your claimable amount |
+| Web | Rebuild `/app/revenue` per §8, and retire or convert the countdown widget in `revenue-drop.ts` |
 
 **Order:**
 
@@ -209,15 +267,19 @@ the thing criticised in StonkBrokers' vault.
    bound and a `MAX_AGE` release with the balance under threshold.
 4. Deploy, verify, point one fee collector at it and watch a single real round.
 5. Point the remaining collectors at it.
-6. Public page.
+6. Rebuild `/app/revenue` (§8).
+
+**Do first, independently of all of the above:** `/app/revenue` currently states
+"No locking, no staking" and promises a Saturday drop. Both are wrong under the
+agreed model and both are live now.
 
 ---
 
-## 9. Honest economics
+## 10. Honest economics
 
 ```
 lifetime revenue      0.175 ETH   (~$665)
-70% to the split      0.1225 ETH  (~$466)
+50% to the split      0.0875 ETH  (~$333)
 $LOCK holders         162
 locked in HoodLock    47,165,311 LOCK
 pool depth            1.93 WETH
@@ -238,12 +300,12 @@ the design works exactly as written with no changes.
 
 ---
 
-## 10. Open questions
+## 11. Open questions
 
 1. **Flat or duration-weighted?** Recommendation §6: weighted.
 2. **Minimum lock size to qualify?** Suggest an amount worth clearly more than
    the gas to claim.
-3. **Split between buyback and treasury?** 70/30 mirrors StonkBrokers.
+3. ~~Split between buyback and treasury?~~ **Settled: 50%**, matching /app/revenue.
 4. **Timelock on new Merkle roots, yes or no?** Costs a delay, buys the ability
    to challenge a bad root before it pays.
 5. **Snapshot at the trigger block, or at a fixed time before it?** Trigger block
