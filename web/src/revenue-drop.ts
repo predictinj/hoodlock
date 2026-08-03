@@ -67,7 +67,7 @@ const CSS = `
 @keyframes rvdPulse{0%,100%{opacity:1}50%{opacity:.45}}
 
 .rvd-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
-.rvd-label{font-family:var(--rvd-mono);font-size:9.5px;letter-spacing:2.4px;color:var(--rvd-ink2);white-space:nowrap}
+.rvd-label{font-family:var(--rvd-mono);font-size:11px;font-weight:600;letter-spacing:2.6px;color:var(--rvd-ink);white-space:nowrap}
 .rvd-count{font-family:var(--rvd-mono);font-size:16px;font-weight:600;letter-spacing:.5px;color:var(--rvd-ink);
   font-variant-numeric:tabular-nums;white-space:nowrap}
 .rvd-count .u{color:var(--rvd-ink3);font-size:11px;margin-left:4px}
@@ -199,9 +199,7 @@ export function initRevenueDrop() {
     <button class="rvd-fab" type="button" aria-haspopup="dialog" aria-controls="rvdModal">
       <span class="rvd-ico">${ICON}<i class="rvd-dot"></i></span>
       <span class="rvd-txt">
-        <span class="rvd-label">REVENUE DROP</span>
-        <span class="rvd-count" id="rvdFabCount">&nbsp;</span>
-        <span class="rvd-fabbar"><i id="rvdFabFill"></i></span>
+        <span class="rvd-label">$LOCK REVENUE DROP</span>
         <span class="rvd-peek">$LOCK lockers receive <b>50%</b> of HoodLock revenue.</span>
       </span>
     </button>
@@ -209,8 +207,6 @@ export function initRevenueDrop() {
   document.body.appendChild(dock);
 
   const fab = dock.querySelector<HTMLButtonElement>(".rvd-fab")!;
-  const fabCount = dock.querySelector<HTMLElement>("#rvdFabCount")!;
-  const fabFill = dock.querySelector<HTMLElement>("#rvdFabFill")!;
   const hideBtn = dock.querySelector<HTMLButtonElement>(".rvd-hide")!;
 
   const minimizedAt = Number(localStorage.getItem(MIN_KEY) || 0);
@@ -335,21 +331,9 @@ export function initRevenueDrop() {
     render();
   }
   function render() {
-    if (!vault) {
-      fabCount.textContent = "· · ·";
-      fabFill.style.width = "0%";
-      return;
-    }
+    if (!vault) return;
     const pct = vault.thresholdEth > 0 ? Math.min(100, (vault.pendingEth / vault.thresholdEth) * 100) : 0;
     const shown = vault.canExecute ? 100 : pct;
-    if (vault.canExecute) {
-      fabCount.innerHTML = `READY<span class="u">DROP ARMED</span>`;
-      fabCount.classList.add("ready");
-    } else {
-      fabCount.innerHTML = `${pct < 1 && vault.pendingEth > 0 ? "<1" : Math.floor(pct)}%<span class="u">TO NEXT DROP</span>`;
-      fabCount.classList.remove("ready");
-    }
-    fabFill.style.width = `${shown}%`;
     const pctEl = veil.querySelector<HTMLElement>("#rvdMeterPct")!;
     pctEl.textContent = vault.canExecute ? "READY" : `${pct < 1 && vault.pendingEth > 0 ? "<1" : Math.floor(pct)}%`;
     pctEl.classList.toggle("ready", vault.canExecute);
