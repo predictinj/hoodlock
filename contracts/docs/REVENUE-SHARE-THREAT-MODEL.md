@@ -293,3 +293,54 @@ nice-to-have here; it is the mitigation.
 Regression test: `test_C1_hostileRootCannotStealUnclaimed` asserts the attack
 fails, that it cannot be rushed, that honest holders still get paid during the
 window, and that the attacker ends with zero. Suite now 31 tests, 107 repo-wide.
+
+---
+
+## Reality check against the live pool (2026-08-03)
+
+Asked what a fork test would add, I queried the real pool instead of speculating.
+Three findings, one of them deployment-blocking.
+
+```
+pool   0x4562cA679DcCc38f2dd59d28B2eBFEC99f507AF2
+token0 WETH   ->  lockIsToken0 = FALSE
+token1 LOCK
+fee    1%
+observationCardinality 1
+  observe(60s)   OK
+  observe(1800s) REVERTS
+```
+
+**B1 — BLOCKING. The oracle cannot answer a 30-minute TWAP.**
+`observationCardinality` is 1, so `observe([1800, 0])` reverts. M2 makes the
+vault revert rather than fall back to spot, which is correct, and the
+consequence is that **every `execute()` would fail from the moment of
+deployment**. The contract would be inert.
+
+Not a code fix. Before deploying: call `primeOracle()` (permissionless, already
+on the vault) to raise cardinality, then **wait for the pool to actually record
+observations**, which only happens when somebody swaps. Cardinality is capacity,
+not history. `observe(1800)` must be confirmed working on chain before the vault
+is given a single wei.
+
+**B2 — The mock tested the mirror image of production.**
+The fixture had LOCK as token0; the real pool has WETH as token0. That inverts
+both `zeroForOne` and the branch taken in `_quoteFromTick`, so the path that will
+actually run in production had no coverage at all. Added
+`test_realTokenOrdering_wethIsToken0`, which builds the fixture in the real
+ordering and asserts `lockIsToken0 == false` before exercising it.
+
+**B3 — The 1% pool fee sat outside the slippage bound.**
+`_quoteFromTick` returned the raw TWAP quote, but the pool takes 1% before the
+output is seen. The bound was therefore unreachable by construction and honest
+swaps would have reverted, while `maxSlippageBps = 300` really meant 200 bps of
+tolerance for genuine price movement. The fee is now read from the pool at
+construction and subtracted before the tolerance, so the setting means what it
+says. Covered by `test_poolFeeIsInsideTheSlippageBound`.
+
+Suite now 33 tests, 109 repo-wide.
+
+**Still required before deployment:** a real fork test. B1, B2 and B3 were all
+reachable by reading the pool, but concentrated liquidity means the fill for a
+given size cannot be predicted from a mock at all, and that is the one thing
+only a fork can answer.

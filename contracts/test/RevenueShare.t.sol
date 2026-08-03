@@ -423,4 +423,45 @@ contract RevenueShareTest is Test {
         dist.activateRoot();
         assertEq(dist.totalObligations(), 100e18);
     }
+
+    /**
+     * The real LOCK/WETH pool on chain 4663 has WETH as token0 and LOCK as
+     * token1, the opposite of the fixture above. That flips zeroForOne AND the
+     * branch taken in _quoteFromTick, so the configuration production will
+     * actually run was untested until this existed.
+     */
+    function test_realTokenOrdering_wethIsToken0() public {
+        StandardToken lock2 = new StandardToken("HoodLock", "LOCK", 1_000_000e18);
+        MockWETH weth2 = new MockWETH();
+        MockPool pool2 = new MockPool(address(weth2), address(lock2)); // WETH first
+        pool2.setLockToken(address(lock2));
+        pool2.setTwapTick(0);
+        pool2.setExecutionPrice(PRICE_WAD);
+        lock2.transfer(address(pool2), 500_000e18);
+
+        LockDistributor d2 = new LockDistributor(address(lock2), keeper, admin);
+        LockBuybackVault v2 =
+            new LockBuybackVault(address(pool2), address(weth2), address(lock2), address(d2), admin);
+        pool2.setVault(address(v2));
+
+        assertFalse(v2.lockIsToken0(), "fixture must mirror production");
+        assertEq(v2.poolFee(), 10000, "1% tier");
+
+        vm.deal(address(v2), 0.02 ether);
+        vm.prank(rando);
+        uint256 out = v2.execute();
+        assertGt(out, 0);
+        assertEq(lock2.balanceOf(address(d2)), out);
+    }
+
+    /// The 1% pool fee must be inside the bound, or an honest fill reverts.
+    function test_poolFeeIsInsideTheSlippageBound() public {
+        // An honest 1% pool takes 1% before we see the output. With the fee
+        // ignored, this exact fill would fail the bound.
+        vm.deal(address(vault), 0.02 ether);
+        pool.setExecutionPrice((PRICE_WAD * 99) / 100); // exactly the 1% fee
+        vm.prank(rando);
+        vault.execute();
+        assertEq(vault.roundId(), 1, "an honest 1% fee must not trip slippage");
+    }
 }

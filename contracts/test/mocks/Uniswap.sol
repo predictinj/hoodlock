@@ -28,6 +28,7 @@ interface ISwapCallback {
 contract MockPool {
     address public token0;
     address public token1;
+    uint24 public fee = 10000; // 1%, matching the real LOCK/WETH pool
 
     int24 public twapTick;        // what observe() reports
     uint256 public lockPerEthWad; // execution price, LOCK per 1 WETH, 1e18 scale
@@ -42,6 +43,7 @@ contract MockPool {
     }
 
     function setVault(address v) external { vault = v; }
+    function setFee(uint24 f) external { fee = f; }
     function setTwapTick(int24 t) external { twapTick = t; }
     function setExecutionPrice(uint256 wad) external { lockPerEthWad = wad; }
     function setOracleReverts(bool b) external { oracleReverts = b; }

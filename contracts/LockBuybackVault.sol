@@ -39,6 +39,7 @@ interface IWETH9 is IERC20 {
 }
 
 interface IUniswapV3Pool {
+    function fee() external view returns (uint24);
     function token0() external view returns (address);
     function token1() external view returns (address);
     function observe(uint32[] calldata secondsAgos)
@@ -61,6 +62,7 @@ contract LockBuybackVault {
     IERC20 public immutable lock;
     address public immutable distributor;
     bool public immutable lockIsToken0;
+    uint24 public immutable poolFee;   // taken by the pool before we see the output
 
     /* ---------------- bounded configuration ---------------- */
 
@@ -130,6 +132,7 @@ contract LockBuybackVault {
         distributor = distributor_;
         admin = admin_;
         lockIsToken0 = IUniswapV3Pool(pool_).token0() == lock_;
+        poolFee = IUniswapV3Pool(pool_).fee();
         lastExecuted = uint64(block.timestamp);
     }
 
@@ -223,6 +226,12 @@ contract LockBuybackVault {
             if (delta < 0 && (delta % int56(uint56(twapWindow)) != 0)) avgTick--;
 
             uint256 quoted = _quoteFromTick(avgTick, ethAmount);
+            // The pool takes its fee off the input before pricing, so a bound
+            // computed from the raw TWAP is unreachable by construction and
+            // every swap would revert. Subtract the fee first, so
+            // maxSlippageBps means actual price movement rather than
+            // "movement plus a fee we already knew about".
+            quoted = (quoted * (1_000_000 - poolFee)) / 1_000_000;
             return (quoted * (10_000 - maxSlippageBps)) / 10_000;
         } catch {
             // M2: never fall back to spot. That would remove the protection.
