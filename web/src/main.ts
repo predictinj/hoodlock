@@ -4130,7 +4130,7 @@ function revRenderPool() {
   const poolEth = vault ? vault.pendingEth : revPool.pool;
   const p = revPayoutParts(poolEth);
   $("rvPoolV").textContent = p.v;
-  $("rvPoolD").textContent = `${p.extra ? p.extra + " · " : ""}on-chain in the buyback vault`;
+  $("rvPoolD").textContent = `${p.extra ? p.extra + " · " : ""}read live from the chain · explorer balances can lag`;
   if (vault) {
     const pct = vault.thresholdEth > 0 ? Math.min(100, (vault.pendingEth / vault.thresholdEth) * 100) : 0;
     ($("rvMeterFill") as HTMLElement).style.width = `${vault.canExecute ? 100 : pct}%`;
