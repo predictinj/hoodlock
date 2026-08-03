@@ -142,7 +142,10 @@
   .rv-count span{color:var(--ink-3);font-size:.45em;margin:0 6px 0 2px;letter-spacing:2px}
   .rv-when{font-family:var(--mono);font-size:12px;letter-spacing:1.6px;color:var(--ink-2);margin-top:12px}
   .rv-when b{color:var(--ink);font-weight:600}
-  .rv-elig{font-size:12px;color:var(--ink-3);margin-top:10px}
+  .rv-elig{font-size:12px;color:var(--ink-3);margin-top:14px}
+  .rv-meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:16px 10% 0}
+  .rv-meter i{display:block;height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,var(--neon-dim,#0aa84f),var(--neon));
+    box-shadow:0 0 12px rgba(0,224,90,.5);transition:width .6s cubic-bezier(.16,1,.3,1)}
   .rv-sim-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:13px;color:var(--ink-2)}
   .rv-sim-row b{font-size:19px;color:var(--ink);font-variant-numeric:tabular-nums}
   .rv-sim-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--ink-3);margin-top:6px}
@@ -767,20 +770,24 @@
       <section class="view" id="view-revenue">
         <div class="page-head">
           <div><h1>Lock $LOCK, earn the <span class="serif">fees.</span></h1>
-            <p>Half of HoodLock's platform revenue is bought back as $LOCK and dropped every Saturday to wallets that lock $LOCK for 7 days or more. Your share follows how much you have locked.</p></div>
+            <p>Half of HoodLock's platform revenue is bought back as $LOCK and dropped to wallets that lock $LOCK for 7 days or more, every time the pool fills. Your share follows how much you have locked.</p></div>
         </div>
 
         <!-- The countdown is the page's heartbeat: everything below is about
              what happens when it reaches zero. -->
         <div class="card" style="margin-bottom:14px;text-align:center;padding:30px 22px">
           <div class="rv-eyebrow"><i>&#9679;</i>NEXT REVENUE DROP</div>
-          <div class="rv-count" id="rvCountdown">--</div>
-          <div class="rv-when"><b id="rvNextDate"></b> &middot; 21:30 CET<span id="rvLocalHint"></span></div>
+          <div class="rv-count" id="rvMeterPct">--</div>
+          <div class="rv-meter"><i id="rvMeterFill"></i></div>
+          <div class="rv-when"><b id="rvMeterEth">--</b><span id="rvMeterSub">Fires automatically once the pool reaches the threshold. Anyone can trigger it.</span></div>
+          <button class="btn btn-neon" id="rvTrigger" style="display:none;margin-top:14px">Trigger the drop</button>
+          <div class="hintline" id="rvBought" style="display:none;margin-top:10px"></div>
+          <div class="msg" id="rvTriggerMsg" style="display:none"></div>
           <div class="rv-elig">Eligibility: lock $LOCK for 7 days or more. Any time remaining counts. Holding it unlocked earns nothing.</div>
         </div>
 
         <div class="tiles">
-          <div class="tile"><div class="k">This week's pool</div><div class="v g" id="rvPoolV">--</div><div class="d" id="rvPoolD">accrued so far &middot; paid in $LOCK</div>
+          <div class="tile"><div class="k">Pool building now</div><div class="v g" id="rvPoolV">--</div><div class="d" id="rvPoolD">on-chain in the buyback vault</div>
             <a class="btn btn-line btn-sm" id="rvVerify" href="#" target="_blank" rel="noopener" style="margin-top:12px;display:none">Verify on-chain</a></div>
           <div class="tile"><div class="k">Your estimated cut</div><div class="v g" id="rvCutV">--</div><div class="d" id="rvCutD">of the pool accrued so far</div></div>
         </div>
@@ -816,11 +823,11 @@
         <div class="card">
           <div class="card-head" style="margin-top:0"><div><h3>How it works</h3><div class="sub">THE WEEKLY CYCLE</div></div></div>
           <ol class="rv-how">
-            <li><b>Fees accrue.</b> Every lock, burn, vesting schedule and airdrop pays a platform fee in ETH. Affiliate payouts are deducted first.</li>
-            <li><b>50% is set aside.</b> Half of what remains belongs to $LOCK lockers. The pool grows all week and you can watch it on this page.</li>
-            <li><b>Lock to qualify.</b> Lock $LOCK for 7 days or more. At Saturday 21:30 CET every active qualified lock counts; unlocked holdings earn nothing.</li>
-            <li><b>Claim your share.</b> The pool buys $LOCK on the market and distributes it as a Merkle airdrop, split by each wallet's share of all qualified locked $LOCK. Claim it on the Airdrops page.</li>
-            <li><b>7 day window.</b> Anything unclaimed after 7 days is swept back to the treasury, so claim before the next drop lands.</li>
+            <li><b>Fees accrue.</b> Every lock, burn, vesting schedule and airdrop pays a platform fee in ETH, and half of it flows on-chain into the buyback vault.</li>
+            <li><b>The pool fills.</b> When the vault reaches 0.02 ETH, the drop is armed. No schedule: heavy weeks drop often, quiet weeks take longer, and a drop fires at least every 30 days regardless.</li>
+            <li><b>Anyone triggers it.</b> The buyback is a permissionless function with an oracle-guarded price: whoever presses the button, the terms are fixed by the contract.</li>
+            <li><b>Lock to earn.</b> The bought $LOCK opens as a claim round, split by each wallet's share of all qualified locks: a chosen duration of 7 days or more. Unlocked holdings earn nothing.</li>
+            <li><b>180 day window.</b> Claim any time within 180 days; whatever expires unclaimed is swept back to the treasury.</li>
           </ol>
           <div class="hintline" style="margin-top:12px">$LOCK contract: <span class="mono">0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94</span> &middot; team locks neither dilute nor earn.</div>
         </div>

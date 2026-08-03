@@ -4031,22 +4031,17 @@ function revPayoutParts(eth: number): { v: string; extra: string } {
 
 function loadRevenueView() {
   if (revTimer) clearInterval(revTimer);
-  const tick = () => {
-    // Self-clearing: go() has no teardown hook, so the timer checks the view.
+  // The drop has no calendar anymore: the meter is the heartbeat. Poll the
+  // vault every 30s while the view is open; self-clears on navigation.
+  revTimer = setInterval(() => {
     if (!$("view-revenue").classList.contains("active")) { if (revTimer) clearInterval(revTimer); return; }
-    const now = Date.now();
-    const target = nextPayout(now);
-    const p = countdownParts(target - now);
-    $("rvCountdown").innerHTML = `${rvPad(p.days)}<span>D</span>${rvPad(p.hours)}<span>H</span>${rvPad(p.minutes)}<span>M</span>${rvPad(p.seconds)}<span>S</span>`;
-    $("rvNextDate").textContent = payoutDateLabel(target).toUpperCase();
-    const local = localTimeLabel(target);
-    $("rvLocalHint").textContent = local ? ` · your time ${local}` : "";
-  };
-  revTimer = setInterval(tick, 1000); tick();
+    revLoadPool();
+  }, 30_000);
   if (!revWired) {
     revWired = true;
     $("rvSimRange").addEventListener("input", () => revSimRender());
     $("rvSimHoldings").addEventListener("input", debounce(() => revSimRender(), 250));
+    $("rvTrigger").addEventListener("click", revTriggerDrop);
   }
   revLoadPool(); revLoadPosition(); revLoadDrops(); revSimRender();
   fetch("/api/revenue/snapshot").then((r) => (r.ok ? r.json() : null)).then((j) => {
@@ -4055,16 +4050,57 @@ function loadRevenueView() {
   revLoadLockPrice().then(() => { revRenderPool(); revRenderCut(); revSimRender(); revLoadPosition(); });
 }
 
+/* The permissionless buyback trigger. Every term is fixed by the contract;
+ * the button only picks the moment. */
+const VAULT_ADDR = (cfg as any).buybackVault && isAddress((cfg as any).buybackVault) ? (getAddress((cfg as any).buybackVault) as `0x${string}`) : null;
+const ROUND_MANAGER = (cfg as any).roundManager && isAddress((cfg as any).roundManager) ? String((cfg as any).roundManager).toLowerCase() : null;
+const VAULT_EXEC_ABI = [{ type: "function", name: "execute", stateMutability: "nonpayable", inputs: [], outputs: [{ type: "uint256" }] }] as const;
+async function revTriggerDrop() {
+  const msg = $("rvTriggerMsg"), btn = $("rvTrigger") as HTMLButtonElement;
+  if (!VAULT_ADDR) return;
+  if (!account) return openWalletModal();
+  try {
+    btn.disabled = true;
+    msg.style.display = "block"; msg.className = "msg"; msg.textContent = "Confirm in wallet…";
+    const h = await send(VAULT_ADDR, encodeFunctionData({ abi: VAULT_EXEC_ABI, functionName: "execute" }));
+    msg.innerHTML = `Buying back… <span class="spin"></span>`;
+    await waitTx(h);
+    msg.className = "msg ok"; msg.textContent = "Drop fired. The bought $LOCK opens as a claim round shortly.";
+    revLoadPool(); revLoadDrops();
+  } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); }
+  finally { btn.disabled = false; }
+}
+
 function revRenderPool() {
-  if (!revPool) { $("rvPoolV").textContent = "Unavailable"; return; }
-  const p = revPayoutParts(revPool.pool);
+  const vault = (revPool as any)?.vault as { pendingEth: number; thresholdEth: number; canExecute: boolean; undistributedLock: string; address: string } | null;
+  if (!revPool) { $("rvPoolV").textContent = "Unavailable"; $("rvMeterPct").textContent = "--"; return; }
+  // The vault balance IS the pool now; the fee math stays as fallback only.
+  const poolEth = vault ? vault.pendingEth : revPool.pool;
+  const p = revPayoutParts(poolEth);
   $("rvPoolV").textContent = p.v;
-  $("rvPoolD").textContent = `${p.extra ? p.extra + " · " : ""}accrued so far`;
-  // One click to the splitter on the explorer: fees land there on-chain,
-  // in the same transaction each payer sends.
-  const splitter = (revPool as any)?.automation?.splitter as string | null;
+  $("rvPoolD").textContent = `${p.extra ? p.extra + " · " : ""}on-chain in the buyback vault`;
+  if (vault) {
+    const pct = vault.thresholdEth > 0 ? Math.min(100, (vault.pendingEth / vault.thresholdEth) * 100) : 0;
+    $("rvMeterPct").textContent = vault.canExecute ? "READY" : `${pct < 1 && vault.pendingEth > 0 ? "<1" : Math.floor(pct)}%`;
+    ($("rvMeterFill") as HTMLElement).style.width = `${vault.canExecute ? 100 : pct}%`;
+    $("rvMeterEth").textContent = `${vault.pendingEth.toFixed(4)} / ${vault.thresholdEth} ETH`;
+    $("rvMeterSub").textContent = vault.canExecute
+      ? "The pool is full. Anyone can fire the buyback; the price is oracle-guarded."
+      : "Fires automatically once the pool reaches the threshold. Anyone can trigger it. At most 30 days between drops.";
+    ($("rvTrigger") as HTMLElement).style.display = vault.canExecute ? "" : "none";
+    const bought = BigInt(vault.undistributedLock || "0");
+    const boughtEl = $("rvBought");
+    if (bought > 0n) { boughtEl.style.display = ""; boughtEl.textContent = `${fmtNum(bought, 18)} $LOCK already bought, opening as a claim round shortly.`; }
+    else boughtEl.style.display = "none";
+  } else {
+    $("rvMeterPct").textContent = "--";
+    $("rvMeterEth").textContent = "";
+  }
+  // One click to the vault on the explorer: the pool balance and every
+  // buyback are public.
+  const verifyAddr = vault?.address || (revPool as any)?.automation?.splitter || null;
   const link = document.getElementById("rvVerify") as HTMLAnchorElement | null;
-  if (link && splitter) { link.href = `${EXP}/address/${splitter}`; link.style.display = "inline-flex"; }
+  if (link && verifyAddr) { link.href = `${EXP}/address/${verifyAddr}`; link.style.display = "inline-flex"; }
 }
 
 async function revLoadPool() {
@@ -4182,7 +4218,8 @@ function revRenderCut() {
   const v = $("rvCutV"), d = $("rvCutD");
   if (!account) { v.textContent = "Connect wallet"; d.textContent = "your live share of the pool"; return; }
   if (!revPool || revShare === null) { v.textContent = revPoolFailed ? "Unavailable" : "--"; return; }
-  const p = revPayoutParts(revPool.pool * revShare);
+  const vaultPool = (revPool as any)?.vault?.pendingEth;
+  const p = revPayoutParts((typeof vaultPool === "number" ? vaultPool : revPool.pool) * revShare);
   v.textContent = p.v;
   d.textContent = `${p.extra ? p.extra + " · " : ""}of the pool accrued so far`;
 }
@@ -4193,10 +4230,11 @@ async function revLoadDrops() {
   try {
     const r = await (await fetch("/api/airdrops")).json();
     const drops = (r.airdrops || [])
-      .filter((a: any) => String(a.token).toLowerCase() === LOCK_TOKEN && String(a.creator).toLowerCase() === ADMIN_WALLET)
+      .filter((a: any) => String(a.token).toLowerCase() === LOCK_TOKEN
+        && [ADMIN_WALLET, ROUND_MANAGER].includes(String(a.creator).toLowerCase()))
       .sort((a: any, b: any) => b.id - a.id).slice(0, 5);
     if (!drops.length) {
-      box.innerHTML = `<div class="empty"><div class="small">No revenue drops yet. The first one lands Saturday, August 8 at 21:30 CET.</div></div>`;
+      box.innerHTML = `<div class="empty"><div class="small">No revenue drops yet. The first one fires as soon as the pool reaches its threshold.</div></div>`;
       return;
     }
     /* The wallet's own claim lives right here in the box: fetching eligibility

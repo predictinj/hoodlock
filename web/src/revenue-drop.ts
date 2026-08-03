@@ -1,18 +1,20 @@
-/* The weekly revenue drop — floating widget + launch-countdown dialog.
+/* The revenue drop — floating widget + dialog.
+ *
+ * Threshold model (owner decision 2026-08-03): there is no calendar. Fees
+ * fill the on-chain buyback vault; when it reaches its threshold (0.02 ETH,
+ * or 30 days since the last drop, whichever comes first) anyone may fire the
+ * permissionless, oracle-guarded buyback, and the bought $LOCK opens as a
+ * claim round for qualified lockers. So the widget shows a fill meter, not a
+ * countdown, fed by /api/revenue/pool (server-cached vault reads).
  *
  * Self-contained: injects its own styles and markup, styled from the same
  * design tokens as the rest of the site (with local fallbacks so it renders
- * correctly on any page that imports it). All schedule math lives in
- * revenue.ts; this file is only presentation and state.
+ * correctly on any page that imports it).
  *
  * Layering: the dock sits at z 90, below the app's transient toasts (200) and
  * every existing modal (110/150), so nothing important is ever covered. The
  * dialog veil sits at 140, above page chrome but below wallet flows.
  */
-import {
-  dropPhase, countdownParts, previousPayout, payoutDateLabel,
-  localTimeLabel, fetchPayoutStatus, type PayoutStatus, type DropPhase,
-} from "./revenue";
 
 const MIN_KEY = "hl_rvd_min_ts";
 const MIN_FOR_MS = 24 * 3600_000;
@@ -68,7 +70,10 @@ const CSS = `
 .rvd-label{font-family:var(--rvd-mono);font-size:9.5px;letter-spacing:2.4px;color:var(--rvd-ink2);white-space:nowrap}
 .rvd-count{font-family:var(--rvd-mono);font-size:16px;font-weight:600;letter-spacing:.5px;color:var(--rvd-ink);
   font-variant-numeric:tabular-nums;white-space:nowrap}
-.rvd-count .u{color:var(--rvd-ink3);font-size:11px;margin-right:1px}
+.rvd-count .u{color:var(--rvd-ink3);font-size:11px;margin-left:4px}
+.rvd-count.ready{color:var(--rvd-neon)}
+.rvd-fabbar{width:130px;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px}
+.rvd-fabbar i{display:block;height:100%;width:0%;border-radius:2px;background:var(--rvd-neon);transition:width .6s ease}
 .rvd-peek{font-size:11.5px;color:var(--rvd-ink2);white-space:nowrap;max-height:0;opacity:0;overflow:hidden;
   transition:max-height .45s cubic-bezier(.16,1,.3,1),opacity .4s ease .05s,margin-top .45s cubic-bezier(.16,1,.3,1)}
 .rvd-peek b{color:var(--rvd-neon);font-weight:600}
@@ -114,44 +119,19 @@ const CSS = `
 .rvd-sub{font-size:15px;line-height:1.55;color:var(--rvd-ink2);margin:0 0 28px;max-width:46ch}
 .rvd-sub b{color:var(--rvd-neon);font-weight:700;font-size:17px}
 
-.rvd-stage{border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:26px 22px 22px;margin-bottom:24px;
+.rvd-stage{border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:26px 22px 24px;margin-bottom:24px;text-align:center;
   background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 40%),rgba(3,6,4,.5);
   box-shadow:0 1px 0 rgba(255,255,255,.05) inset}
-.rvd-nextlabel{font-family:var(--rvd-mono);font-size:10.5px;letter-spacing:3px;color:var(--rvd-ink2);
-  text-align:center;margin-bottom:18px}
+.rvd-nextlabel{font-family:var(--rvd-mono);font-size:10.5px;letter-spacing:3px;color:var(--rvd-ink2);margin-bottom:16px}
 .rvd-nextlabel i{font-style:normal;color:var(--rvd-neon);margin-right:8px}
-
-.rvd-cells{display:flex;align-items:stretch;justify-content:center;gap:10px}
-.rvd-cell{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
-.rvd-num{display:flex;gap:3px}
-.rvd-d{display:block;width:clamp(34px,7.2vw,52px);padding:clamp(10px,1.6vw,14px) 0;text-align:center;
-  font-family:var(--rvd-mono);font-weight:600;font-size:clamp(26px,5vw,40px);line-height:1;color:var(--rvd-ink);
-  font-variant-numeric:tabular-nums;border-radius:10px;border:1px solid rgba(255,255,255,.08);
-  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012) 48%,rgba(0,0,0,.25) 52%,rgba(255,255,255,.02));
-  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 10px 26px -14px rgba(0,0,0,.8);position:relative;overflow:hidden}
-/* the split-flap seam */
-.rvd-d::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.5);
-  box-shadow:0 1px 0 rgba(255,255,255,.045)}
-.rvd-d.tick{animation:rvdTick .34s cubic-bezier(.16,1,.3,1)}
-@keyframes rvdTick{from{transform:translateY(.5em);opacity:0;filter:blur(1px)}}
-.rvd-cell b{font-family:var(--rvd-mono);font-weight:500;font-size:9.5px;letter-spacing:2.6px;color:var(--rvd-ink3)}
-.rvd-sep{align-self:center;padding-bottom:22px;font-family:var(--rvd-mono);font-size:clamp(18px,3vw,26px);
-  color:var(--rvd-ink3);animation:rvdPulse 2s ease-in-out infinite}
-
-.rvd-when{margin-top:20px;text-align:center;font-family:var(--rvd-mono);font-size:11.5px;letter-spacing:1.6px;color:var(--rvd-ink2)}
+.rvd-meterpct{font-family:var(--rvd-mono);font-weight:600;font-size:clamp(34px,6vw,52px);letter-spacing:1px;font-variant-numeric:tabular-nums}
+.rvd-meterpct.ready{color:var(--rvd-neon)}
+.rvd-meterbar{height:6px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;margin:16px 12% 0}
+.rvd-meterbar i{display:block;height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,rgba(10,168,79,1),var(--rvd-neon));
+  box-shadow:0 0 12px rgba(0,224,90,.5);transition:width .6s cubic-bezier(.16,1,.3,1)}
+.rvd-when{margin-top:16px;font-family:var(--rvd-mono);font-size:11.5px;letter-spacing:1.4px;color:var(--rvd-ink2)}
 .rvd-when b{color:var(--rvd-ink);font-weight:600}
-.rvd-when span{display:block;margin-top:5px;font-size:10px;letter-spacing:1.8px;color:var(--rvd-ink3)}
-
-/* processing + complete states */
-.rvd-proc{text-align:center;padding:6px 0 2px}
-.rvd-proc h3{font-size:21px;font-weight:700;letter-spacing:-.3px;margin:0 0 8px}
-.rvd-proc p{font-size:13.5px;color:var(--rvd-ink2);margin:0 auto 20px;max-width:40ch;line-height:1.55}
-.rvd-scan{position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin:0 12% 14px}
-.rvd-scan i{position:absolute;top:0;bottom:0;width:26%;border-radius:2px;background:linear-gradient(90deg,transparent,var(--rvd-neon),transparent);
-  animation:rvdScan 1.8s cubic-bezier(.45,0,.55,1) infinite}
-@keyframes rvdScan{0%{left:-26%}100%{left:100%}}
-.rvd-proc .m{font-family:var(--rvd-mono);font-size:10px;letter-spacing:2.4px;color:var(--rvd-ink3)}
-.rvd-proc.done h3{color:var(--rvd-neon)}
+.rvd-when span{display:block;margin-top:6px;font-size:10px;letter-spacing:1.6px;color:var(--rvd-ink3)}
 
 .rvd-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:26px}
 .rvd-fact{border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:16px 15px;background:rgba(255,255,255,.018)}
@@ -180,13 +160,10 @@ const CSS = `
   .rvd-modal{padding:32px 20px 26px;border-radius:18px}
   .rvd-veil{padding:12px;align-items:flex-end}
   .rvd-facts{grid-template-columns:1fr}
-  .rvd-cells{gap:6px}
-  .rvd-sep{display:none}
   .rvd-actions .rvd-cta{width:100%;justify-content:center}
 }
 @media (prefers-reduced-motion:reduce){
-  .rvd-fab::after,.rvd-dock.in .rvd-fab,.rvd-dot,.rvd-sep,.rvd-scan i{animation:none}
-  .rvd-d.tick{animation:none}
+  .rvd-fab::after,.rvd-dock.in .rvd-fab,.rvd-dot{animation:none}
   .rvd-modal,.rvd-veil.show{animation:none}
   .rvd-dock{transition:none}
 }`;
@@ -199,14 +176,14 @@ const ICON = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke
   <circle cx="12" cy="12" r="1.1" fill="#00e05a" stroke="none"/>
 </svg>`;
 
-const pad = (n: number) => String(n).padStart(2, "0");
-
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, html?: string) {
   const e = document.createElement(tag);
   e.className = cls;
   if (html !== undefined) e.innerHTML = html;
   return e;
 }
+
+type VaultState = { pendingEth: number; thresholdEth: number; canExecute: boolean } | null;
 
 export function initRevenueDrop() {
   if (document.getElementById("rvdDock")) return; // idempotent
@@ -222,8 +199,9 @@ export function initRevenueDrop() {
     <button class="rvd-fab" type="button" aria-haspopup="dialog" aria-controls="rvdModal">
       <span class="rvd-ico">${ICON}<i class="rvd-dot"></i></span>
       <span class="rvd-txt">
-        <span class="rvd-label">WEEKLY REVENUE DROP</span>
+        <span class="rvd-label">REVENUE DROP</span>
         <span class="rvd-count" id="rvdFabCount">&nbsp;</span>
+        <span class="rvd-fabbar"><i id="rvdFabFill"></i></span>
         <span class="rvd-peek">$LOCK lockers receive <b>50%</b> of HoodLock revenue.</span>
       </span>
     </button>
@@ -232,6 +210,7 @@ export function initRevenueDrop() {
 
   const fab = dock.querySelector<HTMLButtonElement>(".rvd-fab")!;
   const fabCount = dock.querySelector<HTMLElement>("#rvdFabCount")!;
+  const fabFill = dock.querySelector<HTMLElement>("#rvdFabFill")!;
   const hideBtn = dock.querySelector<HTMLButtonElement>(".rvd-hide")!;
 
   const minimizedAt = Number(localStorage.getItem(MIN_KEY) || 0);
@@ -247,17 +226,13 @@ export function initRevenueDrop() {
   setTimeout(() => dock.classList.add("in"), reduced() ? 0 : 1300);
 
   // The occasional reveal: calm by default, one line of context now and then.
-  let peekTimer = 0;
-  const schedulePeek = () => {
-    window.clearInterval(peekTimer);
-    if (reduced()) return;
-    peekTimer = window.setInterval(() => {
+  if (!reduced()) {
+    setInterval(() => {
       if (dock.classList.contains("min") || veil.classList.contains("show")) return;
       dock.classList.add("peek");
       setTimeout(() => dock.classList.remove("peek"), 5500);
     }, 48_000);
-  };
-  schedulePeek();
+  }
 
   /* ---------- dialog ---------- */
   const veil = el("div", "rvd-veil");
@@ -265,33 +240,15 @@ export function initRevenueDrop() {
   <div class="rvd-modal" role="dialog" aria-modal="true" aria-labelledby="rvdTitle" id="rvdModal">
     <button class="rvd-x" type="button" aria-label="Close">×</button>
     <div class="rvd-eyebrow">HOODLOCK · REVENUE DISTRIBUTION</div>
-    <h2 class="rvd-h" id="rvdTitle">Lock $LOCK. <span class="s">Get paid weekly.</span></h2>
-    <p class="rvd-sub">HoodLock distributes <b>50%</b> of its platform revenue to wallets that lock $LOCK for 7 days or more, every single week.</p>
+    <h2 class="rvd-h" id="rvdTitle">Lock $LOCK. <span class="s">Get paid.</span></h2>
+    <p class="rvd-sub">HoodLock distributes <b>50%</b> of its platform revenue to wallets that lock $LOCK for 7 days or more, every time the pool fills.</p>
 
     <section class="rvd-stage">
-      <div id="rvdStCount">
-        <div class="rvd-nextlabel"><i>●</i>NEXT REVENUE DROP</div>
-        <div class="rvd-cells" aria-hidden="true">
-          <div class="rvd-cell"><span class="rvd-num" data-c="d"></span><b>DAYS</b></div><span class="rvd-sep">:</span>
-          <div class="rvd-cell"><span class="rvd-num" data-c="h"></span><b>HOURS</b></div><span class="rvd-sep">:</span>
-          <div class="rvd-cell"><span class="rvd-num" data-c="m"></span><b>MIN</b></div><span class="rvd-sep">:</span>
-          <div class="rvd-cell"><span class="rvd-num" data-c="s"></span><b>SEC</b></div>
-        </div>
-        <div class="rvd-when"><b>SATURDAY · 21:30 CET</b>
-          <span id="rvdDate"></span>
-          <span id="rvdLocal" hidden></span>
-        </div>
-      </div>
-      <div id="rvdStProc" class="rvd-proc" hidden>
-        <h3>Revenue Drop Processing</h3>
-        <p>This week's HoodLock revenue distribution is being prepared.</p>
-        <div class="rvd-scan"><i></i></div>
-        <div class="m">SETTLING WEEKLY REVENUE TOTALS</div>
-      </div>
-      <div id="rvdStDone" class="rvd-proc done" hidden>
-        <h3>Weekly Revenue Drop Complete</h3>
-        <p>This week's distribution is done. The next one is already on the clock.</p>
-        <div class="m" id="rvdDoneNext"></div>
+      <div class="rvd-nextlabel"><i>●</i>NEXT REVENUE DROP</div>
+      <div class="rvd-meterpct" id="rvdMeterPct">--</div>
+      <div class="rvd-meterbar"><i id="rvdMeterFill"></i></div>
+      <div class="rvd-when"><b id="rvdMeterEth">--</b>
+        <span id="rvdMeterSub">Fires automatically once the pool reaches the threshold. Anyone can trigger it.</span>
       </div>
       <p class="rvd-sr" id="rvdSr" aria-live="polite"></p>
     </section>
@@ -299,8 +256,8 @@ export function initRevenueDrop() {
     <div class="rvd-facts">
       <div class="rvd-fact"><div class="v">50%</div><h4>Revenue Share</h4>
         <p>Half of HoodLock's platform revenue is allocated to wallets locking $LOCK.</p></div>
-      <div class="rvd-fact"><div class="v">WEEKLY</div><h4>Weekly Distribution</h4>
-        <p>Revenue rewards are calculated and distributed every Saturday.</p></div>
+      <div class="rvd-fact"><div class="v">AUTO</div><h4>No Schedule</h4>
+        <p>Drops fire whenever the pool reaches its threshold, and at most 30 days apart. Busy weeks drop faster.</p></div>
       <div class="rvd-fact"><div class="v">7D+</div><h4>Based on Your Locked Share</h4>
         <p>Your payout follows your share of all qualified locked $LOCK. Locks need a duration of 7 days or more.</p></div>
     </div>
@@ -311,11 +268,11 @@ export function initRevenueDrop() {
     </div>
     <div class="rvd-how" id="rvdHow" hidden>
       HoodLock earns fees every time someone locks, burns, vests or airdrops on the platform.
-      <b>Half of that revenue belongs to wallets that lock $LOCK.</b> Through the week the pool
-      fills, and every Saturday at 21:30 CET it is split across all qualified locks, weighted by
-      how much $LOCK each wallet has locked. A lock qualifies with a chosen duration of 7 days or
-      more; holding unlocked tokens earns nothing. The countdown above always shows the next
-      distribution.
+      <b>Half of that revenue flows on-chain into a buyback vault.</b> Once the vault reaches its
+      threshold, anyone can fire the oracle-guarded buyback; the bought $LOCK opens as a claim
+      round, split across all qualified locks by how much $LOCK each wallet has locked. A lock
+      qualifies with a chosen duration of 7 days or more; holding unlocked tokens earns nothing.
+      Claims stay open for 180 days.
     </div>
   </div>`;
   document.body.appendChild(veil);
@@ -325,9 +282,6 @@ export function initRevenueDrop() {
   const moreBtn = veil.querySelector<HTMLButtonElement>(".rvd-more")!;
   const howBox = veil.querySelector<HTMLElement>("#rvdHow")!;
   const srLine = veil.querySelector<HTMLElement>("#rvdSr")!;
-  const stCount = veil.querySelector<HTMLElement>("#rvdStCount")!;
-  const stProc = veil.querySelector<HTMLElement>("#rvdStProc")!;
-  const stDone = veil.querySelector<HTMLElement>("#rvdStDone")!;
 
   moreBtn.addEventListener("click", () => {
     const open = howBox.hidden;
@@ -342,8 +296,7 @@ export function initRevenueDrop() {
   const open = () => {
     lastFocus = document.activeElement as HTMLElement;
     veil.classList.add("show");
-    render(true);
-    refreshStatus();
+    void refresh(true);
     closeBtn.focus();
   };
   const close = () => {
@@ -364,103 +317,55 @@ export function initRevenueDrop() {
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
-  /* ---------- countdown rendering ---------- */
-  // Digits are rebuilt per value; only a changed digit gets the tick animation,
-  // so seconds flip without the whole row twitching.
-  function setNum(group: HTMLElement, value: string) {
-    const spans = group.children;
-    while (spans.length > value.length) group.removeChild(group.lastChild!);
-    while (spans.length < value.length) group.appendChild(el("span", "rvd-d"));
-    for (let i = 0; i < value.length; i++) {
-      const d = spans[i] as HTMLElement;
-      if (d.textContent !== value[i]) {
-        d.textContent = value[i];
-        if (!reduced()) { d.classList.remove("tick"); void d.offsetWidth; d.classList.add("tick"); }
+  /* ---------- the meter ---------- */
+  let vault: VaultState = null;
+  let fetchedAt = 0;
+  async function refresh(force = false) {
+    if (!force && Date.now() - fetchedAt < 55_000) { render(); return; }
+    fetchedAt = Date.now();
+    try {
+      const r = await fetch("/api/revenue/pool");
+      if (r.ok) {
+        const j: any = await r.json();
+        vault = j?.vault && typeof j.vault.pendingEth === "number"
+          ? { pendingEth: j.vault.pendingEth, thresholdEth: j.vault.thresholdEth, canExecute: !!j.vault.canExecute }
+          : null;
       }
+    } catch { /* keep the last state */ }
+    render();
+  }
+  function render() {
+    if (!vault) {
+      fabCount.textContent = "· · ·";
+      fabFill.style.width = "0%";
+      return;
     }
-  }
-  const groups = {
-    d: veil.querySelector<HTMLElement>('[data-c="d"]')!,
-    h: veil.querySelector<HTMLElement>('[data-c="h"]')!,
-    m: veil.querySelector<HTMLElement>('[data-c="m"]')!,
-    s: veil.querySelector<HTMLElement>('[data-c="s"]')!,
-  };
-
-  let status: PayoutStatus = { state: "unknown" };
-  let statusFetchedAt = 0;
-  let statusWindow: number | null = null;
-  // A status answer is only meaningful for the payout window it was fetched
-  // in; last Saturday's "complete" must never leak into the next deadline.
-  const currentStatus = (now: number): PayoutStatus =>
-    statusWindow !== null && statusWindow === previousPayout(now) ? status : { state: "unknown" };
-  async function refreshStatus() {
-    // Only worth asking around the deadline; a countdown mid-week needs no poll.
-    const now = Date.now();
-    const phase = dropPhase(now, currentStatus(now));
-    if (phase.phase === "countdown" && phase.target - now > 60_000) return;
-    if (now - statusFetchedAt < 55_000) return;
-    statusFetchedAt = now;
-    status = await fetchPayoutStatus();
-    statusWindow = previousPayout(Date.now());
-  }
-
-  let lastAnnounced = "";
-  let lastPhase = "";
-  function render(force = false) {
-    const now = Date.now();
-    const phase: DropPhase = dropPhase(now, currentStatus(now));
-
-    // fab line is always live, even while the dialog is closed
-    if (phase.phase === "countdown") {
-      const p = countdownParts(phase.target - now);
-      fabCount.innerHTML = p.days > 0
-        ? `${p.days}<span class="u">D</span> ${pad(p.hours)}:${pad(p.minutes)}:${pad(p.seconds)}`
-        : `${pad(p.hours)}:${pad(p.minutes)}:${pad(p.seconds)}`;
+    const pct = vault.thresholdEth > 0 ? Math.min(100, (vault.pendingEth / vault.thresholdEth) * 100) : 0;
+    const shown = vault.canExecute ? 100 : pct;
+    if (vault.canExecute) {
+      fabCount.innerHTML = `READY<span class="u">DROP ARMED</span>`;
+      fabCount.classList.add("ready");
     } else {
-      fabCount.textContent = phase.phase === "processing" ? "PROCESSING" : "COMPLETE";
+      fabCount.innerHTML = `${pct < 1 && vault.pendingEth > 0 ? "<1" : Math.floor(pct)}%<span class="u">TO NEXT DROP</span>`;
+      fabCount.classList.remove("ready");
     }
-
-    if (!veil.classList.contains("show") && !force) return;
-
-    const phaseKey = phase.phase;
-    if (phaseKey !== lastPhase || force) {
-      stCount.hidden = phaseKey !== "countdown";
-      stProc.hidden = phaseKey !== "processing";
-      stDone.hidden = phaseKey !== "complete";
-      lastPhase = phaseKey;
-      if (phaseKey === "processing") srLine.textContent = "This week's revenue distribution is being prepared.";
-      if (phaseKey === "complete") srLine.textContent = "This week's revenue drop is complete.";
-    }
-
-    if (phase.phase === "countdown") {
-      const p = countdownParts(phase.target - now);
-      setNum(groups.d, pad(p.days));
-      setNum(groups.h, pad(p.hours));
-      setNum(groups.m, pad(p.minutes));
-      setNum(groups.s, pad(p.seconds));
-      veil.querySelector<HTMLElement>("#rvdDate")!.textContent = payoutDateLabel(phase.target).toUpperCase();
-      const local = localTimeLabel(phase.target);
-      const localEl = veil.querySelector<HTMLElement>("#rvdLocal")!;
-      localEl.hidden = !local;
-      if (local) localEl.textContent = `Your time ${local}`;
-      // Screen readers get one calm sentence a minute, not a ticking clock.
-      const summary = `${p.days} days, ${p.hours} hours and ${p.minutes} minutes until the next revenue drop.`;
-      if (summary !== lastAnnounced) { srLine.textContent = summary; lastAnnounced = summary; }
-    } else {
-      const next = payoutDateLabel(phase.target).toUpperCase();
-      veil.querySelector<HTMLElement>("#rvdDoneNext")!.textContent = `NEXT DROP · ${next} · 21:30 CET`;
-    }
+    fabFill.style.width = `${shown}%`;
+    const pctEl = veil.querySelector<HTMLElement>("#rvdMeterPct")!;
+    pctEl.textContent = vault.canExecute ? "READY" : `${pct < 1 && vault.pendingEth > 0 ? "<1" : Math.floor(pct)}%`;
+    pctEl.classList.toggle("ready", vault.canExecute);
+    veil.querySelector<HTMLElement>("#rvdMeterFill")!.style.width = `${shown}%`;
+    veil.querySelector<HTMLElement>("#rvdMeterEth")!.textContent = `${vault.pendingEth.toFixed(4)} / ${vault.thresholdEth} ETH`;
+    veil.querySelector<HTMLElement>("#rvdMeterSub")!.textContent = vault.canExecute
+      ? "The pool is full. Anyone can fire the buyback; the price is oracle-guarded."
+      : "Fires automatically once the pool reaches the threshold. Anyone can trigger it. At most 30 days between drops.";
+    srLine.textContent = vault.canExecute
+      ? "The pool is full and the next revenue drop can be fired."
+      : `The pool is ${Math.floor(pct)} percent of the way to the next revenue drop.`;
   }
 
-  /* The clock is recomputed from the target timestamp on every tick, so a
-     sleeping laptop or a background tab snaps to the right value the moment
-     it wakes instead of drifting. */
-  setInterval(render, 250);
-  setInterval(refreshStatus, 15_000);
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) { render(); refreshStatus(); }
-  });
-  render();
+  void refresh(true);
+  setInterval(() => void refresh(), 60_000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(true); });
 
   // Deep link: /...#revenue opens the drop dialog directly, so the widget can
   // be pointed at from posts and announcements.

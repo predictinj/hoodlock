@@ -1008,6 +1008,39 @@ app.get("/api/record/:kind/:id", async (req, res) => {
  * earn from the holder pool). A lock whose creation time cannot be verified
  * is left out rather than guessed in. */
 const REV_LOCK_TOKEN = getAddress("0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94");
+const REV_VAULT = cfg.buybackVault && isAddress(cfg.buybackVault) ? getAddress(cfg.buybackVault) : null;
+const REV_MANAGER = cfg.roundManager && isAddress(cfg.roundManager) ? getAddress(cfg.roundManager) : null;
+const REV_VAULT_ABI = [
+  { type: "function", name: "pending", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "threshold", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "canExecute", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
+  { type: "function", name: "readyAt", stateMutability: "view", inputs: [], outputs: [{ type: "uint64" }] },
+];
+const REV_MANAGER_ABI = [
+  { type: "function", name: "undistributed", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "roundCount", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+];
+/** Live buyback-vault state for the page and the widget. Null when the reads
+ *  fail — the UI shows unavailable rather than a made-up meter. */
+async function vaultStatus() {
+  if (!REV_VAULT || !REV_MANAGER) return null;
+  try {
+    const [pending, threshold, canExec, readyAt, undistributed, roundCount] = await Promise.all([
+      pub.readContract({ address: REV_VAULT, abi: REV_VAULT_ABI, functionName: "pending" }),
+      pub.readContract({ address: REV_VAULT, abi: REV_VAULT_ABI, functionName: "threshold" }),
+      pub.readContract({ address: REV_VAULT, abi: REV_VAULT_ABI, functionName: "canExecute" }),
+      pub.readContract({ address: REV_VAULT, abi: REV_VAULT_ABI, functionName: "readyAt" }),
+      pub.readContract({ address: REV_MANAGER, abi: REV_MANAGER_ABI, functionName: "undistributed" }),
+      pub.readContract({ address: REV_MANAGER, abi: REV_MANAGER_ABI, functionName: "roundCount" }),
+    ]);
+    return {
+      address: REV_VAULT, roundManager: REV_MANAGER,
+      pendingEth: Number(pending) / 1e18, thresholdEth: Number(threshold) / 1e18,
+      canExecute: canExec, readyAt: Number(readyAt),
+      undistributedLock: undistributed.toString(), rounds: Number(roundCount),
+    };
+  } catch { return null; }
+}
 const REV_MIN_LOCK_SEC = 7 * 86_400;
 const REV_LOCKS_BY_TOKEN_ABI = [{ type: "function", name: "locksByToken", stateMutability: "view",
   inputs: [{ type: "address" }], outputs: [{ type: "uint256[]" }] }];
@@ -1577,6 +1610,9 @@ app.get("/api/revenue/pool", async (req, res) => {
       next: Math.floor(nextPayout(now) / 1000),
       fees: b.fees, feesByKind: b.feesByKind, affiliateCommission: b.affiliateCommission, pool: b.pool,
       ethUsd: await ethUsd(),
+      // The threshold model's live state: drops fire from the buyback vault,
+      // not from a calendar. The page and the widget read this.
+      vault: await vaultStatus(),
       // Read by the admin console's fee-routing card. Addresses only.
       automation: revenueAuto ? { opsWallet: revenueAuto.opsWallet(), splitter: revenueAuto.splitter() } : null,
     };
@@ -1975,7 +2011,7 @@ const VIEW_META = {
   },
   revenue: {
     title: "$LOCK revenue share: 50% of HoodLock fees, paid weekly | HoodLock",
-    desc: "Lock $LOCK for 7 days or more and receive half of HoodLock's platform fee revenue, split by locked amount. Snapshot every Saturday 21:30 CET, paid as a claimable airdrop on Robinhood Chain.",
+    desc: "Lock $LOCK for 7 days or more and receive half of HoodLock's platform fee revenue, split by locked amount. Drops fire automatically whenever the pool reaches 0.02 ETH, paid as claimable rounds on Robinhood Chain.",
     heading: "$LOCK revenue share",
   },
 };
