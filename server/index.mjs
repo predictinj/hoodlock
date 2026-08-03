@@ -936,6 +936,65 @@ const proofCache = new Map(); // "kind:id" -> { at, meta }
 /* A record that genuinely doesn't exist, as distinct from a read that failed.
    Only the first may 404 — 404ing a real proof page because the RPC blipped
    would tell Google to drop a page that exists. */
+/* ---------- cached raw record reads ----------
+ *
+ * The public Robinhood RPC rate-limits per IP, and every visitor's browser
+ * reads records directly from it. When a visitor's IP runs dry the app falls
+ * back to this endpoint: one server-side read, cached a minute, shared by
+ * everyone. Discipline that matters here: 404 is a VERIFIED absence (the id
+ * is beyond the contract's own counter), a failed read is 503 — a rate limit
+ * must never masquerade as "this lock does not exist". */
+const recordCache = new Map();
+app.get("/api/record/:kind/:id", async (req, res) => {
+  const { kind, id } = req.params;
+  if (!["lock", "burn", "vesting"].includes(kind) || !/^\d{1,9}$/.test(id)) return res.status(400).json({ error: "bad request" });
+  const key = `${kind}:${id}`;
+  const hit = recordCache.get(key);
+  if (hit && Date.now() - hit.at < 60_000) {
+    res.set("Cache-Control", "public, max-age=30");
+    return hit.notFound ? res.status(404).json({ error: "no such record" }) : res.json(hit.body);
+  }
+  try {
+    let body = null, notFound = false;
+    const n = BigInt(id);
+    if (kind === "lock") {
+      const total = await pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "totalLocks" });
+      if (n >= total) notFound = true;
+      else {
+        const [owner, token, amount, unlockTime, withdrawn] = await pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "locks", args: [n] });
+        body = { owner, token, amount: amount.toString(), unlockTime: Number(unlockTime), withdrawn };
+      }
+    } else if (kind === "burn") {
+      if (!BURNER) notFound = true;
+      else {
+        const total = await pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "totalBurns" });
+        if (n >= total) notFound = true;
+        else {
+          const b = await pub.readContract({ address: BURNER, abi: BURNER_READ_ABI, functionName: "getBurn", args: [n] });
+          body = { burner: b.burner, token: b.token, amount: b.amount.toString(), timestamp: Number(b.timestamp) };
+        }
+      }
+    } else {
+      if (!VESTING) notFound = true;
+      else {
+        const total = await pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "totalSchedules" });
+        if (n >= total) notFound = true;
+        else {
+          const v = await pub.readContract({ address: VESTING, abi: VESTING_READ_ABI, functionName: "getSchedule", args: [n] });
+          body = { creator: v.creator, beneficiary: v.beneficiary, token: v.token, total: v.total.toString(),
+            claimed: v.claimed.toString(), start: Number(v.start), cliff: Number(v.cliff), end: Number(v.end) };
+        }
+      }
+    }
+    if (recordCache.size > 5000) recordCache.clear();   // tiny records; crude eviction is fine
+    recordCache.set(key, { at: Date.now(), notFound, body });
+    res.set("Cache-Control", "public, max-age=30");
+    return notFound ? res.status(404).json({ error: "no such record" }) : res.json(body);
+  } catch {
+    return res.status(503).json({ error: "chain unreachable" });
+  }
+});
+
 const NOT_FOUND = Symbol("not-found");
 
 async function proofMeta(kind, id) {

@@ -764,9 +764,26 @@ $("lockBtn").addEventListener("click", async () => {
 
 /* ---------- lock reads + event cache ---------- */
 type LockRow = { id: number; owner: string; token: string; amount: bigint; unlockTime: number; withdrawn: boolean };
+/* The public RPC rate-limits per visitor IP. When a direct read fails, the
+ * server's cached record endpoint answers instead — and it is the only party
+ * allowed to say "not found" (verified against the contract's own counter).
+ * A network failure surfaces as an error, never as a missing record. */
+class RecordNotFound extends Error {}
+async function recordFallback(kind: "lock" | "burn" | "vesting", id: number): Promise<any> {
+  const r = await fetch(`/api/record/${kind}/${id}`);
+  if (r.status === 404) throw new RecordNotFound(`${kind} ${id}`);
+  if (!r.ok) throw new Error("chain unreachable");
+  return r.json();
+}
 async function readLock(id: number): Promise<LockRow> {
-  const l: any = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "getLock", args: [BigInt(id)] });
-  return { id, owner: getAddress(l.owner), token: getAddress(l.token), amount: l.amount as bigint, unlockTime: Number(l.unlockTime), withdrawn: l.withdrawn };
+  try {
+    const l: any = await pub.readContract({ address: LOCKER, abi: LOCKER_ABI as any, functionName: "getLock", args: [BigInt(id)] });
+    return { id, owner: getAddress(l.owner), token: getAddress(l.token), amount: l.amount as bigint, unlockTime: Number(l.unlockTime), withdrawn: l.withdrawn };
+  } catch (e) {
+    if (e instanceof RecordNotFound) throw e;
+    const r = await recordFallback("lock", id);
+    return { id, owner: getAddress(r.owner), token: getAddress(r.token), amount: BigInt(r.amount), unlockTime: Number(r.unlockTime), withdrawn: !!r.withdrawn };
+  }
 }
 const LOCKED_EVENT = { type: "event", name: "Locked", inputs: [
   { name: "id", type: "uint256", indexed: true }, { name: "owner", type: "address", indexed: true },
@@ -873,8 +890,14 @@ async function txForBurn(id: number): Promise<string | null> {
 
 type BurnRow = { id: number; burner: string; token: string; amount: bigint; timestamp: number };
 async function readBurn(id: number): Promise<BurnRow> {
-  const b: any = await pub.readContract({ address: BURNER!, abi: BURNER_ABI as any, functionName: "getBurn", args: [BigInt(id)] });
-  return { id, burner: getAddress(b.burner), token: getAddress(b.token), amount: b.amount as bigint, timestamp: Number(b.timestamp) };
+  try {
+    const b: any = await pub.readContract({ address: BURNER!, abi: BURNER_ABI as any, functionName: "getBurn", args: [BigInt(id)] });
+    return { id, burner: getAddress(b.burner), token: getAddress(b.token), amount: b.amount as bigint, timestamp: Number(b.timestamp) };
+  } catch (e) {
+    if (e instanceof RecordNotFound) throw e;
+    const r = await recordFallback("burn", id);
+    return { id, burner: getAddress(r.burner), token: getAddress(r.token), amount: BigInt(r.amount), timestamp: Number(r.timestamp) };
+  }
 }
 // the dead address the burner sends tokens to (read once from the contract)
 let deadAddrCache: string | null = null;
@@ -1584,7 +1607,9 @@ async function showLockProof(id: number, push = true) {
   const box = $("proofBox");
   box.innerHTML = `<div class="empty"><div class="small">Loading lock #${id}… <span class="spin"></span></div></div>`;
   let l: LockRow;
-  try { l = await readLock(id); } catch { box.innerHTML = `<div class="empty"><div class="big">Lock #${id} not found</div><div class="small">Nothing at this id on Robinhood Chain.</div></div>`; return; }
+  try { l = await readLock(id); } catch (e) { box.innerHTML = e instanceof RecordNotFound
+      ? `<div class="empty"><div class="big">Lock #${id} not found</div><div class="small">Nothing at this id on Robinhood Chain.</div></div>`
+      : `<div class="empty"><div class="big">Couldn't reach Robinhood Chain</div><div class="small">The network is busy right now. Nothing is wrong with this lock.</div><button class="btn btn-line btn-sm" style="margin-top:12px" data-proofretry="lock:${id}">Try again</button></div>`; return; }
   const m = await tokMeta(l.token);
   const tx = await txForLock(id);
   const now = Math.floor(Date.now() / 1000);
@@ -1632,7 +1657,9 @@ async function showBurnProof(id: number, push = true) {
   try {
     b = await readBurn(id);
     if (!b.timestamp) throw new Error("empty");   // getBurn returns zeros for unknown ids
-  } catch { box.innerHTML = `<div class="empty"><div class="big">Burn #${id} not found</div><div class="small">Nothing at this id on Robinhood Chain.</div></div>`; return; }
+  } catch (e) { box.innerHTML = e instanceof RecordNotFound
+      ? `<div class="empty"><div class="big">Burn #${id} not found</div><div class="small">Nothing at this id on Robinhood Chain.</div></div>`
+      : `<div class="empty"><div class="big">Couldn't reach Robinhood Chain</div><div class="small">The network is busy right now. Nothing is wrong with this burn.</div><button class="btn btn-line btn-sm" style="margin-top:12px" data-proofretry="burn:${id}">Try again</button></div>`; return; }
   const m2 = await tokMeta(b.token);
   const tx = await txForBurn(id);
   const pct = await supplyPct(b.token, b.amount);
@@ -2802,9 +2829,16 @@ $("afCreate").addEventListener("click", async () => {
 type VestRow = { id: number; creator: string; beneficiary: string; token: string; total: bigint; claimed: bigint; start: number; cliff: number; end: number };
 
 async function readVest(id: number): Promise<VestRow> {
-  const s: any = await pub.readContract({ address: VESTING!, abi: VESTING_ABI as any, functionName: "getSchedule", args: [BigInt(id)] });
-  return { id, creator: getAddress(s.creator), beneficiary: getAddress(s.beneficiary), token: getAddress(s.token),
-    total: s.total as bigint, claimed: s.claimed as bigint, start: Number(s.start), cliff: Number(s.cliff), end: Number(s.end) };
+  try {
+    const s: any = await pub.readContract({ address: VESTING!, abi: VESTING_ABI as any, functionName: "getSchedule", args: [BigInt(id)] });
+    return { id, creator: getAddress(s.creator), beneficiary: getAddress(s.beneficiary), token: getAddress(s.token),
+      total: s.total as bigint, claimed: s.claimed as bigint, start: Number(s.start), cliff: Number(s.cliff), end: Number(s.end) };
+  } catch (e) {
+    if (e instanceof RecordNotFound) throw e;
+    const r = await recordFallback("vesting", id);
+    return { id, creator: getAddress(r.creator), beneficiary: getAddress(r.beneficiary), token: getAddress(r.token),
+      total: BigInt(r.total), claimed: BigInt(r.claimed), start: Number(r.start), cliff: Number(r.cliff), end: Number(r.end) };
+  }
 }
 /** Linear curve — mirrors the contract exactly (cliff-gated, exact sweep at end). */
 function vestedAt(v: { total: bigint; start: number; cliff: number; end: number }, t: number): bigint {
@@ -3309,7 +3343,9 @@ async function showVestingProof(id: number, push = true) {
   try {
     v = await readVest(id);
     if (v.total === 0n) throw new Error("empty");
-  } catch { box.innerHTML = `<div class="empty"><div class="big">Vesting #${id} not found</div><div class="small">Nothing at this id on Robinhood Chain.</div></div>`; return; }
+  } catch (e) { box.innerHTML = e instanceof RecordNotFound
+      ? `<div class="empty"><div class="big">Vesting #${id} not found</div><div class="small">Nothing at this id on Robinhood Chain.</div></div>`
+      : `<div class="empty"><div class="big">Couldn't reach Robinhood Chain</div><div class="small">The network is busy right now. Nothing is wrong with this vesting.</div><button class="btn btn-line btn-sm" style="margin-top:12px" data-proofretry="vesting:${id}">Try again</button></div>`; return; }
   const m = await tokMeta(v.token);
   const info = await vestCreationInfo(id);
   const now = Math.floor(Date.now() / 1000);
@@ -4204,6 +4240,16 @@ function revSimRender() {
   $("rvSimYouD").textContent = youP.extra || " ";
   $("rvSimNote").textContent = `Assumes ${n} locks per day at the live ${feeEth} ETH lock fee, before affiliate payouts. $LOCK amounts use the current market price. A projection, not a promise.`;
 }
+
+/* Retry buttons on the proof error states re-run the same loader. */
+document.addEventListener("click", (e) => {
+  const b = (e.target as HTMLElement).closest?.("[data-proofretry]") as HTMLElement | null;
+  if (!b?.dataset.proofretry) return;
+  const [kind, id] = b.dataset.proofretry.split(":");
+  if (kind === "lock") void showLockProof(Number(id), false);
+  else if (kind === "burn") void showBurnProof(Number(id), false);
+  else void showVestingProof(Number(id), false);
+});
 
 /* ---------- boot ---------- */
 restoreConnection();
