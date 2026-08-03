@@ -2406,16 +2406,17 @@ async function loadAdminSplit() {
   const card = document.getElementById("adSplitCard"), box = document.getElementById("adSplitBox");
   if (!card || !box) return;
   try {
-    const r = await (await fetch("/api/revenue/pool")).json();
-    const auto = r?.automation;
-    if (!auto?.opsWallet) { card.style.display = "none"; return; }
+    /**
+     * The splitter is the DEPLOYED one from config, not the one the server's
+     * automation reports. Those are two different contracts: the automation
+     * splitter pays an EOA on its ops side, the deployed one pays the buyback
+     * vault. Routing fees at the wrong one sends half the revenue to a wallet
+     * instead of to $LOCK lockers, and RevenueSplitter payees are immutable, so
+     * it is not a mistake that can be corrected in place.
+     */
+    if (!(cfg as any).revenueSplitter) { card.style.display = "none"; return; }
+    const splitter = getAddress((cfg as any).revenueSplitter) as `0x${string}`;
     card.style.display = "";
-    if (!auto.splitter) {
-      box.innerHTML = `<div class="empty"><div class="small">The splitter deploys itself as soon as the drop wallet holds gas.
-        Send ~0.01 ETH to <span class="mono">${escape(auto.opsWallet)}</span> and check back in a few minutes.</div></div>`;
-      return;
-    }
-    const splitter = getAddress(auto.splitter) as `0x${string}`;
     const targets: [string, `0x${string}` | null][] = [["Locker", LOCKER], ["Burner", BURNER], ["Vesting", VESTING], ["Airdrop", AIRDROP]];
     const states = await Promise.all(targets.map(async ([name, addr]) => {
       if (!addr) return null;
@@ -2426,26 +2427,64 @@ async function loadAdminSplit() {
       return { name, addr, routed: !!col && col.toLowerCase() === splitter.toLowerCase(),
         foreignAdmin: !!adm && adm.toLowerCase() !== ADMIN_WALLET };
     }));
+    const live = states.filter((s): s is NonNullable<typeof s> => !!s);
+    // Every product this wallet can actually point at the splitter right now.
+    const pending = live.filter((s) => !s.routed && !s.foreignAdmin);
     const balSp = await pub.getBalance({ address: splitter }).catch(() => 0n);
-    box.innerHTML = states.filter((s): s is NonNullable<typeof s> => !!s).map((s) => `
+    box.innerHTML = live.map((s) => `
       <div class="rv-sim-row" style="margin-bottom:8px"><span class="rv-sim-label">${s.name} fees</span>
         ${s.routed ? `<span class="status locked"><i></i>ROUTED 50/50</span>`
         : s.foreignAdmin ? `<a class="btn btn-neon btn-sm" href="/app/fixlocker">Fix with the old wallet</a>`
         : `<button class="btn btn-neon btn-sm" data-adroute="${s.addr}">Route via splitter</button>`}</div>`).join("")
+      + (pending.length > 1 ? `<button class="btn btn-neon" id="adRouteAll" style="width:100%;margin-top:6px">
+           Route all ${pending.length} via splitter</button>
+         <div class="hintline" style="margin-top:6px">${pending.length} wallet confirmations, one after another.</div>` : "")
       + `<div class="hintline" style="margin-top:10px">Splitter <span class="mono">${short(splitter)}</span> · holding ${Number(formatUnits(balSp, 18)).toFixed(5)} ETH
          ${balSp > 0n ? `<button class="btn btn-line btn-sm" id="adSplitRelease" style="margin-left:10px">Release 50/50 now</button>` : ""}</div>`;
     const msg = $("adSplitMsg");
+
+    const routeOne = async (addr: `0x${string}`) => {
+      const h = await send(addr, encodeFunctionData({ abi: FEECOL_ABI, functionName: "setFeeCollector", args: [splitter] }));
+      await waitTx(h);
+    };
+
     box.querySelectorAll<HTMLButtonElement>("[data-adroute]").forEach((b) => b.addEventListener("click", async () => {
       try {
         b.disabled = true;
         msg.style.display = "block"; msg.className = "msg"; msg.textContent = "Confirm in wallet…";
-        const h = await send(b.dataset.adroute as `0x${string}`, encodeFunctionData({ abi: FEECOL_ABI, functionName: "setFeeCollector", args: [splitter] }));
-        msg.innerHTML = `Routing… <span class="spin"></span>`;
-        await waitTx(h);
+        await routeOne(b.dataset.adroute as `0x${string}`);
         msg.className = "msg ok"; msg.textContent = "Routed ✓";
         loadAdminSplit();
       } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); b.disabled = false; }
     }));
+
+    /**
+     * One button, but still one signature per contract: each product stores its
+     * own collector and there is no batching contract to route through. It stops
+     * at the first failure rather than pushing on, so a rejected signature
+     * halfway through leaves a state the panel can show honestly on reload.
+     */
+    document.getElementById("adRouteAll")?.addEventListener("click", async () => {
+      const btn = document.getElementById("adRouteAll") as HTMLButtonElement;
+      btn.disabled = true;
+      msg.style.display = "block";
+      let done = 0;
+      for (const s of pending) {
+        try {
+          msg.className = "msg";
+          msg.innerHTML = `${s.name}: confirm in wallet (${done + 1} of ${pending.length})… <span class="spin"></span>`;
+          await routeOne(s.addr as `0x${string}`);
+          done++;
+        } catch (e: any) {
+          msg.className = "msg bad";
+          msg.textContent = `Stopped at ${s.name} after routing ${done} of ${pending.length}. ${friendlyErr(e)}`;
+          loadAdminSplit();
+          return;
+        }
+      }
+      msg.className = "msg ok"; msg.textContent = `All ${done} routed ✓`;
+      loadAdminSplit();
+    });
     document.getElementById("adSplitRelease")?.addEventListener("click", async () => {
       try {
         msg.style.display = "block"; msg.className = "msg"; msg.textContent = "Confirm in wallet…";

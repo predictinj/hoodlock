@@ -1,1 +1,1 @@
-invariant_ethEqualsAccruedFees|invariant_ethEqualsAccruedFees
+testFuzz_claimNeverExceedsCumulative|testFuzz_thresholdAlwaysWithinBounds|test_quoteAtNegativeTick
