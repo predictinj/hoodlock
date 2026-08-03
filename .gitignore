@@ -18,3 +18,4 @@ contracts/out
 # must never enter this repository, which is public.
 *gsc*.json
 *service-account*.json
+data/revenue-rounds/
