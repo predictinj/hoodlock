@@ -107,7 +107,7 @@ const AIRDROP_ABI = [
     { name: "endTime", type: "uint64", indexed: false }, { name: "uri", type: "string", indexed: false } ] },
 ];
 
-export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBetween, airdrop, locker, vesting, burner, teamWallet, log = console.log }) {
+export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBetween, airdrop, locker, vesting, burner, teamWallet, routedSplitter = null, log = console.log }) {
   const ENABLED = process.env.REVENUE_DROP_ENABLED === "true";
   const DRY = process.env.REVENUE_DRY === "true";
   const MAX_WEEKLY = Number(process.env.REVENUE_MAX_WEEKLY_ETH || 0.25);
@@ -164,7 +164,9 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
    * the address in SQLite, and the admin console reads it from there to offer
    * the owner the four one-click setFeeCollector switches. */
   function splitterAddr() {
-    const v = process.env.REVENUE_SPLITTER || metaGet("splitter");
+    // The actively routed splitter (from config) wins: fees flow THERE, so
+    // that is the one worth poking, whatever this module once deployed.
+    const v = routedSplitter || process.env.REVENUE_SPLITTER || metaGet("splitter");
     return v && /^0x[0-9a-fA-F]{40}$/.test(v) ? getAddress(v) : null;
   }
   let deploying = false;
@@ -527,12 +529,19 @@ export function initRevenueAuto({ pub, chain, transport, getDb, saveList, poolBe
   /* One tick a minute. The run only fires inside the 6 days after a deadline
    * (a drop older than that is stale: better to skip a week loudly than to
    * pay out a surprise late), and everything downstream is idempotent. */
+  /* The poker is plumbing, not policy: pull() and release() can only move
+   * fees along the splitter's fixed rails, so it stays on even when the drop
+   * robot is disabled. Without it, fees sit in the splitter until a human
+   * remembers — which is exactly what happened to lock #28's fee. */
+  const POKE = process.env.REVENUE_POKE_ENABLED !== "false";
+  if (account && POKE && !DRY) log("[revenue] splitter poker ON (pull + release every ~10 min when there is something to move)");
   let lastDeployCheck = 0, lastHarvest = 0;
   setInterval(() => {
-    if (!ENABLED || !account) return;
+    if (!account) return;
     const now = Date.now();
+    if (POKE && !DRY && !running && now - lastHarvest > 10 * 60_000) { lastHarvest = now; void harvest(); }
+    if (!ENABLED) return;
     if (now - lastDeployCheck > 5 * 60_000) { lastDeployCheck = now; void ensureSplitter(); }
-    if (!DRY && !running && now - lastHarvest > 10 * 60_000) { lastHarvest = now; void harvest(); }
     const prev = previousPayout(now);
     if (prev && now - prev < 6 * 86_400_000) {
       const st = row(Math.floor(prev / 1000))?.status;

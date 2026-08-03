@@ -1637,6 +1637,7 @@ const revenueAuto = AIRDROP ? initRevenueAuto({
   poolBetween: async (s, u) => (await poolBetween(s, u)).pool,
   airdrop: AIRDROP, locker: LOCKER, vesting: VESTING, burner: BURNER,
   teamWallet: ADMIN,
+  routedSplitter: cfg.revenueSplitter || null,
   log: (m) => console.log("[hoodlock]", m),
 }) : null;
 
