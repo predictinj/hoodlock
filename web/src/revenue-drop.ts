@@ -341,7 +341,7 @@ export function initRevenueDrop() {
     veil.querySelector<HTMLElement>("#rvdMeterEth")!.textContent = `${vault.pendingEth.toFixed(4)} / ${vault.thresholdEth} ETH`;
     veil.querySelector<HTMLElement>("#rvdMeterSub")!.textContent = vault.canExecute
       ? "The pool is full. Anyone can fire the buyback; the price is oracle-guarded."
-      : "Fires automatically once the pool reaches the threshold. Anyone can trigger it. At most 30 days between drops.";
+      : "Fires automatically once the pool reaches the threshold. Anyone can trigger it.";
     srLine.textContent = vault.canExecute
       ? "The pool is full and the next revenue drop can be fired."
       : `The pool is ${Math.floor(pct)} percent of the way to the next revenue drop.`;

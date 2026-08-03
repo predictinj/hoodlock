@@ -4086,7 +4086,7 @@ function revRenderPool() {
     $("rvMeterEth").textContent = `${vault.pendingEth.toFixed(4)} / ${vault.thresholdEth} ETH`;
     $("rvMeterSub").textContent = vault.canExecute
       ? "The pool is full. Anyone can fire the buyback; the price is oracle-guarded."
-      : "Fires automatically once the pool reaches the threshold. Anyone can trigger it. At most 30 days between drops.";
+      : "Fires automatically once the pool reaches the threshold. Anyone can trigger it.";
     ($("rvTrigger") as HTMLElement).style.display = vault.canExecute ? "" : "none";
     const bought = BigInt(vault.undistributedLock || "0");
     const boughtEl = $("rvBought");
