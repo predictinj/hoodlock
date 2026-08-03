@@ -4073,7 +4073,7 @@ async function revTriggerDrop() {
 
 function revRenderPool() {
   const vault = (revPool as any)?.vault as { pendingEth: number; thresholdEth: number; canExecute: boolean; undistributedLock: string; address: string } | null;
-  if (!revPool) { $("rvPoolV").textContent = "Unavailable"; $("rvMeterPct").textContent = "--"; return; }
+  if (!revPool) { $("rvPoolV").textContent = "Unavailable"; return; }
   // The vault balance IS the pool now; the fee math stays as fallback only.
   const poolEth = vault ? vault.pendingEth : revPool.pool;
   const p = revPayoutParts(poolEth);
@@ -4081,7 +4081,6 @@ function revRenderPool() {
   $("rvPoolD").textContent = `${p.extra ? p.extra + " · " : ""}on-chain in the buyback vault`;
   if (vault) {
     const pct = vault.thresholdEth > 0 ? Math.min(100, (vault.pendingEth / vault.thresholdEth) * 100) : 0;
-    $("rvMeterPct").textContent = vault.canExecute ? "READY" : `${pct < 1 && vault.pendingEth > 0 ? "<1" : Math.floor(pct)}%`;
     ($("rvMeterFill") as HTMLElement).style.width = `${vault.canExecute ? 100 : pct}%`;
     $("rvMeterEth").textContent = `${vault.pendingEth.toFixed(4)} / ${vault.thresholdEth} ETH`;
     $("rvMeterSub").textContent = vault.canExecute
@@ -4093,7 +4092,6 @@ function revRenderPool() {
     if (bought > 0n) { boughtEl.style.display = ""; boughtEl.textContent = `${fmtNum(bought, 18)} $LOCK already bought, opening as a claim round shortly.`; }
     else boughtEl.style.display = "none";
   } else {
-    $("rvMeterPct").textContent = "--";
     $("rvMeterEth").textContent = "";
   }
   // One click to the vault on the explorer: the pool balance and every
