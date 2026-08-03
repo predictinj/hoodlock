@@ -18,9 +18,9 @@ pragma solidity 0.8.24;
  *        cumulative distributor lets whoever sets the root reassign anything
  *        still unclaimed, and no amount of accounting prevents that, because
  *        reallocation does not change the total. What prevents it is TIME: a
- *        new root only becomes claimable after ROOT_DELAY, and the previous
- *        root stays claimable throughout, so every honest holder has a full
- *        window to take what they are owed before any new root can pay anyone.
+ *        new root only becomes claimable after ROOT_DELAY (1 hour), and the
+ *        previous root stays claimable throughout, so holders and monitors have
+ *        a window to act before any new root can pay anyone.
  *  - H2  A root that lowers somebody's cumulative below what they already
  *        claimed is a clean no-op, never an underflow that locks them out of
  *        all future rounds.
@@ -54,10 +54,18 @@ contract LockDistributor {
     uint256 public totalClaimed;
     uint256 public roundId;
 
-    /// Long enough that a stolen key cannot pay itself before holders react,
-    /// short enough that an honest round is not annoying. Immutable: a keeper
-    /// who could shorten this could bypass the protection it exists to give.
-    uint64 public constant ROOT_DELAY = 48 hours;
+    /// The window in which a proposed root cannot pay anyone, while the
+    /// previous root still can. Owner decision 2026-08-03: one hour.
+    ///
+    /// This is a deliberate trade, not an oversight. The protection is that
+    /// honest holders can claim under the old root before a hostile new one
+    /// goes live, and an hour is realistically long enough for a monitor to
+    /// react but not for most humans. It is proportionate while a round is
+    /// worth a few hundred dollars in total. **Revisit if the pot grows by
+    /// orders of magnitude**, which means redeploying: a keeper able to
+    /// shorten this could bypass the only thing between them and the funds,
+    /// so it stays a constant.
+    uint64 public constant ROOT_DELAY = 1 hours;
 
     mapping(address => uint256) public claimed;
 

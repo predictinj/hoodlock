@@ -213,7 +213,7 @@ contract RevenueShareTest is Test {
         vm.prank(keeper);
         dist.setRoot(root, 200e18);
         assertEq(dist.totalObligations(), 0, "not live until activated");
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
         assertEq(dist.totalObligations(), 200e18);
         assertEq(dist.roundId(), 1);
@@ -225,7 +225,7 @@ contract RevenueShareTest is Test {
         bytes32 root = _pair(_leaf(alice, 100e18), _leaf(bob, 100e18));
         vm.prank(keeper);
         dist.setRoot(root, 200e18);
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
         vm.prank(keeper);
         vm.expectRevert(LockDistributor.ObligationsDecreased.selector);
@@ -246,7 +246,7 @@ contract RevenueShareTest is Test {
         bytes32 lb = _leaf(bob, bAmt);
         vm.prank(keeper);
         dist.setRoot(_pair(la, lb), aAmt + bAmt);
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
         pa = new bytes32[](1); pa[0] = lb;
         pb = new bytes32[](1); pb[0] = la;
@@ -284,7 +284,7 @@ contract RevenueShareTest is Test {
         bytes32 lb2 = _leaf(bob, 90e18);
         vm.prank(keeper);
         dist.setRoot(_pair(la2, lb2), 250e18);
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
 
         bytes32[] memory pa2 = new bytes32[](1); pa2[0] = lb2;
@@ -303,7 +303,7 @@ contract RevenueShareTest is Test {
         bytes32 lb2 = _leaf(bob, 210e18);
         vm.prank(keeper);
         dist.setRoot(_pair(la2, lb2), 250e18);
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
 
         bytes32[] memory pa2 = new bytes32[](1); pa2[0] = lb2;
@@ -316,7 +316,7 @@ contract RevenueShareTest is Test {
         bytes32 lb3 = _leaf(bob, 50e18);
         vm.prank(keeper);
         dist.setRoot(_pair(la3, lb3), 350e18);
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
         bytes32[] memory pa3 = new bytes32[](1); pa3[0] = lb3;
         dist.claim(alice, 300e18, pa3);
@@ -357,7 +357,7 @@ contract RevenueShareTest is Test {
         bytes32 lb = _leaf(bob, bought - half);
         vm.prank(keeper);
         dist.setRoot(_pair(la, lb), bought);
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
 
         bytes32[] memory pa = new bytes32[](1); pa[0] = lb;
@@ -377,7 +377,7 @@ contract RevenueShareTest is Test {
         bytes32 lb = _leaf(bob, 100e18);
         vm.prank(keeper);
         dist.setRoot(_pair(la, lb), 200e18);
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
 
         // Key stolen. Same total, all of it reassigned to the attacker.
@@ -404,7 +404,7 @@ contract RevenueShareTest is Test {
         assertEq(lock.balanceOf(bob), 100e18);
 
         // When the bad root finally matures there is nothing left to take.
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
         vm.expectRevert();
         dist.claim(rando, 200e18, pe);
@@ -416,10 +416,10 @@ contract RevenueShareTest is Test {
         bytes32 r = _pair(_leaf(alice, 100e18), _leaf(bob, 0));
         vm.prank(keeper);
         dist.setRoot(r, 100e18);
-        vm.warp(block.timestamp + 47 hours);
+        vm.warp(block.timestamp + 59 minutes);
         vm.expectRevert();
         dist.activateRoot();
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 1 minutes + 1);
         dist.activateRoot();
         assertEq(dist.totalObligations(), 100e18);
     }
@@ -551,7 +551,7 @@ contract RevenueShareTest is Test {
 
         vm.prank(keeper);
         dist.setRoot(rootHash, total);
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
 
         // Claim for leaf index 5: siblings are leaf 4, l1[3], l2[0].
@@ -578,7 +578,7 @@ contract RevenueShareTest is Test {
         dist.setRoot(r, 100e18);
         uint64 firstActiveAt = dist.pendingActiveAt();
 
-        vm.warp(block.timestamp + 47 hours);
+        vm.warp(block.timestamp + 59 minutes);
         vm.prank(keeper);
         dist.setRoot(r, 100e18);           // re-propose, clock restarts
         assertGt(dist.pendingActiveAt(), firstActiveAt, "delay restarts");
@@ -634,7 +634,7 @@ contract RevenueShareTest is Test {
         bytes32 lb = _leaf(bob, bb);
         vm.prank(keeper);
         dist.setRoot(_pair(la, lb), aa + bb);
-        vm.warp(block.timestamp + 48 hours);
+        vm.warp(block.timestamp + 1 hours);
         dist.activateRoot();
 
         bytes32[] memory pa = new bytes32[](1); pa[0] = lb;

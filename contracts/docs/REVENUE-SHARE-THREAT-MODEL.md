@@ -277,7 +277,7 @@ attacker took: 200000000000000000000
 allocation; that is the job. What closes it is time.
 
 *Now binding:* `setRoot` only proposes. `activateRoot()` promotes it after
-`ROOT_DELAY = 48 hours`, is permissionless, and cannot be rushed. **The previous
+`ROOT_DELAY`, is permissionless, and cannot be rushed. **The previous
 root keeps paying for the whole window**, so every honest holder can claim what
 they are owed before any new root pays anyone. A stolen key can at worst take
 what nobody claimed in two days, and the proposal is a public event the moment
@@ -396,3 +396,30 @@ That last one is worth remembering generally: any call between `vm.prank` and
 the call under test silently redirects the sender.
 
 Suite now **42 tests**, 118 repo-wide.
+
+---
+
+## ROOT_DELAY set to 1 hour (owner decision, 2026-08-03)
+
+Was 48 hours. Now 1.
+
+**What the delay buys** is the window in which a hostile root cannot pay anyone
+while the honest one still can. At 48 hours that window covered ordinary humans
+noticing and claiming. At 1 hour it realistically covers **a monitor, not a
+person**: almost nobody claims within an hour of a proposal they never saw.
+
+**Why it is still reasonable today.** The whole pot is a few hundred dollars and
+a round pays ~$0.47 per locker. The maximum loss from a stolen keeper key is
+whatever is unclaimed after one hour, and one hour of exposure on that sum is a
+sensible price for rewards arriving the same day rather than two days later.
+
+**When it stops being reasonable.** If the pot grows by orders of magnitude, an
+hour is not long enough for anyone to react and C1's mitigation becomes largely
+nominal. `ROOT_DELAY` is a constant, so revisiting it means **redeploying the
+distributor** and migrating unclaimed balances. That is the cost of the
+protection it provides: a keeper who could shorten the delay could bypass the
+only thing between them and the funds.
+
+**Worth pairing with this:** an alert on the `RootProposed` event. It fires the
+moment a root is proposed and carries the new total. With a one-hour window, an
+alert is what converts the delay from a formality into an actual defence.
