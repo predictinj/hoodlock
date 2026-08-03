@@ -766,8 +766,8 @@
       </section>
       <section class="view" id="view-revenue">
         <div class="page-head">
-          <div><h1>Hold $LOCK, earn the <span class="serif">fees.</span></h1>
-            <p>Half of HoodLock's platform revenue is bought back as $LOCK and dropped to holders every Saturday. Hold the token, claim your share.</p></div>
+          <div><h1>Lock $LOCK, earn the <span class="serif">fees.</span></h1>
+            <p>Half of HoodLock's platform revenue is bought back as $LOCK and dropped every Saturday to wallets that lock $LOCK for 7 days or more. Your share follows how much you have locked.</p></div>
         </div>
 
         <!-- The countdown is the page's heartbeat: everything below is about
@@ -802,7 +802,7 @@
           <input type="range" id="rvSimRange" class="rv-slider" min="5" max="500" step="5" value="360" aria-label="Daily locks on HoodLock" />
           <div class="rv-sim-scale"><span>5 / day</span><span>500 / day</span></div>
           <div class="field" id="rvSimHoldWrap" style="margin-top:14px">
-            <label>Example $LOCK holdings <span class="hint">connect a wallet to use your real balance</span></label>
+            <label>Example locked $LOCK <span class="hint">7 days or more; connect a wallet to use your real locks</span></label>
             <div class="input-wrap"><input type="text" id="rvSimHoldings" value="1,000,000" spellcheck="false" autocomplete="off" inputmode="numeric" /></div>
           </div>
           <div class="tiles" style="margin:16px 0 0">
@@ -817,12 +817,12 @@
           <div class="card-head" style="margin-top:0"><div><h3>How it works</h3><div class="sub">THE WEEKLY CYCLE</div></div></div>
           <ol class="rv-how">
             <li><b>Fees accrue.</b> Every lock, burn, vesting schedule and airdrop pays a platform fee in ETH. Affiliate payouts are deducted first.</li>
-            <li><b>50% is set aside.</b> Half of what remains belongs to $LOCK holders. The pool grows all week and you can watch it on this page.</li>
-            <li><b>Buyback.</b> At Saturday 21:30 CET the pool buys $LOCK on the market, and holders are snapshotted.</li>
-            <li><b>Claim your share.</b> The bought $LOCK is distributed as a Merkle airdrop, split by each wallet's share of circulating supply. Claim it on the Airdrops page.</li>
+            <li><b>50% is set aside.</b> Half of what remains belongs to $LOCK lockers. The pool grows all week and you can watch it on this page.</li>
+            <li><b>Lock to qualify.</b> Lock $LOCK for 7 days or more. At Saturday 21:30 CET every active qualified lock counts; unlocked holdings earn nothing.</li>
+            <li><b>Claim your share.</b> The pool buys $LOCK on the market and distributes it as a Merkle airdrop, split by each wallet's share of all qualified locked $LOCK. Claim it on the Airdrops page.</li>
             <li><b>7 day window.</b> Anything unclaimed after 7 days is swept back to the treasury, so claim before the next drop lands.</li>
           </ol>
-          <div class="hintline" style="margin-top:12px">$LOCK contract: <span class="mono">0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94</span> &middot; circulating supply excludes team-locked tokens.</div>
+          <div class="hintline" style="margin-top:12px">$LOCK contract: <span class="mono">0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94</span> &middot; team locks neither dilute nor earn.</div>
         </div>
       </section>
       <section class="view" id="view-fixlocker">

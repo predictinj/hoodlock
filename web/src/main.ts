@@ -3976,6 +3976,7 @@ type RevPool = { since: number; next: number; fees: number; feesByKind: Record<s
 let revPool: RevPool | null = null;
 let revPoolFailed = false;
 let revCirc: { at: number; circulating: bigint; total: bigint } | null = null;
+let revLockedTotal: bigint | null = null;   // all qualified locked $LOCK, from the server snapshot
 let revShare: number | null = null;   // connected wallet's fraction of circulating
 let revTimer: ReturnType<typeof setInterval> | null = null;
 let revWired = false;
@@ -4045,6 +4046,9 @@ function loadRevenueView() {
     $("rvSimHoldings").addEventListener("input", debounce(() => revSimRender(), 250));
   }
   revLoadPool(); revLoadPosition(); revLoadDrops(); revSimRender();
+  fetch("/api/revenue/snapshot").then((r) => (r.ok ? r.json() : null)).then((j) => {
+    if (j?.totalQualified != null) { revLockedTotal = BigInt(j.totalQualified); revSimRender(); }
+  }).catch(() => { /* the simulator keeps its last denominator */ });
   revLoadLockPrice().then(() => { revRenderPool(); revRenderCut(); revSimRender(); revLoadPosition(); });
 }
 
@@ -4123,6 +4127,7 @@ async function revLockWeights(who: string | null): Promise<RevWeights> {
   await Promise.all(rows.map(async (l) => {
     if (!l || l.withdrawn) return;
     if (l.token.toLowerCase() !== LOCK_TOKEN) return;
+    if (l.owner.toLowerCase() === ADMIN_WALLET) return;    // team locks neither dilute nor earn
     if (l.unlockTime <= now) return;                       // the commitment is over
     const t0 = await lockedAtTs(l.id).catch(() => null);
     if (t0 !== null && l.unlockTime - t0 < REV_MIN_DAYS) return;  // under the 7-day floor
@@ -4136,7 +4141,7 @@ async function revLoadPosition() {
   const box = $("rvPosBox");
   if (!account) {
     revShare = null;
-    box.innerHTML = `<div class="empty"><div class="big">No wallet connected</div><div class="small">Connect to see your $LOCK balance and your share of the weekly pool.</div><button class="btn btn-neon btn-sm" id="rvConnect" style="margin-top:12px">Connect wallet</button></div>`;
+    box.innerHTML = `<div class="empty"><div class="big">No wallet connected</div><div class="small">Connect to see your locked $LOCK and your share of the weekly pool.</div><button class="btn btn-neon btn-sm" id="rvConnect" style="margin-top:12px">Connect wallet</button></div>`;
     document.getElementById("rvConnect")?.addEventListener("click", openWalletModal);
     $("rvSimHoldWrap").style.display = "";
     revRenderCut(); revSimRender();
@@ -4160,7 +4165,8 @@ async function revLoadPosition() {
       <div class="rv-sim-row"><span class="rv-sim-label">Next unlock</span><b>${dateLabel(soonest)}</b></div>` : ""}
       <div class="rv-sim-row" style="margin-bottom:0"><span class="rv-sim-label">Next buyback</span>
         <span class="status ${eligible ? "locked" : "withdrawn"}"><i></i>${eligible ? "ELIGIBLE" : "NOT ELIGIBLE"}</span></div>
-      ${eligible ? "" : `<div class="hintline" style="margin-top:10px">Holding $LOCK earns nothing. Lock it for 7 days or more to join the next distribution.</div>`}`;
+      ${eligible ? "" : `<div class="hintline" style="margin-top:10px">Holding $LOCK earns nothing. Lock it for 7 days or more to join the next distribution.</div>
+        <a class="btn btn-neon btn-sm" href="/app/locks?token=${LOCK_TOKEN}" style="margin-top:10px">Lock $LOCK</a>`}`;
     $("rvSimHoldWrap").style.display = "none";
   } catch {
     revShare = null;
@@ -4234,12 +4240,12 @@ function revSimRender() {
   const weeklyPool = weeklyRev * 0.5;
   let fraction = revShare;
   if (fraction === null) {
-    // Example holdings drive the projection until a wallet is connected.
-    const circ = revCirc?.circulating ?? 1_000_000_000n * 10n ** 18n;
+    // An example lock drives the projection. A new lock joins the pool, so
+    // the honest share is example / (all qualified locked + the example).
+    const totalHuman = revLockedTotal !== null ? Number(formatUnits(revLockedTotal, 18)) : 0;
     const raw = ($("rvSimHoldings") as HTMLInputElement).value || "";
-    const hold = Math.max(0, Number(raw.replace(/[,\s_]/g, "")) || 0);
-    const circNum = Number(formatUnits(circ, 18));
-    fraction = circNum > 0 ? Math.min(1, hold / circNum) : 0;
+    const ex = Math.max(0, Number(raw.replace(/[,\s_]/g, "")) || 0);
+    fraction = ex > 0 ? ex / (totalHuman + ex) : 0;
   }
   const you = weeklyPool * fraction;
   $("rvSimRev").textContent = revEth(weeklyRev);
@@ -4263,6 +4269,12 @@ document.addEventListener("click", (e) => {
 });
 
 /* ---------- boot ---------- */
+/* /app/locks?token=0x... prefills the lock form (the revenue page's CTA). */
+try {
+  const qTok = new URLSearchParams(location.search).get("token");
+  if (qTok && isAddress(qTok)) { ($("tokenAddr") as HTMLInputElement).value = getAddress(qTok); void refreshToken(); }
+} catch { /* optional nicety */ }
+
 restoreConnection();
 const _refParam = new URLSearchParams(location.search).get("ref");
 if (_refParam && /^[A-Za-z0-9_-]{3,32}$/.test(_refParam)) { try { localStorage.setItem("hl_ref", _refParam); } catch { /* */ } }

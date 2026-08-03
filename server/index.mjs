@@ -995,6 +995,71 @@ app.get("/api/record/:kind/:id", async (req, res) => {
   }
 });
 
+/* ---------- lock-based revenue eligibility ----------
+ *
+ * Owner rule (2026-08-03): revenue share belongs to wallets that LOCK $LOCK
+ * with a chosen duration of 7 days or more. Share follows locked amount.
+ * This endpoint is the canonical snapshot: the page reads it to show
+ * eligibility, and whoever funds the weekly drop should build the recipient
+ * list from it, so what the site promises and what gets paid can never
+ * diverge. Qualification is verified per lock: still active, at least 7 days
+ * between the lock's creation (from its Locked event) and its unlock time,
+ * and team locks are excluded (owner decision: the team does not dilute or
+ * earn from the holder pool). A lock whose creation time cannot be verified
+ * is left out rather than guessed in. */
+const REV_LOCK_TOKEN = getAddress("0xd5BF43f29BF7Aa5bb42Ae9e217b84B86EB7a4B94");
+const REV_MIN_LOCK_SEC = 7 * 86_400;
+const REV_LOCKS_BY_TOKEN_ABI = [{ type: "function", name: "locksByToken", stateMutability: "view",
+  inputs: [{ type: "address" }], outputs: [{ type: "uint256[]" }] }];
+let revSnapCache = { at: 0, body: null };
+async function revenueSnapshot() {
+  if (Date.now() - revSnapCache.at < 60_000 && revSnapCache.body) return revSnapCache.body;
+  const ids = await pub.readContract({ address: LOCKER, abi: REV_LOCKS_BY_TOKEN_ABI, functionName: "locksByToken", args: [REV_LOCK_TOKEN] });
+  const logs = byTopic(await readLogs(String(LOCKER).toLowerCase()), T_LOCKED);
+  const tsById = new Map();
+  for (const l of logs) tsById.set(Number(BigInt(l.topics[1])), l.timestamp ?? null);
+  const now = Math.floor(Date.now() / 1000);
+  const per = new Map();
+  const qualified = [];
+  for (const id of ids) {
+    const [owner, token, amount, unlockTime, withdrawn] = await pub.readContract({ address: LOCKER, abi: LOCKER_READ_ABI, functionName: "locks", args: [id] });
+    if (withdrawn || Number(unlockTime) <= now) continue;
+    if (token.toLowerCase() !== REV_LOCK_TOKEN.toLowerCase()) continue;
+    if (owner.toLowerCase() === ADMIN) continue;
+    let created = tsById.get(Number(id));
+    if (created == null) {
+      const lg = logs.find((l) => Number(BigInt(l.topics[1])) === Number(id));
+      if (lg?.block) created = Number((await pub.getBlock({ blockNumber: BigInt(lg.block) })).timestamp);
+    }
+    if (created == null) continue;
+    const duration = Number(unlockTime) - created;
+    if (duration < REV_MIN_LOCK_SEC) continue;
+    const w = owner.toLowerCase();
+    per.set(w, (per.get(w) ?? 0n) + amount);
+    qualified.push({ id: Number(id), owner: w, amount: amount.toString(), unlockTime: Number(unlockTime), durationDays: Math.floor(duration / 86_400) });
+  }
+  const total = [...per.values()].reduce((s, v) => s + v, 0n);
+  const body = {
+    rule: { token: REV_LOCK_TOKEN, minLockDays: 7, basis: "locked amount; active locks with a chosen duration of 7 days or more; team locks excluded" },
+    at: now,
+    totalQualified: total.toString(),
+    holders: [...per.entries()].map(([wallet, amount]) => ({ wallet, amount: amount.toString() }))
+      .sort((a, b) => (BigInt(b.amount) > BigInt(a.amount) ? 1 : -1)),
+    locks: qualified,
+  };
+  revSnapCache = { at: Date.now(), body };
+  return body;
+}
+app.get("/api/revenue/snapshot", async (req, res) => {
+  if (limited(req, res, 30)) return;
+  try {
+    res.set("Cache-Control", "public, max-age=60");
+    return res.json(await revenueSnapshot());
+  } catch {
+    return res.status(503).json({ error: "chain unreachable" });
+  }
+});
+
 /* Token pricing for rate-limited visitors: the same Uniswap-v3 WETH-pool spot
  * math the client runs (web/src/tvl.ts), computed once here and cached, so a
  * browser whose IP the public RPC has cut off can still price TVL. `pool:
@@ -1910,7 +1975,7 @@ const VIEW_META = {
   },
   revenue: {
     title: "$LOCK revenue share: 50% of HoodLock fees, paid weekly | HoodLock",
-    desc: "Hold $LOCK and receive half of HoodLock's platform fee revenue. Snapshot every Saturday 21:30 CET, paid as a claimable airdrop on Robinhood Chain.",
+    desc: "Lock $LOCK for 7 days or more and receive half of HoodLock's platform fee revenue, split by locked amount. Snapshot every Saturday 21:30 CET, paid as a claimable airdrop on Robinhood Chain.",
     heading: "$LOCK revenue share",
   },
 };

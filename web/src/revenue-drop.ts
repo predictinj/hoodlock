@@ -224,7 +224,7 @@ export function initRevenueDrop() {
       <span class="rvd-txt">
         <span class="rvd-label">WEEKLY REVENUE DROP</span>
         <span class="rvd-count" id="rvdFabCount">&nbsp;</span>
-        <span class="rvd-peek">$LOCK holders receive <b>50%</b> of HoodLock revenue.</span>
+        <span class="rvd-peek">$LOCK lockers receive <b>50%</b> of HoodLock revenue.</span>
       </span>
     </button>
     <button class="rvd-hide" type="button" aria-label="Minimize the revenue drop widget">×</button>`;
@@ -265,8 +265,8 @@ export function initRevenueDrop() {
   <div class="rvd-modal" role="dialog" aria-modal="true" aria-labelledby="rvdTitle" id="rvdModal">
     <button class="rvd-x" type="button" aria-label="Close">×</button>
     <div class="rvd-eyebrow">HOODLOCK · REVENUE DISTRIBUTION</div>
-    <h2 class="rvd-h" id="rvdTitle">Hold $LOCK. <span class="s">Get paid weekly.</span></h2>
-    <p class="rvd-sub">HoodLock distributes <b>50%</b> of its platform revenue to $LOCK holders, every single week.</p>
+    <h2 class="rvd-h" id="rvdTitle">Lock $LOCK. <span class="s">Get paid weekly.</span></h2>
+    <p class="rvd-sub">HoodLock distributes <b>50%</b> of its platform revenue to wallets that lock $LOCK for 7 days or more, every single week.</p>
 
     <section class="rvd-stage">
       <div id="rvdStCount">
@@ -298,11 +298,11 @@ export function initRevenueDrop() {
 
     <div class="rvd-facts">
       <div class="rvd-fact"><div class="v">50%</div><h4>Revenue Share</h4>
-        <p>Half of HoodLock's platform revenue is allocated to $LOCK holders.</p></div>
+        <p>Half of HoodLock's platform revenue is allocated to wallets locking $LOCK.</p></div>
       <div class="rvd-fact"><div class="v">WEEKLY</div><h4>Weekly Distribution</h4>
         <p>Revenue rewards are calculated and distributed every Saturday.</p></div>
-      <div class="rvd-fact"><div class="v">1:1</div><h4>Based on Your Share</h4>
-        <p>Your payout is determined by your proportional share of $LOCK holdings. No locking required.</p></div>
+      <div class="rvd-fact"><div class="v">7D+</div><h4>Based on Your Locked Share</h4>
+        <p>Your payout follows your share of all qualified locked $LOCK. Locks need a duration of 7 days or more.</p></div>
     </div>
 
     <div class="rvd-actions">
@@ -311,10 +311,11 @@ export function initRevenueDrop() {
     </div>
     <div class="rvd-how" id="rvdHow" hidden>
       HoodLock earns fees every time someone locks, burns, vests or airdrops on the platform.
-      <b>Half of that revenue belongs to $LOCK holders.</b> Through the week the pool fills, and
-      every Saturday at 21:30 CET it is split across all $LOCK holders, weighted by how much $LOCK
-      each wallet holds. Holding the token is all it takes; nothing needs to be locked or staked.
-      The countdown above always shows the next distribution.
+      <b>Half of that revenue belongs to wallets that lock $LOCK.</b> Through the week the pool
+      fills, and every Saturday at 21:30 CET it is split across all qualified locks, weighted by
+      how much $LOCK each wallet has locked. A lock qualifies with a chosen duration of 7 days or
+      more; holding unlocked tokens earns nothing. The countdown above always shows the next
+      distribution.
     </div>
   </div>`;
   document.body.appendChild(veil);
