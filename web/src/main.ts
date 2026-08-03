@@ -1086,6 +1086,7 @@ async function lockRowHTML(l: LockRow, mine: boolean, variant: "mine" | "explore
   const acts: string[] = [];
   if (mine && !l.withdrawn && unlocked) acts.push(`<button class="btn btn-neon btn-sm" data-withdraw="${l.id}">Withdraw</button>`);
   if (mine && !l.withdrawn) acts.push(`<button class="btn btn-line btn-sm" data-extend="${l.id}">Extend</button>`);
+  if (mine && !l.withdrawn) acts.push(`<button class="btn btn-line btn-sm" data-lkmove="${l.id}">Move</button>`);
   acts.push(`<button class="btn btn-line btn-sm" data-share="${l.id}">Share</button>`);
   const sym = escape(m.symbol);
   if (variant === "explore") {
@@ -1136,6 +1137,7 @@ function wireActions(container: HTMLElement) {
   container.querySelectorAll<HTMLElement>("[data-proof]").forEach((tr) => tr.addEventListener("click", () => showLockProof(Number(tr.dataset.proof))));
   container.querySelectorAll<HTMLButtonElement>("[data-withdraw]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); withdraw(Number(b.dataset.withdraw)); }));
   container.querySelectorAll<HTMLButtonElement>("[data-extend]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); extend(Number(b.dataset.extend)); }));
+  container.querySelectorAll<HTMLButtonElement>("[data-lkmove]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); openLockMoveModal(Number(b.dataset.lkmove)); }));
   container.querySelectorAll<HTMLButtonElement>("[data-share]").forEach((b) => b.addEventListener("click", async (e) => {
     e.stopPropagation();
     const url = `${location.origin}/proof/lock/${b.dataset.share}`;
@@ -3297,6 +3299,47 @@ function wireVestActions(root: HTMLElement) {
   // anywhere else silently did nothing.
   root.querySelectorAll<HTMLElement>("[data-proofvest]").forEach((tr) =>
     tr.addEventListener("click", () => showVestingProof(Number(tr.dataset.proofvest))));
+}
+
+/* lock move modal — same fix as vesting's Move, for locks. The classic
+   support case: someone locked from the wrong wallet. transferLockOwnership
+   is owner-gated on chain, so the wallet that locked signs the move and the
+   tokens never leave the vault. */
+let lkMoveId = -1;
+async function openLockMoveModal(id: number) {
+  lkMoveId = id;
+  ($("lkMoveAddr") as HTMLInputElement).value = "";
+  const msg = $("lkMoveMsg"); msg.textContent = ""; msg.className = "msg";
+  $("lkMoveCurrent").innerHTML = `Lock <b>#${id}</b> — loading…`;
+  $("lkMoveModal").classList.add("show");
+  try {
+    const l = await readLock(id);
+    const m = await tokMeta(l.token);
+    $("lkMoveCurrent").innerHTML = `Lock <b>#${id}</b> · <b>${fmtNum(l.amount, m.decimals)} $${escape(m.symbol)}</b> locked until <b>${dateLabel(l.unlockTime)}</b>, currently owned by <b>${short(l.owner)}</b>. Pick the wallet that should own it from now on.`;
+  } catch { $("lkMoveCurrent").innerHTML = `Lock <b>#${id}</b>`; }
+}
+function closeLockMoveModal() { $("lkMoveModal").classList.remove("show"); }
+if (document.getElementById("lkMoveModal")) {
+  $("lkMoveClose").addEventListener("click", closeLockMoveModal);
+  $("lkMoveCancel").addEventListener("click", closeLockMoveModal);
+  $("lkMoveModal").addEventListener("click", (e) => { if (e.target === $("lkMoveModal")) closeLockMoveModal(); });
+  $("lkMoveConfirm").addEventListener("click", async () => {
+    const msg = $("lkMoveMsg"); msg.className = "msg";
+    const raw = ($("lkMoveAddr") as HTMLInputElement).value.trim();
+    if (!isAddress(raw)) { msg.className = "msg bad"; msg.textContent = "Enter a valid wallet address (0x…)."; return; }
+    const btn = $("lkMoveConfirm") as HTMLButtonElement;
+    try {
+      btn.disabled = true;
+      msg.textContent = "Confirm in wallet…";
+      const h = await send(LOCKER, encodeFunctionData({ abi: LOCKER_ABI as any, functionName: "transferLockOwnership", args: [BigInt(lkMoveId), getAddress(raw)] }));
+      msg.innerHTML = `Moving… <span class="spin"></span>`;
+      await waitTx(h);
+      closeLockMoveModal();
+      notify("Lock moved ✓");
+      renderMine();
+    } catch (e: any) { msg.className = "msg bad"; msg.textContent = friendlyErr(e); }
+    finally { btn.disabled = false; }
+  });
 }
 
 /* move modal — themed replacement for the old prompt() */

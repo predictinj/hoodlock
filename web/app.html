@@ -1041,6 +1041,23 @@
 </div>
 
 <!-- move vesting schedule modal -->
+<div id="lkMoveModal" class="modal">
+  <div class="modal-card">
+    <div class="m-head"><h3>Move lock to another wallet</h3><button id="lkMoveClose" class="m-close">✕</button></div>
+    <div class="m-sub" id="lkMoveCurrent"></div>
+    <div class="field" style="margin-bottom:0">
+      <label>New owner address</label>
+      <div class="input-wrap"><input type="text" id="lkMoveAddr" placeholder="0x…" spellcheck="false" autocomplete="off" /></div>
+      <div class="hintline">The tokens stay locked with the same unlock date. The new wallet becomes the only one able to withdraw at expiry, and the only one able to move it again. Irreversible; never use an exchange address.</div>
+    </div>
+    <div class="wconn-acts" style="margin-top:18px">
+      <button id="lkMoveCancel" class="btn btn-line">Cancel</button>
+      <button id="lkMoveConfirm" class="btn btn-neon">Move lock</button>
+    </div>
+    <div class="msg" id="lkMoveMsg"></div>
+  </div>
+</div>
+
 <div id="vMoveModal" class="modal">
   <div class="modal-card">
     <div class="m-head"><h3>Move vesting schedule</h3><button id="vMoveClose" class="m-close">✕</button></div>
