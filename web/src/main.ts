@@ -4007,6 +4007,45 @@ async function revCirculating(): Promise<{ circulating: bigint; total: bigint } 
   } catch { return revCirc; }
 }
 
+
+/* Eligibility is a LOCK, not a balance, so the share has to be read from the
+   locker rather than from balanceOf. Both sides are on chain and cheap, so the
+   page can show a real number the moment a wallet connects instead of waiting
+   for a distribution to reveal it.
+
+   Ids come from the server's event index because locksByToken is appendable by
+   anyone for the price of a 1-wei lock. Falling back to the contract array is
+   fine for a display estimate: dust adds dust. */
+const REV_MIN_DAYS = 7 * 86_400;
+type RevWeights = { mine: bigint; total: bigint; myLocks: LockRow[] };
+
+async function revLockWeights(who: string | null): Promise<RevWeights> {
+  const idx = await recordIds(LOCK_TOKEN).catch(() => null);
+  let ids: number[];
+  if (idx) ids = idx.locks.token;
+  else ids = ((await pub.readContract({
+    address: LOCKER, abi: LOCKER_ABI as any, functionName: "locksByToken",
+    args: [getAddress(LOCK_TOKEN)],
+  })) as bigint[]).map(Number);
+
+  const now = Math.floor(Date.now() / 1000);
+  const rows = await Promise.all(ids.map((id) => readLock(id).catch(() => null)));
+  const owner = who ? who.toLowerCase() : null;
+
+  let mine = 0n, total = 0n;
+  const myLocks: LockRow[] = [];
+  await Promise.all(rows.map(async (l) => {
+    if (!l || l.withdrawn) return;
+    if (l.token.toLowerCase() !== LOCK_TOKEN) return;
+    if (l.unlockTime <= now) return;                       // the commitment is over
+    const t0 = await lockedAtTs(l.id).catch(() => null);
+    if (t0 !== null && l.unlockTime - t0 < REV_MIN_DAYS) return;  // under the 7-day floor
+    total += l.amount;
+    if (owner && l.owner.toLowerCase() === owner) { mine += l.amount; myLocks.push(l); }
+  }));
+  return { mine, total, myLocks };
+}
+
 async function revLoadPosition() {
   const box = $("rvPosBox");
   if (!account) {
@@ -4018,27 +4057,28 @@ async function revLoadPosition() {
     return;
   }
   try {
-    const [bal, circ] = await Promise.all([
-      pub.readContract({ address: getAddress(LOCK_TOKEN), abi: ERC20, functionName: "balanceOf", args: [account as `0x${string}`] }) as Promise<bigint>,
-      revCirculating(),
-    ]);
-    if (!circ || circ.circulating <= 0n) throw new Error("no supply");
-    revShare = Number(bal * 1_000_000_000n / circ.circulating) / 1e9;
-    const pct = Number(bal * 1_000_000n / circ.circulating) / 10_000;
-    const eligible = bal > 0n;
+    const w = await revLockWeights(account);
+    revShare = w.total > 0n ? Number((w.mine * 1_000_000_000n) / w.total) / 1e9 : 0;
+    const pct = w.total > 0n ? Number((w.mine * 1_000_000n) / w.total) / 10_000 : 0;
+    const eligible = w.mine > 0n;
     const lockP = revLockPrice.v;
-    const balUsd = lockP && lockP > 0 ? fmtUsd(Number(formatUnits(bal, 18)) * lockP) : "";
+    const lockedUsd = lockP && lockP > 0 ? fmtUsd(Number(formatUnits(w.mine, 18)) * lockP) : "";
+    const soonest = w.myLocks.length
+      ? Math.min(...w.myLocks.map((l) => l.unlockTime)) : 0;
+
     box.innerHTML = `
-      <div class="rv-sim-row"><span class="rv-sim-label">$LOCK balance</span><b>${fmtNum(bal, 18)}</b></div>
-      ${balUsd ? `<div class="rv-sim-row"><span class="rv-sim-label">Balance value</span><b>${balUsd}</b></div>` : ""}
-      <div class="rv-sim-row"><span class="rv-sim-label">Share of circulating supply</span><b>${eligible && pct < 0.0001 ? "<0.0001" : pct.toFixed(4)}%</b></div>
-      <div class="rv-sim-row" style="margin-bottom:0"><span class="rv-sim-label">Next drop</span>
+      <div class="rv-sim-row"><span class="rv-sim-label">$LOCK locked</span><b>${fmtNum(w.mine, 18)}</b></div>
+      ${lockedUsd ? `<div class="rv-sim-row"><span class="rv-sim-label">Locked value</span><b>${lockedUsd}</b></div>` : ""}
+      <div class="rv-sim-row"><span class="rv-sim-label">Share of all locked $LOCK</span><b>${eligible && pct < 0.0001 ? "<0.0001" : pct.toFixed(4)}%</b></div>
+      ${eligible ? `<div class="rv-sim-row"><span class="rv-sim-label">Your locks</span><b>${w.myLocks.length}</b></div>
+      <div class="rv-sim-row"><span class="rv-sim-label">First unlock</span><b>${dateLabel(soonest)}</b></div>` : ""}
+      <div class="rv-sim-row" style="margin-bottom:0"><span class="rv-sim-label">Next buyback</span>
         <span class="status ${eligible ? "locked" : "withdrawn"}"><i></i>${eligible ? "ELIGIBLE" : "NOT ELIGIBLE"}</span></div>
-      ${eligible ? "" : `<div class="hintline" style="margin-top:10px">Hold any amount of $LOCK at the snapshot to join the next distribution.</div>`}`;
+      ${eligible ? "" : `<div class="hintline" style="margin-top:10px">Holding $LOCK earns nothing. Lock it for 7 days or more to join the next distribution.</div>`}`;
     $("rvSimHoldWrap").style.display = "none";
   } catch {
     revShare = null;
-    box.innerHTML = `<div class="empty"><div class="small">Couldn't read your position from the chain right now.</div></div>`;
+    box.innerHTML = `<div class="empty"><div class="small">Couldn't read your locks from the chain right now.</div></div>`;
   }
   revRenderCut(); revSimRender();
 }
