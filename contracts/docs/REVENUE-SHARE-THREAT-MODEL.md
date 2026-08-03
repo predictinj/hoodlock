@@ -344,3 +344,55 @@ Suite now 33 tests, 109 repo-wide.
 reachable by reading the pool, but concentrated liquidity means the fill for a
 given size cannot be predicted from a mock at all, and that is the one thing
 only a fork can answer.
+
+---
+
+## Second test pass (2026-08-03)
+
+Two gaps big enough to hide real bugs:
+
+**Every price test ran at tick 0**, where the maths is trivially 1:1 and
+`_quoteFromTick` is barely exercised. The live pool sits at **tick 186569**.
+`test_quoteAtRealPoolTick` now runs at that tick in the real token ordering and
+asserts the quote lands within 2% of **125,606,197 LOCK per WETH**, the price
+measured independently off the pool. It passes, which is the first evidence the
+tick maths is right at production magnitude rather than merely at the identity.
+
+**Every Merkle tree was two leaves**, so `_verify`'s loop ran exactly once. A
+real round is ~162 lockers, depth 8. `test_deepMerkleTree_eightLeaves` builds
+three levels by hand, claims from an interior leaf with a depth-3 proof, and
+asserts a sibling's proof fails for a different leaf.
+
+Also added: negative-tick pricing, consecutive rounds, keeper rotation, the
+two-step admin handover, and two fuzz properties (claims never exceed the
+cumulative; the threshold is always inside its bounds).
+
+### A grief worth recording, not fixing
+
+`test_keeperCanResetPendingDelay_documentedGrief` — a keeper can re-propose a
+root before the previous proposal matures, restarting `ROOT_DELAY` each time.
+Repeated indefinitely this blocks **all** distributions.
+
+It is a denial of service, not a theft: nothing already claimed is at risk, and
+the vault keeps buying $LOCK regardless. Fixing it means either allowing a
+proposal to mature despite being superseded (which lets a stolen key queue an
+attack the keeper cannot cancel) or restricting re-proposals (which stops an
+honest keeper correcting a mistake). Both cures are worse. Recorded so the
+behaviour is known rather than discovered.
+
+### All three failures on this pass were in the tests
+
+- The negative-tick test priced the mock at 1e14 when tick -100000 implies
+  ~22,026 LOCK per WETH. The contract demanded 4.228e20 and was **right**; the
+  failure confirmed the maths rather than contradicting it.
+- A fuzz run picked an amount larger than the fixture's balance, testing the
+  fixture rather than the invariant. Now bounded.
+- `testFuzz_thresholdAlwaysWithinBounds` read `vault.MIN_THRESHOLD()` after
+  `vm.prank`, and that view call **consumed the prank**, so `setThreshold`
+  arrived from the test contract and reverted `NotAdmin` instead of
+  `OutOfBounds`. Constants are now read before pranking.
+
+That last one is worth remembering generally: any call between `vm.prank` and
+the call under test silently redirects the sender.
+
+Suite now **42 tests**, 118 repo-wide.

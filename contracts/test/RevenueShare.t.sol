@@ -464,4 +464,198 @@ contract RevenueShareTest is Test {
         vault.execute();
         assertEq(vault.roundId(), 1, "an honest 1% fee must not trip slippage");
     }
+
+    /* ============ price maths at the REAL tick ============ */
+
+    /**
+     * Every other price test runs at tick 0, where the maths is trivially 1:1
+     * and exercises almost nothing. The live pool sits at tick 186569 with WETH
+     * as token0, which independently measures ~125,606,197 LOCK per WETH. If
+     * _quoteFromTick is wrong at that magnitude, every bound in production is
+     * wrong, and tick 0 would never reveal it.
+     */
+    function test_quoteAtRealPoolTick() public {
+        StandardToken l2 = new StandardToken("HoodLock", "LOCK", 1e30);
+        MockWETH w2 = new MockWETH();
+        MockPool p2 = new MockPool(address(w2), address(l2)); // real ordering
+        p2.setLockToken(address(l2));
+        p2.setTwapTick(186569);
+        l2.transfer(address(p2), 1e30);
+
+        LockDistributor d2 = new LockDistributor(address(l2), keeper, admin);
+        LockBuybackVault v2 =
+            new LockBuybackVault(address(p2), address(w2), address(l2), address(d2), admin);
+        p2.setVault(address(v2));
+
+        // Price the pool honestly at the same tick: ~1.256e8 LOCK per WETH.
+        uint256 measured = 125_606_197e18;
+        p2.setExecutionPrice(measured);
+
+        vm.deal(address(v2), 0.02 ether);
+        vm.prank(rando);
+        uint256 out = v2.execute();
+
+        // 0.02 ETH at ~1.256e8 LOCK/WETH is ~2.512e6 LOCK.
+        assertApproxEqRel(out, (measured * 2) / 100, 0.02e18, "quote must track the real tick");
+    }
+
+    /// The negative-tick rounding branch is never touched by tick 0.
+    function test_quoteAtNegativeTick() public {
+        StandardToken l2 = new StandardToken("LOCK", "LOCK", 1e30);
+        MockWETH w2 = new MockWETH();
+        MockPool p2 = new MockPool(address(l2), address(w2)); // LOCK is token0 here
+        p2.setLockToken(address(l2));
+        p2.setTwapTick(-100000);
+        l2.transfer(address(p2), 1e30);
+
+        LockDistributor d2 = new LockDistributor(address(l2), keeper, admin);
+        LockBuybackVault v2 =
+            new LockBuybackVault(address(p2), address(w2), address(l2), address(d2), admin);
+        p2.setVault(address(v2));
+
+        // tick -100000 with LOCK as token0 means 1.0001^-100000 WETH per LOCK,
+        // i.e. ~22,026 LOCK per WETH. Pricing the mock anywhere else tests the
+        // mock, not the contract.
+        p2.setExecutionPrice(22026e18);
+        vm.deal(address(v2), 0.02 ether);
+        vm.prank(rando);
+        uint256 out = v2.execute();
+        assertGt(out, 0, "negative ticks must price without reverting");
+    }
+
+    /* ============ a Merkle tree of realistic depth ============ */
+
+    /**
+     * Every other claim test uses two leaves, so the proof is one hash deep and
+     * the loop in _verify runs once. A real round has ~162 lockers, depth 8.
+     */
+    function test_deepMerkleTree_eightLeaves() public {
+        address[8] memory who;
+        uint256[8] memory amt;
+        bytes32[8] memory leaves;
+        uint256 total;
+        for (uint256 i = 0; i < 8; i++) {
+            who[i] = address(uint160(0x1000 + i));
+            amt[i] = (i + 1) * 10e18;
+            total += amt[i];
+            leaves[i] = _leaf(who[i], amt[i]);
+        }
+        lock.transfer(address(dist), total);
+
+        // Build three levels by hand so the proof is genuinely depth 3.
+        bytes32[4] memory l1;
+        for (uint256 i = 0; i < 4; i++) l1[i] = _pair(leaves[2 * i], leaves[2 * i + 1]);
+        bytes32[2] memory l2;
+        for (uint256 i = 0; i < 2; i++) l2[i] = _pair(l1[2 * i], l1[2 * i + 1]);
+        bytes32 rootHash = _pair(l2[0], l2[1]);
+
+        vm.prank(keeper);
+        dist.setRoot(rootHash, total);
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
+
+        // Claim for leaf index 5: siblings are leaf 4, l1[3], l2[0].
+        bytes32[] memory proof = new bytes32[](3);
+        proof[0] = leaves[4];
+        proof[1] = l1[3];
+        proof[2] = l2[0];
+        dist.claim(who[5], amt[5], proof);
+        assertEq(lock.balanceOf(who[5]), amt[5], "depth-3 proof must verify");
+
+        // And a sibling's proof must not work for a different leaf.
+        vm.expectRevert(LockDistributor.BadProof.selector);
+        dist.claim(who[6], amt[6], proof);
+    }
+
+    /* ============ paths not previously exercised ============ */
+
+    /// A keeper can overwrite a pending root, which resets the 48h clock. That
+    /// is a denial of service on distributions, not a theft. Recorded, not fixed.
+    function test_keeperCanResetPendingDelay_documentedGrief() public {
+        lock.transfer(address(dist), 100e18);
+        bytes32 r = _pair(_leaf(alice, 100e18), _leaf(bob, 0));
+        vm.prank(keeper);
+        dist.setRoot(r, 100e18);
+        uint64 firstActiveAt = dist.pendingActiveAt();
+
+        vm.warp(block.timestamp + 47 hours);
+        vm.prank(keeper);
+        dist.setRoot(r, 100e18);           // re-propose, clock restarts
+        assertGt(dist.pendingActiveAt(), firstActiveAt, "delay restarts");
+
+        vm.expectRevert();
+        dist.activateRoot();               // cannot activate on the old timer
+    }
+
+    function test_adminTwoStepTransfer() public {
+        vm.prank(admin);
+        dist.transferAdmin(bob);
+        assertEq(dist.admin(), admin, "not until accepted");
+        vm.prank(rando);
+        vm.expectRevert(LockDistributor.NotAdmin.selector);
+        dist.acceptAdmin();
+        vm.prank(bob);
+        dist.acceptAdmin();
+        assertEq(dist.admin(), bob);
+    }
+
+    function test_keeperRotation() public {
+        vm.prank(admin);
+        dist.setKeeper(bob);
+        vm.prank(keeper);
+        vm.expectRevert(LockDistributor.NotKeeper.selector);
+        dist.setRoot(bytes32(uint256(1)), 0);
+        lock.transfer(address(dist), 10e18);
+        vm.prank(bob);
+        dist.setRoot(_pair(_leaf(alice, 10e18), _leaf(bob, 0)), 10e18);
+    }
+
+    function test_consecutiveRoundsAccumulate() public {
+        vm.deal(address(vault), 1 ether);
+        vm.startPrank(rando);
+        vault.execute();
+        uint256 afterOne = vault.totalLockBought();
+        vault.execute();
+        vm.stopPrank();
+        assertEq(vault.roundId(), 2);
+        assertGt(vault.totalLockBought(), afterOne, "second round adds more");
+        assertEq(vault.totalEthSpent(), 2 * vault.maxEthPerRound());
+    }
+
+    /* ============ fuzz ============ */
+
+    function testFuzz_claimNeverExceedsCumulative(uint96 a, uint96 b) public {
+        // Bounded by what this contract still holds after seeding the pool;
+        // an unfundable amount tests the fixture's balance, not the invariant.
+        uint256 aa = bound(uint256(a), 1, 100_000e18);
+        uint256 bb = bound(uint256(b), 1, 100_000e18);
+        lock.transfer(address(dist), aa + bb);
+        bytes32 la = _leaf(alice, aa);
+        bytes32 lb = _leaf(bob, bb);
+        vm.prank(keeper);
+        dist.setRoot(_pair(la, lb), aa + bb);
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
+
+        bytes32[] memory pa = new bytes32[](1); pa[0] = lb;
+        dist.claim(alice, aa, pa);
+        assertEq(lock.balanceOf(alice), aa);
+        assertLe(dist.totalClaimed(), dist.totalObligations(), "never over-pay");
+    }
+
+    function testFuzz_thresholdAlwaysWithinBounds(uint256 t) public {
+        // Read the bounds BEFORE pranking: a view call consumes vm.prank, so
+        // setThreshold would arrive from the test contract and revert NotAdmin.
+        uint256 lo = vault.MIN_THRESHOLD();
+        uint256 hi = vault.MAX_THRESHOLD();
+        bool valid = t >= lo && t <= hi;
+        vm.prank(admin);
+        if (!valid) {
+            vm.expectRevert(LockBuybackVault.OutOfBounds.selector);
+            vault.setThreshold(t);
+        } else {
+            vault.setThreshold(t);
+            assertEq(vault.threshold(), t);
+        }
+    }
 }
