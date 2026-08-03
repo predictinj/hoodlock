@@ -4071,7 +4071,7 @@ async function revLoadPosition() {
       ${lockedUsd ? `<div class="rv-sim-row"><span class="rv-sim-label">Locked value</span><b>${lockedUsd}</b></div>` : ""}
       <div class="rv-sim-row"><span class="rv-sim-label">Share of all locked $LOCK</span><b>${eligible && pct < 0.0001 ? "<0.0001" : pct.toFixed(4)}%</b></div>
       ${eligible ? `<div class="rv-sim-row"><span class="rv-sim-label">Your locks</span><b>${w.myLocks.length}</b></div>
-      <div class="rv-sim-row"><span class="rv-sim-label">First unlock</span><b>${dateLabel(soonest)}</b></div>` : ""}
+      <div class="rv-sim-row"><span class="rv-sim-label">Next unlock</span><b>${dateLabel(soonest)}</b></div>` : ""}
       <div class="rv-sim-row" style="margin-bottom:0"><span class="rv-sim-label">Next buyback</span>
         <span class="status ${eligible ? "locked" : "withdrawn"}"><i></i>${eligible ? "ELIGIBLE" : "NOT ELIGIBLE"}</span></div>
       ${eligible ? "" : `<div class="hintline" style="margin-top:10px">Holding $LOCK earns nothing. Lock it for 7 days or more to join the next distribution.</div>`}`;
