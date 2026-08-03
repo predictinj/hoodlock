@@ -250,3 +250,46 @@ for the same class of error before its result is trusted.
   from the locker's event index.
 - **A second splitter** must be deployed with `ops = vault`, since the live one's
   payees are immutable, followed by `setFeeCollector` on all four products.
+
+---
+
+## C1 re-audit (2026-08-03, same day)
+
+**The first implementation of C1 did not close it, and the suite did not catch
+that because no test attacked it.** Written down in full because the reasoning
+error is more useful than the fix.
+
+The mitigation as first stated bounded the *increase* in total obligations. The
+code went further and enforced solvency: a root can never promise more than the
+contract holds. Both are true statements about inflation. Neither says anything
+about **reallocation**, and reallocation does not change the total.
+
+A probe proved it in one test: with alice and bob each owed 100 and nothing yet
+claimed, a stolen keeper key posted a root paying itself 200 and alice 0. Total
+obligations unchanged, balance still covering them, check passed, attacker took
+the entire pot.
+
+```
+attacker took: 200000000000000000000
+```
+
+**No accounting rule can close this.** Whoever sets the root decides the
+allocation; that is the job. What closes it is time.
+
+*Now binding:* `setRoot` only proposes. `activateRoot()` promotes it after
+`ROOT_DELAY = 48 hours`, is permissionless, and cannot be rushed. **The previous
+root keeps paying for the whole window**, so every honest holder can claim what
+they are owed before any new root pays anyone. A stolen key can at worst take
+what nobody claimed in two days, and the proposal is a public event the moment
+it is made.
+
+`ROOT_DELAY` is a constant, not a setting. A keeper able to shorten it could
+bypass the only thing standing between them and the pot.
+
+This also reverses **A3**, which listed "no timelock in v1" as an accepted risk
+on the grounds that C1 was already bounded. It was not. The timelock is not a
+nice-to-have here; it is the mitigation.
+
+Regression test: `test_C1_hostileRootCannotStealUnclaimed` asserts the attack
+fails, that it cannot be rushed, that honest holders still get paid during the
+window, and that the attacker ends with zero. Suite now 31 tests, 107 repo-wide.

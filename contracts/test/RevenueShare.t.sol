@@ -212,6 +212,9 @@ contract RevenueShareTest is Test {
         bytes32 root = _pair(_leaf(alice, 100e18), _leaf(bob, 100e18));
         vm.prank(keeper);
         dist.setRoot(root, 200e18);
+        assertEq(dist.totalObligations(), 0, "not live until activated");
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
         assertEq(dist.totalObligations(), 200e18);
         assertEq(dist.roundId(), 1);
     }
@@ -220,11 +223,13 @@ contract RevenueShareTest is Test {
     function test_setRoot_revertsOnDecrease() public {
         lock.transfer(address(dist), 200e18);
         bytes32 root = _pair(_leaf(alice, 100e18), _leaf(bob, 100e18));
-        vm.startPrank(keeper);
+        vm.prank(keeper);
         dist.setRoot(root, 200e18);
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
+        vm.prank(keeper);
         vm.expectRevert(LockDistributor.ObligationsDecreased.selector);
         dist.setRoot(root, 199e18);
-        vm.stopPrank();
     }
 
     function test_setRoot_onlyKeeper() public {
@@ -241,6 +246,8 @@ contract RevenueShareTest is Test {
         bytes32 lb = _leaf(bob, bAmt);
         vm.prank(keeper);
         dist.setRoot(_pair(la, lb), aAmt + bAmt);
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
         pa = new bytes32[](1); pa[0] = lb;
         pb = new bytes32[](1); pb[0] = la;
     }
@@ -277,6 +284,8 @@ contract RevenueShareTest is Test {
         bytes32 lb2 = _leaf(bob, 90e18);
         vm.prank(keeper);
         dist.setRoot(_pair(la2, lb2), 250e18);
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
 
         bytes32[] memory pa2 = new bytes32[](1); pa2[0] = lb2;
         dist.claim(alice, 160e18, pa2);
@@ -294,6 +303,8 @@ contract RevenueShareTest is Test {
         bytes32 lb2 = _leaf(bob, 210e18);
         vm.prank(keeper);
         dist.setRoot(_pair(la2, lb2), 250e18);
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
 
         bytes32[] memory pa2 = new bytes32[](1); pa2[0] = lb2;
         vm.expectRevert(LockDistributor.NothingToClaim.selector);
@@ -305,6 +316,8 @@ contract RevenueShareTest is Test {
         bytes32 lb3 = _leaf(bob, 50e18);
         vm.prank(keeper);
         dist.setRoot(_pair(la3, lb3), 350e18);
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
         bytes32[] memory pa3 = new bytes32[](1); pa3[0] = lb3;
         dist.claim(alice, 300e18, pa3);
         assertEq(lock.balanceOf(alice), 300e18);
@@ -344,9 +357,70 @@ contract RevenueShareTest is Test {
         bytes32 lb = _leaf(bob, bought - half);
         vm.prank(keeper);
         dist.setRoot(_pair(la, lb), bought);
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
 
         bytes32[] memory pa = new bytes32[](1); pa[0] = lb;
         dist.claim(alice, half, pa);
         assertEq(lock.balanceOf(alice), half);
+    }
+
+    /**
+     * C1 regression. A stolen keeper key tries to reassign every unclaimed
+     * token to itself. Total obligations are unchanged and the balance still
+     * covers them, so the solvency check alone passed this — it is what the
+     * timelock exists for.
+     */
+    function test_C1_hostileRootCannotStealUnclaimed() public {
+        lock.transfer(address(dist), 200e18);
+        bytes32 la = _leaf(alice, 100e18);
+        bytes32 lb = _leaf(bob, 100e18);
+        vm.prank(keeper);
+        dist.setRoot(_pair(la, lb), 200e18);
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
+
+        // Key stolen. Same total, all of it reassigned to the attacker.
+        bytes32 evil = _leaf(rando, 200e18);
+        bytes32 zero = _leaf(alice, 0);
+        vm.prank(keeper);
+        dist.setRoot(_pair(evil, zero), 200e18);
+
+        // Immediately unusable: the honest root is still the live one.
+        bytes32[] memory pe = new bytes32[](1); pe[0] = zero;
+        vm.expectRevert(LockDistributor.BadProof.selector);
+        dist.claim(rando, 200e18, pe);
+
+        // And it cannot be rushed.
+        vm.expectRevert();
+        dist.activateRoot();
+
+        // Meanwhile the honest holders can still take what they are owed.
+        bytes32[] memory pa = new bytes32[](1); pa[0] = lb;
+        bytes32[] memory pb = new bytes32[](1); pb[0] = la;
+        dist.claim(alice, 100e18, pa);
+        dist.claim(bob, 100e18, pb);
+        assertEq(lock.balanceOf(alice), 100e18);
+        assertEq(lock.balanceOf(bob), 100e18);
+
+        // When the bad root finally matures there is nothing left to take.
+        vm.warp(block.timestamp + 48 hours);
+        dist.activateRoot();
+        vm.expectRevert();
+        dist.claim(rando, 200e18, pe);
+        assertEq(lock.balanceOf(rando), 0, "attacker gets nothing");
+    }
+
+    function test_activateRoot_cannotBeRushed() public {
+        lock.transfer(address(dist), 100e18);
+        bytes32 r = _pair(_leaf(alice, 100e18), _leaf(bob, 0));
+        vm.prank(keeper);
+        dist.setRoot(r, 100e18);
+        vm.warp(block.timestamp + 47 hours);
+        vm.expectRevert();
+        dist.activateRoot();
+        vm.warp(block.timestamp + 1 hours + 1);
+        dist.activateRoot();
+        assertEq(dist.totalObligations(), 100e18);
     }
 }

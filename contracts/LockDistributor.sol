@@ -12,10 +12,15 @@ pragma solidity 0.8.24;
  *
  * Threat model: contracts/docs/REVENUE-SHARE-THREAT-MODEL.md
  *
- *  - C1  The keeper is NOT trusted with custody. `setRoot` may only increase
- *        total obligations by tokens that have actually arrived since the last
- *        root. A stolen key can misallocate one round; it can never reach the
- *        unclaimed balance of every earlier round, which is the entire pot.
+ *  - C1  The keeper is NOT trusted with custody. Two mechanisms, because the
+ *        first alone was proved insufficient: a solvency check (a root can
+ *        never promise more than the contract holds) AND a timelock. A
+ *        cumulative distributor lets whoever sets the root reassign anything
+ *        still unclaimed, and no amount of accounting prevents that, because
+ *        reallocation does not change the total. What prevents it is TIME: a
+ *        new root only becomes claimable after ROOT_DELAY, and the previous
+ *        root stays claimable throughout, so every honest holder has a full
+ *        window to take what they are owed before any new root can pay anyone.
  *  - H2  A root that lowers somebody's cumulative below what they already
  *        claimed is a clean no-op, never an underflow that locks them out of
  *        all future rounds.
@@ -38,10 +43,21 @@ contract LockDistributor {
     address public admin;    // may rotate the keeper, may never withdraw
     address public pendingAdmin;
 
+    /// Claims are always served by the ACTIVE root. A newly posted root waits.
     bytes32 public root;
     uint256 public totalObligations; // sum of all cumulative leaves in `root`
+
+    bytes32 public pendingRoot;
+    uint256 public pendingTotal;
+    uint64  public pendingActiveAt;
+
     uint256 public totalClaimed;
     uint256 public roundId;
+
+    /// Long enough that a stolen key cannot pay itself before holders react,
+    /// short enough that an honest round is not annoying. Immutable: a keeper
+    /// who could shorten this could bypass the protection it exists to give.
+    uint64 public constant ROOT_DELAY = 48 hours;
 
     mapping(address => uint256) public claimed;
 
@@ -53,7 +69,10 @@ contract LockDistributor {
     error ObligationsDecreased();
     error Unfunded(uint256 requested, uint256 available);
     error Reentrant();
+    error NoPendingRoot();
+    error TooEarly(uint64 activeAt);
 
+    event RootProposed(bytes32 root, uint256 totalObligations, uint64 activeAt);
     event RootUpdated(uint256 indexed roundId, bytes32 root, uint256 totalObligations, uint256 added);
     event Claimed(address indexed account, uint256 amount, uint256 cumulative);
     event KeeperChanged(address indexed keeper);
@@ -88,18 +107,41 @@ contract LockDistributor {
      */
     function setRoot(bytes32 newRoot, uint256 newTotal) external {
         if (msg.sender != keeper) revert NotKeeper();
-        uint256 prev = totalObligations;
-        if (newTotal < prev) revert ObligationsDecreased();
+        if (newTotal < totalObligations) revert ObligationsDecreased();
 
-        // Every unclaimed obligation, old and new, must be backed right now.
+        // Solvency: every obligation the new root implies must already be backed.
         uint256 outstanding = newTotal - totalClaimed;
         uint256 held = token.balanceOf(address(this));
         if (held < outstanding) revert Unfunded(outstanding, held);
 
-        root = newRoot;
-        totalObligations = newTotal;
+        pendingRoot = newRoot;
+        pendingTotal = newTotal;
+        pendingActiveAt = uint64(block.timestamp) + ROOT_DELAY;
+        emit RootProposed(newRoot, newTotal, pendingActiveAt);
+    }
+
+    /**
+     * Promote a matured root. Permissionless: the keeper proposes, anyone
+     * finalises, and nobody can finalise early.
+     *
+     * The old root keeps paying until this runs, which is the entire point. A
+     * stolen key can propose a root that pays itself, but for ROOT_DELAY every
+     * honest holder can still claim what the honest root owed them.
+     */
+    function activateRoot() external {
+        if (pendingActiveAt == 0) revert NoPendingRoot();
+        if (block.timestamp < pendingActiveAt) revert TooEarly(pendingActiveAt);
+
+        uint256 prev = totalObligations;
+        root = pendingRoot;
+        totalObligations = pendingTotal;
+
+        pendingRoot = bytes32(0);
+        pendingTotal = 0;
+        pendingActiveAt = 0;
+
         unchecked { roundId += 1; }
-        emit RootUpdated(roundId, newRoot, newTotal, newTotal - prev);
+        emit RootUpdated(roundId, root, totalObligations, totalObligations - prev);
     }
 
     /// Everything owed to `account` that it has not already taken.
