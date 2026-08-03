@@ -460,3 +460,42 @@ leaves it armed, then that the veto disarms it and honest holders still get
 paid), `test_onlyAdminCanVeto`, `test_vetoCannotCreateOrMoveFunds`.
 
 Suite 45, repo 121.
+
+---
+
+## LockDistributor removed (2026-08-03)
+
+**Superseded by `RobinhoodAirdrop`, which was already deployed and audited.**
+
+The requirement that unclaimed rewards expire after 180 days is what settled it.
+A cumulative distributor cannot express expiry: a leaf says "everything you have
+ever been owed", so a claim cannot be attributed to a round and there is no way
+to say which tokens went stale. Adding it meant inventing new accounting on the
+contract holding the money.
+
+`RobinhoodAirdrop` already has per-drop `endTime`, exact `remaining` accounting,
+a 7-day minimum window, and `sweep()`. Each drop carries its own clock, so a
+round created today expires in 180 days and one created on day 10 expires on day
+190, independently, with no extra machinery.
+
+**It also dissolves C1 rather than mitigating it.** Each drop is separately
+funded and holds its own `remaining`. A hostile root for round 7 can misallocate
+round 7 and nothing else; rounds 1 to 6 are unreachable. The timelock, the
+`cancelPendingRoot` veto, the re-proposal grief and the `RootProposed` alert were
+all mitigations for a pot that only existed because I pooled the rounds.
+
+**The mistake, recorded.** I chose cumulative claiming to avoid per-round gas.
+That instinct comes from Ethereum. On chain 4663 a transaction is about $0.016,
+so twenty-six rounds a year costs roughly $0.42 to claim in full. I optimised
+away a cost that barely exists here and bought a keeper that could take
+everything.
+
+**What survives unchanged:** `LockBuybackVault` and every finding against it.
+C2 (TWAP bound), C3 (per-round cap), C4 (callback guard), H1, H3, H4, M1, M2, M5
+and the B1/B2/B3 pool findings all still apply. The vault suite is 17 tests.
+
+**Open, for the owner:** the sweep destination. `sweep()` pays the drop's
+*creator*, so if the fee wallet is to receive expired rounds it must create the
+drops, which means the vault first sends $LOCK to an EOA that could simply keep
+it. If the vault creates them instead, expired rounds recycle into the next
+buyback and never leave contract custody.
