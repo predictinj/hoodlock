@@ -1041,9 +1041,20 @@ async function readTokMeta(addr: string) {
     metaCache.set(addr, m); // cache VERIFIED reads only
     return m;
   } catch {
-    // Transient RPC failure (the public Robinhood RPC rate-limits) — show the
-    // fallback for this render but do NOT cache it, so the next render retries
-    // instead of the token being stuck as "$TOKEN" for the whole session.
+    // Transient RPC failure (the public Robinhood RPC rate-limits) — try the
+    // server's cached price endpoint, which carries symbol and decimals for
+    // exactly this case. Only a verified answer is cached.
+    try {
+      const r = await fetch(`/api/price/${addr.toLowerCase()}`);
+      if (r.ok) {
+        const j: any = await r.json();
+        if (j?.symbol) {
+          const m = { symbol: String(j.symbol), decimals: Number(j.decimals ?? 18) };
+          metaCache.set(addr, m);
+          return m;
+        }
+      }
+    } catch { /* placeholder below */ }
     return { symbol: "TOKEN", decimals: 18 };
   }
 }

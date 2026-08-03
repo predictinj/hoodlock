@@ -1024,18 +1024,20 @@ app.get("/api/price/:token", async (req, res) => {
       const bal = await pub.readContract({ address: PRICE_WETH, abi: PRICE_BAL_ABI, functionName: "balanceOf", args: [p] });
       if (bal > 0n) { pool = p; depthWeth = Number(bal) / 1e18; break; }
     }
+    // symbol + decimals ride along so throttled clients can label tokens too
+    const [symbol, decimals] = await Promise.all([
+      pub.readContract({ address: token, abi: ERC20_READ_ABI, functionName: "symbol" }).then(String).catch(() => null),
+      pub.readContract({ address: token, abi: ERC20_READ_ABI, functionName: "decimals" }).then(Number).catch(() => 18),
+    ]);
     let body;
-    if (!pool) body = { pool: null, ethUsd: await ethUsd() };
+    if (!pool) body = { pool: null, symbol, decimals, ethUsd: await ethUsd() };
     else {
-      const [slot0, decimals] = await Promise.all([
-        pub.readContract({ address: pool, abi: PRICE_POOL_ABI, functionName: "slot0" }),
-        pub.readContract({ address: token, abi: ERC20_READ_ABI, functionName: "decimals" }).then(Number).catch(() => 18),
-      ]);
+      const slot0 = await pub.readContract({ address: pool, abi: PRICE_POOL_ABI, functionName: "slot0" });
       const sqrtP = Number(slot0[0]);
       const pRaw = (sqrtP / 2 ** 96) ** 2;
       const wethIsToken0 = PRICE_WETH.toLowerCase() < token.toLowerCase();
       const wethPerToken = wethIsToken0 ? (1 / pRaw) * 10 ** (decimals - 18) : pRaw * 10 ** (decimals - 18);
-      body = { pool, wethPerToken, depthWeth, decimals, ethUsd: await ethUsd() };
+      body = { pool, wethPerToken, depthWeth, symbol, decimals, ethUsd: await ethUsd() };
     }
     if (priceCache.size > 5000) priceCache.clear();
     priceCache.set(key, { at: Date.now(), body });
