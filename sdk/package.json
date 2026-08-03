@@ -1,0 +1,12 @@
+{
+  "name": "@hoodlock/sdk",
+  "version": "0.1.0",
+  "description": "Integrate HoodLock airdrops, locks, burns and vesting on Robinhood Chain into your own platform",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": { ".": "./index.mjs" },
+  "files": ["index.mjs", "merkle.mjs", "airdrop-list.mjs", "README.md"],
+  "peerDependencies": { "viem": ">=2.0.0" },
+  "keywords": ["hoodlock", "airdrop", "robinhood-chain", "merkle", "token-lock"],
+  "license": "MIT"
+}
