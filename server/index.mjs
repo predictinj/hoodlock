@@ -995,6 +995,57 @@ app.get("/api/record/:kind/:id", async (req, res) => {
   }
 });
 
+/* Token pricing for rate-limited visitors: the same Uniswap-v3 WETH-pool spot
+ * math the client runs (web/src/tvl.ts), computed once here and cached, so a
+ * browser whose IP the public RPC has cut off can still price TVL. `pool:
+ * null` is a VERIFIED no-WETH-pool answer; a failed lookup is 503. */
+const PRICE_FACTORY = getAddress("0x1f7d7550b1b028f7571e69a784071f0205fd2efa");
+const PRICE_WETH = getAddress("0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73");
+const PRICE_FEES = [10000, 3000, 500, 100];
+const PRICE_FACTORY_ABI = [{ type: "function", name: "getPool", stateMutability: "view",
+  inputs: [{ type: "address" }, { type: "address" }, { type: "uint24" }], outputs: [{ type: "address" }] }];
+const PRICE_POOL_ABI = [{ type: "function", name: "slot0", stateMutability: "view", inputs: [],
+  outputs: [{ type: "uint160" }, { type: "int24" }, { type: "uint16" }, { type: "uint16" }, { type: "uint16" }, { type: "uint8" }, { type: "bool" }] }];
+const PRICE_BAL_ABI = [{ type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "uint256" }] }];
+const priceCache = new Map();
+app.get("/api/price/:token", async (req, res) => {
+  const raw = String(req.params.token || "");
+  if (!isAddress(raw)) return res.status(400).json({ error: "bad token" });
+  const token = getAddress(raw);
+  const key = token.toLowerCase();
+  const hit = priceCache.get(key);
+  if (hit && Date.now() - hit.at < 5 * 60_000) { res.set("Cache-Control", "public, max-age=120"); return res.json(hit.body); }
+  try {
+    const pools = await Promise.all(PRICE_FEES.map((fee) =>
+      pub.readContract({ address: PRICE_FACTORY, abi: PRICE_FACTORY_ABI, functionName: "getPool", args: [token, PRICE_WETH, fee] })));
+    const candidates = pools.filter((p) => p && p !== "0x0000000000000000000000000000000000000000");
+    let pool = null, depthWeth = 0;
+    for (const p of candidates) {
+      const bal = await pub.readContract({ address: PRICE_WETH, abi: PRICE_BAL_ABI, functionName: "balanceOf", args: [p] });
+      if (bal > 0n) { pool = p; depthWeth = Number(bal) / 1e18; break; }
+    }
+    let body;
+    if (!pool) body = { pool: null, ethUsd: await ethUsd() };
+    else {
+      const [slot0, decimals] = await Promise.all([
+        pub.readContract({ address: pool, abi: PRICE_POOL_ABI, functionName: "slot0" }),
+        pub.readContract({ address: token, abi: ERC20_READ_ABI, functionName: "decimals" }).then(Number).catch(() => 18),
+      ]);
+      const sqrtP = Number(slot0[0]);
+      const pRaw = (sqrtP / 2 ** 96) ** 2;
+      const wethIsToken0 = PRICE_WETH.toLowerCase() < token.toLowerCase();
+      const wethPerToken = wethIsToken0 ? (1 / pRaw) * 10 ** (decimals - 18) : pRaw * 10 ** (decimals - 18);
+      body = { pool, wethPerToken, depthWeth, decimals, ethUsd: await ethUsd() };
+    }
+    if (priceCache.size > 5000) priceCache.clear();
+    priceCache.set(key, { at: Date.now(), body });
+    res.set("Cache-Control", "public, max-age=120");
+    return res.json(body);
+  } catch {
+    return res.status(503).json({ error: "chain unreachable" });
+  }
+});
+
 const NOT_FOUND = Symbol("not-found");
 
 async function proofMeta(kind, id) {

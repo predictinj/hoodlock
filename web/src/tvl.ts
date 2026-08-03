@@ -58,15 +58,17 @@ async function ethUsdPrice(): Promise<number> {
 }
 
 // pool-cache i localStorage — factoryn ändrar sig aldrig för ett givet par
+/* v2-nyckel: v1-cachen förgiftades under RPC-rate-limiting — misslyckade
+   uppslag sparades som "none" och tokens blev oprissatta för alltid. */
 function cachedPool(token: string): string | null | undefined {
   try {
-    const v = localStorage.getItem(`hl_pool_${token.toLowerCase()}`);
+    const v = localStorage.getItem(`hl_pool2_${token.toLowerCase()}`);
     if (v === null) return undefined;   // aldrig slått upp
     return v === "none" ? null : v;
   } catch { return undefined; }
 }
 function rememberPool(token: string, pool: string | null) {
-  try { localStorage.setItem(`hl_pool_${token.toLowerCase()}`, pool ?? "none"); } catch { /* */ }
+  try { localStorage.setItem(`hl_pool2_${token.toLowerCase()}`, pool ?? "none"); } catch { /* */ }
 }
 
 /* Pool-cachen ligger i localStorage och skrivs först efter uppslaget, så N rader
@@ -83,18 +85,19 @@ function findPool(pub: PublicClient, token: `0x${string}`): Promise<`0x${string}
   return p;
 }
 async function lookupPool(pub: PublicClient, token: `0x${string}`): Promise<`0x${string}` | null> {
-  // Alla fee-tiers samtidigt. Tidigare gick loopen ett varv i taget med två
-  // väntande anrop per varv, så en opoolad token kostade åtta rundturer i rad
-  // — gånger antalet tokens på skärmen.
-  const pools = await Promise.all(FEES.map((fee) =>
+  // Alla fee-tiers samtidigt. VIKTIGT: ett misslyckat anrop får ALDRIG tolkas
+  // som "ingen pool" — under rate-limiting cacheades det som "none" permanent
+  // och token blev oprissatt för evigt. Fel kastas; bara verifierade svar
+  // (alla fyra uppslag lyckades) får skrivas till cachen.
+  const results = await Promise.all(FEES.map((fee) =>
     (pub.readContract({ address: FACTORY, abi: FACTORY_ABI, functionName: "getPool", args: [token, WETH, fee] }) as Promise<string>)
-      .then((p) => (p && p !== ZERO ? (p as `0x${string}`) : null))
-      .catch(() => null)));
+      .then((p) => ({ ok: true as const, p: p && p !== ZERO ? (p as `0x${string}`) : null }))
+      .catch(() => ({ ok: false as const, p: null }))));
+  if (results.some((r) => !r.ok)) throw new Error("pool lookup failed");
+  const pools = results.map((r) => r.p);
   const bals = await Promise.all(pools.map((p) => p
-    ? (pub.readContract({ address: WETH, abi: ERC20_MIN, functionName: "balanceOf", args: [p] }) as Promise<bigint>).catch(() => 0n)
+    ? (pub.readContract({ address: WETH, abi: ERC20_MIN, functionName: "balanceOf", args: [p] }) as Promise<bigint>)
     : Promise.resolve(0n)));
-  // samma urvalsregel som förut: första tiern i FEES-ordning med faktiskt
-  // WETH-djup — en tom pool är ingen priskälla
   for (let i = 0; i < pools.length; i++) {
     const p = pools[i];
     if (p && bals[i] > 0n) { rememberPool(token, p); return p; }
@@ -103,11 +106,27 @@ async function lookupPool(pub: PublicClient, token: `0x${string}`): Promise<`0x$
   return null;
 }
 
+/* Serverns prisendpoint som reserv: samma matte, körd på serverns IP och
+   cachad där. null = kunde inte nås; { pool: null } = verifierat opoolad. */
+const srvPriceCache = new Map<string, { at: number; v: any }>();
+async function serverPrice(token: string): Promise<{ pool: string | null; wethPerToken?: number; depthWeth?: number; decimals?: number; ethUsd?: number } | null> {
+  const k = token.toLowerCase();
+  const hit = srvPriceCache.get(k);
+  if (hit && Date.now() - hit.at < 5 * 60_000) return hit.v;
+  try {
+    const r = await fetch(`/api/price/${k}`);
+    if (!r.ok) return null;
+    const v = await r.json();
+    srvPriceCache.set(k, { at: Date.now(), v });
+    return v;
+  } catch { return null; }
+}
+
 /** WETH-värdet av `amount` råenheter av `token`, kapat vid poolens djup. */
 async function tokenValueWeth(pub: PublicClient, token: `0x${string}`, amount: bigint, decimals: number): Promise<number | null> {
-  const pool = await findPool(pub, token);
-  if (!pool) return null;
   try {
+    const pool = await findPool(pub, token);
+    if (!pool) return null;   // verifierat opoolad
     const [slot0, poolWeth] = await Promise.all([
       pub.readContract({ address: pool, abi: POOL_ABI, functionName: "slot0" }) as Promise<any>,
       pub.readContract({ address: WETH, abi: ERC20_MIN, functionName: "balanceOf", args: [pool] }) as Promise<bigint>,
@@ -124,7 +143,14 @@ async function tokenValueWeth(pub: PublicClient, token: `0x${string}`, amount: b
     const raw = amt * wethPerToken;
     const depth = Number(poolWeth) / 1e18;
     return Math.min(raw, depth * DEPTH_CAP);
-  } catch { return null; }
+  } catch {
+    // direkta läsningar strypta — serverns cachade pris i stället
+    const sp = await serverPrice(token);
+    if (!sp || !sp.pool || !sp.wethPerToken) return null;
+    const dec = sp.decimals ?? decimals;
+    const amt = Number(amount) / 10 ** dec;
+    return Math.min(amt * sp.wethPerToken, (sp.depthWeth ?? 0) * DEPTH_CAP);
+  }
 }
 
 /** Räkna TVL över alla ej uttagna lås. locks = [{token, amount, withdrawn}] */
@@ -171,9 +197,9 @@ export async function amountValueUsd(pub: PublicClient, token: `0x${string}`, am
 export async function tokenPriceUsd(pub: PublicClient, token: `0x${string}`, decimals: number): Promise<number | null> {
   const ethUsd = await ethUsdPrice();
   if (!ethUsd) return null;
-  const pool = await findPool(pub, token);
-  if (!pool) return null;
   try {
+    const pool = await findPool(pub, token);
+    if (!pool) return null;
     const slot0: any = await pub.readContract({ address: pool, abi: POOL_ABI, functionName: "slot0" });
     const sqrtP = Number(slot0[0] ?? slot0.sqrtPriceX96);
     if (!sqrtP) return null;
@@ -181,17 +207,23 @@ export async function tokenPriceUsd(pub: PublicClient, token: `0x${string}`, dec
     const wethIsToken0 = WETH.toLowerCase() < token.toLowerCase();
     const wethPerToken = wethIsToken0 ? (1 / pRaw) * 10 ** (decimals - 18) : pRaw * 10 ** (decimals - 18);
     return wethPerToken * ethUsd;
-  } catch { return null; }
+  } catch {
+    const sp = await serverPrice(token);
+    return sp && sp.pool && sp.wethPerToken ? sp.wethPerToken * ethUsd : null;
+  }
 }
 
 /** Djup-taket i USD för en token (2× poolens WETH-sida) — null om opoolad. */
 export async function tokenDepthCapUsd(pub: PublicClient, token: `0x${string}`): Promise<number | null> {
   const ethUsd = await ethUsdPrice();
   if (!ethUsd) return null;
-  const pool = await findPool(pub, token);
-  if (!pool) return null;
   try {
+    const pool = await findPool(pub, token);
+    if (!pool) return null;
     const bal = await pub.readContract({ address: WETH, abi: ERC20_MIN, functionName: "balanceOf", args: [pool] }) as bigint;
     return (Number(bal) / 1e18) * DEPTH_CAP * ethUsd;
-  } catch { return null; }
+  } catch {
+    const sp = await serverPrice(token);
+    return sp && sp.pool && sp.depthWeth ? sp.depthWeth * DEPTH_CAP * ethUsd : null;
+  }
 }
