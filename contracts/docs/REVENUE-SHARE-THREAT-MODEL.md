@@ -499,3 +499,55 @@ and the B1/B2/B3 pool findings all still apply. The vault suite is 17 tests.
 drops, which means the vault first sends $LOCK to an EOA that could simply keep
 it. If the vault creates them instead, expired rounds recycle into the next
 buyback and never leave contract custody.
+
+---
+
+## LockRoundManager (2026-08-03)
+
+Opens one `RobinhoodAirdrop` per round and routes what nobody claims.
+
+**Why it exists.** `RobinhoodAirdrop.sweep()` pays the drop's **creator**, and a
+creator is fixed forever at creation. An admin-changeable sweep destination
+therefore needs a contract to be the creator and forward on. That is the entire
+job of this contract.
+
+**Owner decisions.** `CLAIM_WINDOW = 180 days`, per round, independent clocks.
+Initial `sweepReceiver = 0x79c1230cAb12d53D040f5FE1F5279e1A481CCeA2`, changeable
+by admin.
+
+### S1 — a settable destination IS an admin path to funds
+
+This breaks invariant 14 as originally written, deliberately and with the
+owner's instruction. It is bounded, and the bound is not in this contract:
+`RobinhoodAirdrop.sweep()` enforces `block.timestamp >= endTime` itself. **No
+admin can reach a round that is still claimable, whatever they set the receiver
+to.** The power extends only to money that has already expired under a rule
+enforced by an audited, deployed contract.
+
+`test_receiverChangeCannotReachALiveRound` asserts exactly this: the admin
+points the receiver at themselves, tries at day 179, and gets nothing.
+
+### S2 — sweeping is permissionless
+
+Anyone may call `sweepRound`. The caller chooses only *when*; the destination is
+whatever the admin last set. `test_sweep_isPermissionlessButDestinationIsNot`
+proves a stranger triggering it receives nothing.
+
+### A choice worth knowing about
+
+`sweepReceiver` can point back at the manager itself, which recycles expired
+rounds into the next distribution to lockers rather than paying them to the
+team. Same switch, opposite meaning.
+`test_receiverCanRecycleBackIntoTheNextRound` covers it.
+
+### Coverage
+
+15 tests. Notably `test_eachRoundExpiresIndependently` asserts two rounds opened
+ten days apart expire ten days apart, since a shared deadline is the obvious way
+to get this wrong.
+
+The stub reproduces the two rules that matter — sweep refuses before `endTime`
+and pays the creator — because relaxing either would make these tests prove
+nothing about the real contract.
+
+Suite 15, repo 108.
