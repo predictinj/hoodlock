@@ -4022,7 +4022,10 @@ const revLockAmt = (n: number) =>
 function revPayoutParts(eth: number): { v: string; extra: string } {
   const lock = revEthToLock(eth);
   const usd = revUsdStr(eth);
-  if (lock === null) return { v: revEth(eth), extra: usd };
+  // A spot-price conversion stops meaning anything once the amount rivals the
+  // pool's depth (the simulator can dial up sums no buyback could fill), so
+  // large figures stay in ETH and dollars instead of impossible token counts.
+  if (lock === null || lock > 50_000_000) return { v: revEth(eth), extra: usd };
   return { v: revLockAmt(lock), extra: [revEth(eth), usd].filter(Boolean).join(" · ") };
 }
 
